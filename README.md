@@ -2,9 +2,9 @@
 
 DemirTube, YouTube izleme davranışını yalnızca cihazında kaydeden ve zamanla hangi konu, kanal, başlık ve video sürelerini gerçekten sevdiğini açıklanabilir kurallarla analiz eden bir Chrome eklentisidir.
 
-Sürüm 0.10.0; yerel akıllı yardımcıyı, isteğe bağlı Groq derin analizini, keşfet kartlarındaki ön analiz rozetlerini ve Aurora dashboard deneyimini birlikte sunar. DemirTube YouTube sayfasında görünen video metadata'sını analiz eder; oynatma davranışını yalnızca geçerli watch ve Shorts sayfalarında kaydeder. Kullanıcı Groq'u açıkça bağlarsa yalnızca video metadata'sı ve altyazıdan çıkarılmış kısa sinyaller ikinci bir yapay zekâ değerlendirmesine gider; ham altyazı ve izleme geçmişi gönderilmez. Yerel analiz, kişisel kalibrasyon ve Supabase yedeği birbirinden bağımsız çalışır.
+Sürüm 0.10.0; yerel akıllı yardımcıyı, isteğe bağlı Groq derin analizini, keşfet kartlarındaki ön analiz rozetlerini ve Aurora dashboard deneyimini birlikte sunar. DemirTube YouTube sayfasında görünen video metadata'sını analiz eder; oynatma davranışını yalnızca geçerli watch ve Shorts sayfalarında kaydeder. Kullanıcı Groq'u açıkça bağlarsa yalnızca video metadata'sı ve altyazıdan çıkarılmış kısa sinyaller ikinci bir yapay zekâ değerlendirmesine gider; ham altyazı ve izleme geçmişi gönderilmez. Yerel analiz, kişisel kalibrasyon ve isteğe bağlı bulut yedeği (Firebase veya Supabase) birbirinden bağımsız çalışır.
 
-![DemirTube dashboard tasarım referansı](docs/dashboard-concept.png)
+![DemirTube dashboard genel bakış ekranı](docs/dashboard.png)
 
 ## Neler çalışıyor?
 
@@ -175,7 +175,7 @@ Tercih puanı, kullanıcının genel tamamlama tabanına göre kalibre edilir. A
 - Video ve oturumlar IndexedDB'de, ayarlar `chrome.storage.local` içinde kalır.
 - Bulut kapalıyken hiçbir izleme verisi sunucuya gönderilmez.
 - Groq'a video açılışında otomatik istek gönderilmez. Yalnızca kullanıcı video panelindeki **Groq ile derin analiz** düğmesine bastığında başlık, kanal, açıklama, konu, süre, içerik türü ve altyazıdan türetilmiş kısa analiz gönderilir.
-- Groq API anahtarı yalnızca `chrome.storage.local` içinde tutulur; JSON dışa aktarmaya veya Supabase yedeğine eklenmez.
+- Groq API anahtarı yalnızca `chrome.storage.local` içinde tutulur; JSON dışa aktarmaya veya bulut yedeğine (Firebase/Supabase) eklenmez.
 - Ham altyazı, oturum geçmişi, davranış puanları ve kullanıcı geri bildirimi Groq'a gönderilmez.
 - Bulut açıldığında yalnızca kullanıcının seçtiği Firebase veya Supabase projesine HTTPS üzerinden yedek gönderilir.
 - Bulut hesabının şifresi saklanmaz. Oturum ve yenileme tokenları yalnızca eklentinin yerel depolamasında tutulur.
