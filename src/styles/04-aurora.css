@@ -1,0 +1,859 @@
+/* ==========================================================================
+   DemirTube · Aurora tasarım sistemi v2
+   Tüm dashboard yüzeyleri için birleşik görünüm.
+
+   SIRA ÖNEMLİ: bu dosya global.css içinde sabit sırayla yüklenir. Sonraki
+   katmanlar buradaki seçicilerin bir kısmını bilinçli olarak ezer; kuralları
+   dosyalar arasında taşımak görünümü bozar.
+   ========================================================================== */
+
+:root {
+  --cyan:#00f2fe;
+  --violet:#8b5cf6;
+  --emerald:#10b981;
+  --amber:#f59e0b;
+  --glass:rgba(14,21,38,.72);
+  --glass-strong:rgba(16,25,44,.9);
+  --hairline:rgba(255,255,255,.075);
+  --hairline-strong:rgba(255,255,255,.13);
+  --glow-coral:0 0 0 1px rgba(255,81,72,.16), 0 18px 60px rgba(255,81,72,.10);
+  --glow-cyan:0 0 0 1px rgba(0,242,254,.15), 0 18px 60px rgba(0,242,254,.08);
+  --radius-xl:24px;
+  --radius-lg:18px;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+
+html.demirtube-ui {
+  background:#090d16;
+  scrollbar-color:rgba(139,92,246,.55) transparent
+}
+
+body:before {
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:-2;
+  background:linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px), linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px);
+  background-size:48px 48px;
+  mask-image:linear-gradient(to bottom,black,transparent 70%)
+}
+
+.ambient {
+  position:fixed;
+  border-radius:999px;
+  filter:blur(110px);
+  pointer-events:none;
+  z-index:-1;
+  opacity:.16
+}
+
+.ambient-one {
+  width:440px;
+  height:440px;
+  background:var(--violet);
+  right:8%;
+  top:-180px
+}
+
+.ambient-two {
+  width:360px;
+  height:360px;
+  background:var(--cyan);
+  left:18%;
+  bottom:-190px;
+  opacity:.09
+}
+
+.app-main {
+  min-width:0;
+  position:relative
+}
+
+.topbar-context {
+  margin-right:auto;
+  display:grid;
+  gap:2px
+}
+
+.topbar-context small {
+  font-size:9px;
+  letter-spacing:.18em;
+  color:var(--accent);
+  font-weight:800
+}
+
+.topbar-context strong {
+  font-size:13px;
+  color:var(--text)
+}
+
+.page-heading {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:24px;
+  margin-bottom:28px
+}
+
+.page-heading-copy {
+  max-width:760px
+}
+
+.page-eyebrow {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  color:#9fb2c7;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.18em;
+  margin-bottom:12px
+}
+
+.page-eyebrow i {
+  width:22px;
+  height:1px;
+  background:linear-gradient(90deg,var(--cyan),var(--violet));
+  box-shadow:0 0 12px var(--cyan)
+}
+
+.page-heading h1 {
+  font-size:clamp(28px,3.2vw,46px);
+  line-height:1.04;
+  letter-spacing:-.045em;
+  margin:0;
+  background:linear-gradient(120deg,#fff 25%,#cbd5e1 70%,#8fa2ba);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent
+}
+
+.page-heading p {
+  font-size:14px;
+  line-height:1.7;
+  margin:10px 0 0;
+  color:var(--muted);
+  max-width:680px
+}
+
+.surface,
+.metric,
+.maturity,
+.channel-card,
+.watchlist-grid>article,
+.intelligence-metrics>article,
+.duration-row,
+.weekly-comparisons>article {
+  border:1px solid var(--hairline);
+  background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.018));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035), 0 20px 55px rgba(0,0,0,.16);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px)
+}
+
+.surface,
+.metric,
+.channel-card,
+.watchlist-grid>article,
+.intelligence-metrics>article,
+.duration-row,
+.weekly-comparisons>article {
+  transition:transform .35s var(--ease), border-color .35s ease, box-shadow .35s ease, background .35s ease
+}
+
+.surface:hover,
+.metric:hover,
+.channel-card:hover,
+.watchlist-grid>article:hover,
+.intelligence-metrics>article:hover,
+.duration-row:hover,
+.weekly-comparisons>article:hover {
+  transform:translateY(-3px);
+  border-color:rgba(0,242,254,.16);
+  box-shadow:0 22px 70px rgba(0,0,0,.28), 0 0 0 1px rgba(0,242,254,.05)
+}
+
+.metric {
+  position:relative;
+  overflow:hidden
+}
+
+.metric:after {
+  content:"";
+  position:absolute;
+  width:110px;
+  height:110px;
+  border-radius:50%;
+  right:-55px;
+  top:-62px;
+  background:var(--metric-glow,var(--accent));
+  filter:blur(34px);
+  opacity:.16
+}
+
+.metric:nth-child(2) {
+  --metric-glow:var(--cyan)
+}
+
+.metric:nth-child(3) {
+  --metric-glow:var(--emerald)
+}
+
+.metric:nth-child(4) {
+  --metric-glow:var(--violet)
+}
+
+.metric:nth-child(5) {
+  --metric-glow:var(--amber)
+}
+
+.metric strong {
+  font-variant-numeric:tabular-nums;
+  letter-spacing:-.035em
+}
+
+.premium-grid {
+  gap:18px
+}
+
+.premium-controls,
+.premium-toolbar {
+  border:1px solid var(--hairline);
+  background:rgba(14,21,38,.62);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+  backdrop-filter:blur(18px);
+  border-radius:var(--radius-lg);
+  padding:12px
+}
+
+.premium-panel,
+.premium-report {
+  position:relative;
+  overflow:hidden
+}
+
+.premium-report:before {
+  content:"";
+  position:absolute;
+  inset:0 0 auto;
+  height:1px;
+  background:linear-gradient(90deg,transparent,var(--cyan),var(--violet),transparent);
+  opacity:.6
+}
+
+.neon-chart {
+  overflow:hidden
+}
+
+.neon-chart .recharts-cartesian-grid-horizontal line {
+  stroke:rgba(148,163,184,.10)
+}
+
+.neon-chart .recharts-default-tooltip {
+  background:rgba(9,13,22,.95)!important;
+  border:1px solid var(--hairline-strong)!important;
+  border-radius:14px!important;
+  box-shadow:0 20px 55px rgba(0,0,0,.42)!important
+}
+
+.recharts-text {
+  font-size:11px
+}
+
+.meter {
+  background:rgba(255,255,255,.055);
+  overflow:hidden
+}
+
+.meter i {
+  background:linear-gradient(90deg,var(--accent),#ff8c42,var(--cyan));
+  box-shadow:0 0 18px rgba(255,81,72,.38)
+}
+
+.score {
+  display:inline-grid;
+  place-items:center;
+  min-width:48px;
+  height:34px;
+  border-radius:999px;
+  color:#fff;
+  background:linear-gradient(120deg,rgba(139,92,246,.22),rgba(0,242,254,.12));
+  border:1px solid rgba(139,92,246,.3);
+  box-shadow:0 0 24px rgba(139,92,246,.13)
+}
+
+.empty {
+  min-height:190px;
+  border:1px dashed rgba(148,163,184,.18);
+  border-radius:var(--radius-xl);
+  display:grid;
+  place-items:center;
+  align-content:center;
+  gap:14px;
+  color:var(--muted);
+  background:radial-gradient(circle at 50% 0,rgba(139,92,246,.08),transparent 55%)
+}
+
+.empty-orbit {
+  width:44px;
+  height:44px;
+  border:1px solid rgba(0,242,254,.25);
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  box-shadow:0 0 28px rgba(0,242,254,.08)
+}
+
+.empty-orbit i {
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:var(--cyan);
+  box-shadow:0 0 16px var(--cyan)
+}
+
+.playback-heatmap[data-density="high"] i.rewatched {
+  box-shadow:0 0 12px rgba(139,92,246,.45)
+}
+
+.onboarding-card-premium {
+  border:1px solid rgba(0,242,254,.14);
+  background:linear-gradient(145deg,rgba(18,29,50,.96),rgba(8,13,24,.98));
+  box-shadow:0 35px 100px rgba(0,0,0,.55), 0 0 80px rgba(139,92,246,.10)
+}
+
+.button,
+.icon-button,
+select,
+input {
+  transition:border-color .2s ease, background .2s ease, box-shadow .2s ease, transform .2s ease
+}
+
+.button:hover,
+.icon-button:hover {
+  transform:translateY(-1px)
+}
+
+input:focus,
+select:focus {
+  outline:none;
+  border-color:rgba(0,242,254,.42);
+  box-shadow:0 0 0 3px rgba(0,242,254,.08)
+}
+
+.table-wrap {
+  border-radius:var(--radius-lg)
+}
+
+table tbody tr {
+  transition:background .2s ease
+}
+
+table tbody tr:hover {
+  background:rgba(0,242,254,.025)
+}
+
+@media(max-width:900px) {
+  .topbar-context {
+    display:none
+  }
+  .page-heading {
+    align-items:flex-start
+  }
+  .page-heading h1 {
+    font-size:32px
+  }
+  .overview-primary-metrics {
+    grid-template-columns:repeat(2,minmax(0,1fr))!important
+  }
+}
+
+@media(max-width:620px) {
+  .page-heading {
+    margin-bottom:22px
+  }
+  .page-heading h1 {
+    font-size:28px
+  }
+  .page-eyebrow {
+    font-size:9px
+  }
+  .premium-controls {
+    padding:9px
+  }
+  .overview-primary-metrics {
+    grid-template-columns:1fr!important
+  }
+  .ambient {
+    display:none
+  }
+}
+
+@media(prefers-reduced-motion:reduce) {
+  *, *:before, *:after {
+    scroll-behavior:auto!important;
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important
+  }
+  .surface:hover, .metric:hover, .channel-card:hover {
+    transform:none
+  }
+}
+
+/* Native select açılır listeleri koyu temada okunaklı tutar (Windows'ta beyaz zemin + açık yazı hatası). */
+select option {
+  background:#0d1520;
+  color:#e8eef6
+}
+
+select option:checked {
+  background:#1b2a3d;
+  color:#ffffff
+}
+
+.watchlist-stale-notice {
+  padding:10px 14px;
+  border:1px solid rgba(251,146,60,.4);
+  border-radius:12px;
+  background:rgba(251,146,60,.08);
+  color:#fdba74;
+  font-size:13px;
+  margin-bottom:14px
+}
+
+.watchlist-stale-badge {
+  color:#fdba74;
+  font-style:normal;
+  font-size:11px
+}
+
+.watchlist-archive {
+  margin-top:18px
+}
+
+.watchlist-archive-stats {
+  color:var(--muted);
+  font-size:12.5px;
+  line-height:1.7;
+  margin:0 0 10px
+}
+
+.watchlist-archive-list {
+  list-style:none;
+  margin:0;
+  padding:0;
+  display:grid;
+  gap:6px
+}
+
+.watchlist-archive-list li {
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:7px 10px;
+  border:1px solid var(--border);
+  border-radius:9px;
+  font-size:12.5px
+}
+
+.watchlist-archive-list li span {
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap
+}
+
+.watchlist-archive-list li small {
+  color:var(--muted);
+  white-space:nowrap
+}
+
+.capsule-prep {
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin:14px 0 0;
+  padding:10px 14px;
+  border:1px solid rgba(52,211,153,.35);
+  border-radius:11px;
+  background:rgba(52,211,153,.07);
+  color:#a7f3d0;
+  font-size:13px
+}
+
+.capsule-prep strong {
+  color:#34d399
+}
+
+/* ==========================================================================
+   DEMIRTUBE POLISH v3 — modern, iç açıcı, profesyonel rafine katman
+   Mevcut Aurora v2 seçicilerini bozmadan üstüne ince ayar uygular.
+   ========================================================================== */
+:root {
+  --muted:#9aa7c0;
+  --border:rgba(255,255,255,.085)
+}
+
+body {
+  background-image:radial-gradient(circle at 18% -10%,rgba(0,242,254,.08),transparent 32%), radial-gradient(circle at 92% 4%,rgba(139,92,246,.11),transparent 30%), radial-gradient(circle at 60% 115%,rgba(255,81,72,.06),transparent 42%), radial-gradient(circle at 85% 80%,rgba(245,158,11,.045),transparent 36%), linear-gradient(160deg,var(--bg-deep),var(--bg))
+}
+
+::-webkit-scrollbar {
+  width:10px;
+  height:10px
+}
+
+::-webkit-scrollbar-thumb {
+  background:rgba(255,255,255,.09);
+  border-radius:99px;
+  border:2px solid transparent;
+  background-clip:padding-box
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background:rgba(0,242,254,.22);
+  border:2px solid transparent;
+  background-clip:padding-box
+}
+
+::-webkit-scrollbar-track {
+  background:transparent
+}
+
+p {
+  line-height:1.55
+}
+
+th {
+  color:#8d9bb4
+}
+
+.page-heading h1 {
+  text-shadow:0 4px 30px rgba(139,92,246,.12)
+}
+
+.sidebar nav button.active {
+  box-shadow:0 8px 24px rgba(255,81,72,.1) inset, 0 0 0 1px rgba(255,81,72,.08)
+}
+
+.button:active {
+  transform:translateY(0) scale(.98)
+}
+
+.metric:after {
+  content:"";
+  position:absolute;
+  left:20px;
+  right:20px;
+  top:0;
+  height:2px;
+  border-radius:99px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);
+  opacity:.5
+}
+
+.metric strong {
+  text-shadow:0 2px 18px rgba(0,0,0,.2)
+}
+
+.empty {
+  border:1px dashed var(--border-bright);
+  border-radius:20px;
+  background:radial-gradient(circle at 50% 0,rgba(0,242,254,.05),transparent 60%)
+}
+
+/* Genel Bakış duo kartları (veri seviyesi + kanal çeşitliliği) */
+.overview-duo {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin:14px 0
+}
+
+.duo-card {
+  position:relative;
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:16px 18px;
+  background:linear-gradient(145deg,rgba(255,255,255,.05),rgba(255,255,255,.015)), var(--surface);
+  box-shadow:var(--shadow-soft);
+  backdrop-filter:blur(14px);
+  transition:transform .22s ease, border-color .22s ease, box-shadow .22s ease
+}
+
+.duo-card:hover {
+  transform:translateY(-2px);
+  border-color:rgba(0,242,254,.16);
+  box-shadow:0 18px 45px rgba(0,0,0,.28)
+}
+
+.duo-card-head {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:11px
+}
+
+.duo-card-head>div {
+  flex:1;
+  min-width:0;
+  display:grid;
+  gap:2px
+}
+
+.duo-card-head small {
+  font-size:9.5px;
+  letter-spacing:.1em;
+  color:var(--muted)
+}
+
+.duo-card-head strong {
+  font-size:15px;
+  letter-spacing:-.01em;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis
+}
+
+.duo-chip {
+  display:grid;
+  place-items:center;
+  width:34px;
+  height:34px;
+  border-radius:11px;
+  flex:0 0 auto
+}
+
+.level-chip {
+  background:rgba(245,158,11,.13);
+  color:var(--amber);
+  box-shadow:0 0 18px rgba(245,158,11,.12)
+}
+
+.diversity-chip {
+  background:var(--cyan-soft);
+  color:var(--cyan);
+  box-shadow:0 0 18px rgba(0,242,254,.1)
+}
+
+.duo-count {
+  font-size:11px;
+  color:var(--muted);
+  white-space:nowrap;
+  max-width:40%;
+  overflow:hidden;
+  text-overflow:ellipsis
+}
+
+.duo-track {
+  height:6px;
+  border-radius:99px;
+  background:rgba(255,255,255,.07);
+  overflow:hidden
+}
+
+.duo-track i {
+  display:block;
+  height:100%;
+  border-radius:inherit;
+  background:linear-gradient(90deg,var(--amber),var(--accent));
+  box-shadow:0 0 12px rgba(245,158,11,.25);
+  transition:width .5s ease
+}
+
+.diversity-card .duo-track i {
+  background:linear-gradient(90deg,var(--cyan),var(--violet));
+  box-shadow:0 0 12px rgba(0,242,254,.22)
+}
+
+.diversity-card .duo-track i.warn {
+  background:linear-gradient(90deg,var(--amber),var(--accent))
+}
+
+.duo-card p {
+  margin:9px 0 0;
+  font-size:12px;
+  color:var(--muted)
+}
+
+/* Nostalji kartı (İzleme Takvimi) */
+.nostalgia-card {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:0 0 14px;
+  padding:11px 16px;
+  border-radius:14px;
+  border:1px solid rgba(139,92,246,.28);
+  background:linear-gradient(90deg,rgba(139,92,246,.1),rgba(0,242,254,.05));
+  color:#d5cdf3;
+  font-size:13px
+}
+
+.nostalgia-card svg {
+  color:var(--violet);
+  flex:0 0 auto
+}
+
+.nostalgia-card strong {
+  color:#fff
+}
+
+:root[data-theme=light] .nostalgia-card strong {
+  color:#111827
+}
+
+@media(max-width:900px) {
+  .overview-duo {
+    grid-template-columns:1fr
+  }
+}
+
+/* ── Surface revizyonu ──────────────────────────────────────────────────── */
+.surface {
+  border-radius:var(--radius-xl);
+  background:linear-gradient(145deg,rgba(255,255,255,.058),rgba(255,255,255,.022)), var(--surface);
+  backdrop-filter:blur(18px) saturate(130%)
+}
+
+.surface:hover {
+  border-color:rgba(0,242,254,.12)
+}
+
+/* ── Sayfa başlığı revizyonu ────────────────────────────────────────────── */
+.page-heading h1 {
+  font-size:clamp(30px,3.2vw,46px);
+  text-shadow:0 4px 36px rgba(139,92,246,.15), 0 0 0 transparent
+}
+
+.page-eyebrow i {
+  width:16px;
+  height:2px;
+  border-radius:99px;
+  background:linear-gradient(90deg,var(--accent),var(--violet));
+  margin-right:6px
+}
+
+.page-heading p {
+  font-size:13px;
+  color:var(--muted);
+  line-height:1.5;
+  max-width:640px
+}
+
+/* ── Dashboard Pulse güçlendirme ────────────────────────────────────────── */
+.dashboard-pulse {
+  border-radius:28px;
+  box-shadow:0 32px 90px rgba(0,0,0,.32), inset 0 1px rgba(255,255,255,.08)
+}
+
+.pulse-orbit b {
+  font-size:24px;
+  width:54px;
+  height:54px;
+  border-radius:16px;
+  background:linear-gradient(135deg,var(--accent),#ff755c,var(--violet));
+  box-shadow:0 0 30px rgba(255,81,72,.35), 0 0 60px rgba(139,92,246,.12)
+}
+
+.pulse-progress>div {
+  height:8px;
+  border-radius:99px
+}
+
+/* ── Tablo revizyonu ────────────────────────────────────────────────────── */
+th {
+  font-size:9px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:#7d8ba6;
+  font-weight:700;
+  padding:12px 14px!important;
+  background:rgba(255,255,255,.018)
+}
+
+td {
+  font-size:12.5px;
+  padding:11px 14px!important
+}
+
+tbody tr:hover {
+  background:rgba(0,242,254,.03)
+}
+
+/* ── Buton revizyonu ────────────────────────────────────────────────────── */
+.button {
+  min-height:38px;
+  border-radius:11px;
+  font-weight:600;
+  transition:transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease
+}
+
+.button:hover {
+  transform:translateY(-2px)
+}
+
+.button.primary {
+  background:linear-gradient(135deg,#ff5148,#ff755c);
+  box-shadow:0 10px 30px rgba(255,81,72,.24)
+}
+
+.button.primary:hover {
+  box-shadow:0 14px 40px rgba(255,81,72,.35);
+  transform:translateY(-2px)
+}
+
+.button.danger-button {
+  color:var(--accent);
+  border-color:rgba(255,81,72,.25)
+}
+
+/* ── Toggle iyileştirme ─────────────────────────────────────────────────── */
+.toggle {
+  width:42px;
+  height:24px;
+  border-radius:99px;
+  background:rgba(255,255,255,.1);
+  border:0;
+  cursor:pointer;
+  transition:all .25s ease;
+  position:relative;
+  flex:0 0 auto
+}
+
+.toggle i {
+  position:absolute;
+  left:3px;
+  top:3px;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:#64748b;
+  transition:all .25s cubic-bezier(.34,1.56,.64,1)
+}
+
+.toggle.active {
+  background:linear-gradient(135deg,var(--accent),#ff755c)
+}
+
+.toggle.active i {
+  left:21px;
+  background:#fff;
+  box-shadow:0 2px 8px rgba(255,81,72,.3)
+}
+
+/* ── Light tema uyumu ───────────────────────────────────────────────────── */
+:root[data-theme=light] {
+  --muted:#64748b;
+  --border:rgba(15,23,42,.08)
+}
+
+:root[data-theme=light] .sidebar {
+  background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(245,248,252,.95));
+  border-right-color:var(--border)
+}
+
+:root[data-theme=light] .sidebar nav button.active {
+  border-color:var(--accent)
+}

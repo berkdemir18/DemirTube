@@ -1,0 +1,37 @@
+{
+  "name": "demirtube-ai",
+  "private": true,
+  "version": "0.10.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build && node scripts/build-extension.mjs",
+    "typecheck": "tsc -b",
+    "test": "vitest run --exclude tests/browser/**",
+    "test:watch": "vitest",
+    "test:browser": "playwright test"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/sora": "^5.3.0",
+    "idb": "8.0.3",
+    "lucide-react": "0.468.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "recharts": "3.10.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@types/chrome": "0.2.2",
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.4",
+    "esbuild": "0.28.1",
+    "fake-indexeddb": "^6.2.4",
+    "jsdom": "29.1.1",
+    "typescript": "6.0.2",
+    "vite": "8.1.5",
+    "vitest": "4.1.10"
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "manifest_version": 3,
+  "name": "DemirTube AI",
+  "version": "0.10.0",
+  "version_name": "0.10.0 Aurora v3 + Zaman navigasyonu",
+  "description": "YouTube videolarını, altyazılarını ve kişisel izleme davranışını yerel-first analiz eder.",
+  "permissions": ["storage", "alarms", "scripting"],
+  "optional_permissions": ["notifications", "downloads"],
+  "host_permissions": ["https://www.youtube.com/*"],
+  "optional_host_permissions": [
+    "https://*.supabase.co/*",
+    "https://identitytoolkit.googleapis.com/*",
+    "https://securetoken.googleapis.com/*",
+    "https://*.firebasedatabase.app/*",
+    "https://*.firebaseio.com/*",
+    "https://api.groq.com/*",
+    "https://ntfy.sh/*"
+  ],
+  "commands": {
+    "toggle-panel": {
+      "suggested_key": { "default": "Alt+D", "mac": "Command+Shift+D" },
+      "description": "DemirTube panelini aç/kapat"
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "background": {
+    "service_worker": "assets/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "DemirTube",
+    "default_icon": {
+      "16": "icon-16.png",
+      "32": "icon-32.png",
+      "48": "icon-48.png",
+      "128": "icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icon-16.png",
+    "32": "icon-32.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
+  },
+  "options_page": "dashboard.html",
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["assets/page-bridge.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["assets/content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": []
+}

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+.playwright-cli/
+test-results/
+playwright-report/
+
+bash.exe.stackdump
+.claude/
+.DS_Store
