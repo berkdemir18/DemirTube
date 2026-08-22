@@ -1,0 +1,134 @@
+/* DemirTube marka rehberi · ortak son katman */
+:root {
+  --brand-navy:#090d16;
+  --brand-violet:#8b5cf6;
+  --brand-cyan:#00c9d4;
+  --brand-coral:#ff5148;
+  --brand-emerald:#10b981;
+  --brand-amber:#f59e0b;
+  --accent:#8b5cf6;
+  --accent-soft:rgba(139,92,246,.14);
+  --bg:#090d16;
+  --side:#0c1220;
+  --surface:#101a2f;
+  --surface-2:#14213a;
+  --border:rgba(255,255,255,.08);
+  --text:#f2f4fa;
+  --muted:rgba(242,244,250,.55);
+  --cyan:#00c9d4;
+  --violet:#8b5cf6;
+  --green:#10b981;
+  --focus-bg:#090d16;
+  --focus-surface:#101a2f;
+  --focus-surface-2:#14213a;
+  --focus-border:rgba(255,255,255,.08);
+  --focus-text:#f2f4fa;
+  --focus-muted:rgba(242,244,250,.55);
+  --focus-coral:#ff5148;
+  --focus-cyan:#00c9d4;
+  --focus-violet:#8b5cf6;
+  --focus-green:#10b981;
+  --focus-ring:#00c9d4;
+}
+
+:root[data-theme=light] {
+  --bg:#fff;
+  --side:#fff;
+  --surface:#f6f6fb;
+  --surface-2:#eeeef7;
+  --border:rgba(10,15,30,.08);
+  --text:#12141c;
+  --muted:rgba(18,20,28,.55);
+  --focus-bg:#fff;
+  --focus-surface:#f6f6fb;
+  --focus-surface-2:#eeeef7;
+  --focus-border:rgba(10,15,30,.08);
+  --focus-text:#12141c;
+  --focus-muted:rgba(18,20,28,.55);
+  --focus-ring:#7c3aed;
+}
+
+body {
+  background-color:var(--bg);
+  background-image:
+    radial-gradient(circle at 16% -8%,rgba(0,201,212,.08),transparent 34%),
+    radial-gradient(circle at 92% 4%,rgba(139,92,246,.12),transparent 32%),
+    radial-gradient(circle at 58% 112%,rgba(139,92,246,.055),transparent 42%),
+    linear-gradient(160deg,var(--bg),var(--bg));
+}
+h1,h2,h3,.brand-name,.brand-copy strong,.topbar-context strong,.metric strong,.popup strong { font-family:Sora,Inter,ui-sans-serif,system-ui,sans-serif; }
+.brand-name { color:var(--text); font-weight:700; letter-spacing:-.025em; }
+.brand-name>span { background:linear-gradient(120deg,var(--brand-violet),var(--brand-cyan)); background-clip:text; color:transparent; -webkit-background-clip:text; }
+
+/* Genel arayüz vurgusu violet/cyan'dır; coral yalnızca risk ve tehlikede kalır. */
+.topbar-context small,.page-eyebrow,.keyword-list b,.intelligence-metrics svg { color:var(--brand-violet); }
+.page-eyebrow::before { background:linear-gradient(90deg,var(--brand-violet),var(--brand-cyan)); }
+.maturity-track i,.meter i { background:linear-gradient(90deg,var(--brand-violet),var(--brand-cyan)); box-shadow:0 0 14px rgba(0,201,212,.18); }
+.toggle.active { border-color:transparent; background:linear-gradient(120deg,var(--brand-violet),var(--brand-cyan)); }
+.toggle.active i { box-shadow:0 2px 8px rgba(139,92,246,.28); }
+.setting-row:hover { border-color:rgba(139,92,246,.28); }
+.setting-icon { background:rgba(139,92,246,.13); color:#a78bfa; }
+.channel-card::before { background:rgba(139,92,246,.14); }
+.channel-avatar { border-color:rgba(139,92,246,.55); }
+.channel-card:hover { border-color:rgba(0,201,212,.28); }
+.overview-recommendation a { background:linear-gradient(120deg,var(--brand-violet),var(--brand-cyan)); color:#090d16; box-shadow:0 9px 24px rgba(139,92,246,.2); }
+.stats-metric>svg,.channel-detail-metrics svg { color:var(--brand-violet); }
+.stats-metric:hover,.stats-metric.active { border-color:var(--brand-cyan); }
+.calendar-grid button { border-color:rgba(139,92,246,.18); background:color-mix(in srgb,var(--brand-violet) calc(var(--calendar-level) * 88%),var(--surface-2)); }
+.calendar-legend i { background:var(--brand-violet); }
+.pulse-orbit { filter:drop-shadow(0 0 18px rgba(139,92,246,.22)); }
+.pulse-orbit i { background:var(--brand-violet); box-shadow:0 0 14px rgba(139,92,246,.3); }
+.pulse-orbit i:nth-child(2) { background:var(--brand-cyan); box-shadow:0 0 14px rgba(0,201,212,.3); }
+.pulse-orbit b {
+  background:linear-gradient(135deg,var(--brand-violet),var(--brand-cyan));
+  box-shadow:0 0 24px rgba(0,201,212,.22);
+}
+
+.danger-button,.icon-button.danger,.cloud-error,.channel-decision.warning>svg,.weekly-insight-list .insight-risk svg { color:var(--brand-coral); }
+.button.danger-button { border-color:rgba(255,81,72,.34); background:rgba(255,81,72,.08); }
+.regret-2,.regret-3 { background:rgba(255,81,72,.14); color:#ff8179; }
+.channel-decision.warning { border-left-color:var(--brand-coral); }
+
+.brand>span,.popup header>span { width:34px; height:34px; overflow:hidden; border-radius:9px; background:none; box-shadow:0 10px 28px rgba(139,92,246,.24); }
+.brand>span svg,.popup header>span svg { width:100%; height:100%; }
+.brand-copy strong { font-size:17px; }
+.brand-copy small { color:var(--muted); letter-spacing:.02em; text-transform:none; }
+
+.sidebar { background:var(--side); }
+.sidebar .nav-primary-button.active { border-color:rgba(139,92,246,.2); background:rgba(139,92,246,.14); color:#c4b5fd; }
+.sidebar .nav-primary-button.active svg { color:#a78bfa; }
+.sidebar .nav-secondary button.active { background:rgba(139,92,246,.09); color:#c4b5fd; }
+.sidebar .nav-secondary button.active i { background:var(--brand-cyan); box-shadow:0 0 8px rgba(0,201,212,.4); }
+:root[data-theme=light] .sidebar .nav-primary-button.active { background:rgba(139,92,246,.1); color:#6d28d9; }
+:root[data-theme=light] .sidebar .nav-primary-button.active svg { color:#7c3aed; }
+:root[data-theme=light] .sidebar .nav-secondary button.active { color:#6d28d9; }
+:root[data-theme=light] .sidebar .nav-primary-button.active { border-color:rgba(139,92,246,.24)!important; }
+:root[data-theme=light] .topbar { border-color:rgba(10,15,30,.08); background:rgba(255,255,255,.96); }
+:root[data-theme=light] .page-heading h1 { background:none; color:#12141c; -webkit-text-fill-color:#12141c; }
+:root[data-theme=light] .page-eyebrow { color:#6d28d9; }
+:root[data-theme=light] .dashboard-pulse { border-color:rgba(139,92,246,.2); background:linear-gradient(115deg,#101a2f,#0c1220 58%,#14213a); color:#f2f4fa; }
+:root[data-theme=light] .dashboard-pulse :is(h2,strong) { color:#f2f4fa; }
+:root[data-theme=light] .dashboard-pulse p { color:rgba(242,244,250,.62); }
+:root[data-theme=light] body {
+  background-image:
+    radial-gradient(circle at 16% -8%,rgba(0,201,212,.065),transparent 34%),
+    radial-gradient(circle at 92% 4%,rgba(139,92,246,.075),transparent 32%),
+    linear-gradient(160deg,#fff,#fff);
+}
+
+.surface,.metric,.overview-primary-metrics .metric,.overview-focus-grid .chart-wide,.overview-recommendation,.history-preview,.weekly-discovery,.capsule-report,.comparison-title,.comparison-strip article { border-color:var(--border); background-color:var(--surface); }
+
+.button.primary { border-color:transparent; background:linear-gradient(120deg,var(--brand-violet),var(--brand-cyan)); color:#090d16; box-shadow:0 10px 26px rgba(139,92,246,.2); }
+.button.primary:hover { filter:brightness(1.08); transform:translateY(-1px); }
+
+.popup { width:340px; min-height:0; padding:20px; background:#0c1220; }
+.popup header { gap:10px; margin-bottom:18px; }
+.popup header>div:nth-child(2) { min-width:0; }
+.popup header div strong { font-size:15px; }
+.popup header div small { color:rgba(242,244,250,.45); font-size:10px; }
+.popup-status { margin-left:auto; padding:3px 8px; border-radius:999px; background:rgba(148,163,184,.1); color:var(--muted); font:600 10px/1.4 Inter,sans-serif!important; }
+.popup-status.active { background:rgba(16,185,129,.12); color:var(--brand-emerald); }
+.popup section { border-radius:12px; background:rgba(255,255,255,.03); }
+.popup>.button { min-height:40px; border-radius:10px; }
+
+@media (prefers-reduced-motion:reduce) { .ambient,.button,.metric,.surface { animation:none!important; transition:none!important; } }

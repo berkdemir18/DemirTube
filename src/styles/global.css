@@ -1,0 +1,31 @@
+@import "@fontsource/inter/latin-ext-400.css";
+@import "@fontsource/inter/latin-ext-500.css";
+@import "@fontsource/inter/latin-ext-600.css";
+@import "@fontsource/inter/latin-ext-700.css";
+@import "@fontsource/sora/latin-ext-600.css";
+@import "@fontsource/sora/latin-ext-700.css";
+@import "@fontsource/sora/latin-ext-800.css";
+
+/* ========================================================================== 
+   DemirTube · dashboard ve popup stil giriş noktası
+
+   Stil dosyası tek bir 65 KB'lik minified blok yerine beş katmana ayrıldı.
+   Katmanlar ürünün gelişim sırasını yansıtır ve BU SIRAYLA yüklenmelidir:
+   sonraki her katman, önceki katmandaki bazı seçicileri bilinçli olarak ezer
+   (yaklaşık 90 seçici birden fazla katmanda yeniden tanımlanmış durumda).
+   Kuralları dosyalar arasında taşımak veya import sırasını değiştirmek
+   görünümü bozar.
+
+   01-base      · değişkenler, reset, kabuk düzeni, temel bileşenler, popup
+   02-features  · insight kartları, onboarding, kanal/istatistik ekranları
+   03-premium   · premium görsel override katmanı
+   04-aurora    · Aurora tasarım sistemi v2
+   05-focus     · Focus UI v4 (yürürlükteki görünüm)
+   ========================================================================== */
+
+@import "./01-base.css";
+@import "./02-features.css";
+@import "./03-premium.css";
+@import "./04-aurora.css";
+@import "./05-focus.css";
+@import "./06-brand.css";
