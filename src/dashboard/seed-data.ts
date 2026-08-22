@@ -1,5 +1,5 @@
 // DemirTube Aurora UI v2 · unified dashboard visual system
-import type { AppData, Topic, VideoRecord } from "../shared/types";
+import type { AppData, Topic, VideoRecord, WatchSession } from "../shared/types";
 import { APP_VERSION, DEFAULT_KEYWORD_RULES, DEFAULT_SETTINGS } from "../shared/constants";
 
 const seeds: Array<[string, string, string, number, number, Topic[], number]> = [
@@ -33,6 +33,39 @@ export const seedVideos: VideoRecord[] = seeds.map(([videoId, title, channelName
   contentType: durationSeconds >= 1200 ? "long_form" : "standard"
 }));
 
+/**
+ * Oturum tabanlı ekranlar (izleme trendi, ritim, yolculuk) örnek veride de dolu
+ * görünsün diye oturumlar videolardan türetilir: süreler videonun aktif izleme
+ * süresine bölünür, tarihler videonun son görülme gününe yaslanır.
+ */
+export const seedSessions: WatchSession[] = seedVideos.flatMap((video, index) => {
+  const parts = video.sessionCount;
+  const share = Math.floor(video.totalActiveWatchSeconds / parts);
+  return Array.from({ length: parts }, (_, part) => {
+    const watchSeconds = part === parts - 1
+      ? video.totalActiveWatchSeconds - share * (parts - 1)
+      : share;
+    const startedAt = new Date(now - (index + part) * 86400000 - (2 + part * 5) * 3600000);
+    const reached = Math.min(watchSeconds, video.durationSeconds);
+    return {
+      id: `${video.videoId}-s${part + 1}`,
+      videoId: video.videoId,
+      startedAt: startedAt.toISOString(),
+      endedAt: new Date(startedAt.getTime() + watchSeconds * 1000).toISOString(),
+      watchSeconds,
+      maximumPosition: reached,
+      exitPosition: reached,
+      pauseCount: index % 3,
+      forwardSeekCount: index % 2,
+      backwardSeekCount: part,
+      tabHiddenCount: (index + part) % 2,
+      playbackSegments: [{ start: 0, end: reached }],
+      endedNaturally: video.completed && part === parts - 1,
+      followedByAnotherVideo: index % 2 === 0
+    };
+  });
+});
+
 const sampleEnvelope = {
   version: 2 as const,
   schemaVersion: 2 as const,
@@ -49,9 +82,9 @@ const sampleEnvelope = {
 export const seedData: AppData = {
   ...sampleEnvelope,
   exportedAt: new Date().toISOString(),
-  counts: { videos: seedVideos.length, sessions: 0, feedback: 0, customTopics: 0 },
+  counts: { videos: seedVideos.length, sessions: seedSessions.length, feedback: 0, customTopics: 0 },
   videos: seedVideos,
-  sessions: []
+  sessions: seedSessions
 };
 
 export const oneVideoSeedData: AppData = {
