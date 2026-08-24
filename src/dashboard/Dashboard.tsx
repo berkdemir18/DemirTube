@@ -4,7 +4,7 @@
 // yerleştirilmesi. Veri erişimi hooks/useAppData, adres durumu hooks/useHashRoute,
 // sayfa eşlemesi pages.tsx içindedir.
 import { Suspense, useEffect, useState } from "react";
-import { AlertTriangle, BarChart3, GitCompareArrows, Menu, Moon, Sun, X } from "lucide-react";
+import { AlertTriangle, BarChart3, GitCompareArrows, Menu, Moon, Search, Sun, X } from "lucide-react";
 import { analyticsPeriodLabels, sessionsInPeriod, videosInPeriod, type AnalyticsPeriod } from "../analytics/period";
 import { previousPeriodAnchor } from "../analytics/insights-suite";
 import { Onboarding } from "./Onboarding";
@@ -14,16 +14,21 @@ import { navigationSections, periodPages, sectionForPage } from "./navigation";
 import { pages } from "./pages";
 import { useAppData } from "./hooks/useAppData";
 import { useHashRoute } from "./hooks/useHashRoute";
+import { CommandPalette } from "./CommandPalette";
+import { PageErrorBoundary } from "./ErrorBoundary";
+import type { Command } from "./command-search";
+import { datedFileName, downloadFile } from "./file-download";
 import { BrandMark, BrandName } from "../shared/Brand";
 
 const NARROW_QUERY = "(max-width: 820px)";
 
 export function Dashboard() {
   const app = useAppData();
-  const { page, period, anchor, setPage, setPeriod, setAnchor } = useHashRoute();
+  const { page, period, anchor, channel, topic, setPage, setPeriod, setAnchor, setChannel, setTopic } = useHashRoute();
   const [menu, setMenu] = useState(false);
   const [isNarrow, setIsNarrow] = useState(() => matchMedia(NARROW_QUERY).matches);
   const [comparePrevious, setComparePrevious] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   const { data, extensionAvailable } = app;
   const extensionVersion = extensionAvailable ? chrome.runtime.getManifest().version : "geliştirme";
@@ -38,6 +43,17 @@ export function Dashboard() {
     const update = () => { setIsNarrow(media.matches); if (!media.matches) setMenu(false); };
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
+  }, []);
+
+  // Ctrl/Cmd+K komut paletini açar. Yazı alanındayken kısayol yakalanmaz.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== "k" || !(event.ctrlKey || event.metaKey)) return;
+      event.preventDefault();
+      setPaletteOpen((open) => !open);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   useEffect(() => {
@@ -88,7 +104,31 @@ export function Dashboard() {
     generateReport: app.generateReport,
     removeFromWatchlist: app.removeFromWatchlist,
     reclassifyTopics: app.reclassifyTopics,
+    channel,
+    setChannel,
+    topic,
+    setTopic,
   });
+
+  const runCommand = (command: Command) => {
+    if (command.kind === "page") { setPage(command.page); return; }
+    if (command.kind === "period") { setPeriod(command.period); return; }
+    if (command.kind === "channel") { setChannel(command.channelName); return; }
+    if (command.kind === "topic") { setTopic(command.topic); return; }
+    if (command.kind === "video") { window.open(command.url, "_blank", "noopener,noreferrer"); return; }
+    if (command.action === "open-settings") { setPage("settings"); return; }
+    if (command.action === "generate-report") { setPage("report"); void app.generateReport(); return; }
+    if (command.action === "toggle-theme") {
+      void app.setSettings({ ...data.settings, theme: data.settings.theme === "light" ? "dark" : "light" });
+      return;
+    }
+    // export-data: Ayarlar ekranındaki yedekle aynı dosyayı üretir ve son yedek
+    // tarihini günceller, böylece yedek hatırlatması bu indirmeyi de görür.
+    void app.exportData().then(async (payload) => {
+      downloadFile(JSON.stringify(payload, null, 2), datedFileName("demirtube", "json"), "application/json");
+      await app.setSettings({ ...data.settings, lastLocalExportAt: new Date().toISOString() });
+    });
+  };
 
   const activeSection = sectionForPage(page);
   const activePageLabel = activeSection.children.find(([id]) => id === page)?.[1] ?? activeSection.label;
@@ -99,6 +139,10 @@ export function Dashboard() {
       <div className="ambient ambient-two" aria-hidden="true" />
       {!data.settings.onboardingCompleted ? (
         <Onboarding onComplete={() => app.setSettings({ ...data.settings, onboardingCompleted: true })} />
+      ) : null}
+
+      {paletteOpen ? (
+        <CommandPalette videos={data.videos} onClose={() => setPaletteOpen(false)} onRun={runCommand} />
       ) : null}
 
       {!menu ? (
@@ -182,6 +226,14 @@ export function Dashboard() {
           ) : null}
           <div className="system-status"><i /><span>{extensionAvailable ? `Canlı yerel veri · v${extensionVersion}` : "Örnek geliştirme verisi"}</span></div>
           <button
+            aria-label="Komut paletini aç (Ctrl+K)"
+            title="Komut paleti · Ctrl+K"
+            className="palette-button"
+            onClick={() => setPaletteOpen(true)}
+          >
+            <Search size={16} /><kbd>Ctrl</kbd><kbd>K</kbd>
+          </button>
+          <button
             aria-label="Renk temasını değiştir"
             className="theme-button"
             onClick={() => void app.setSettings({ ...data.settings, theme: data.settings.theme === "light" ? "dark" : "light" })}
@@ -211,7 +263,9 @@ export function Dashboard() {
 
         <div className="page" key={page}>
           {periodPages.has(page) && comparePrevious && period !== "all" ? <PeriodComparisonStrip currentVideos={filteredVideos} currentSessions={filteredSessions} previousVideos={previousVideos} previousSessions={previousSessions}/> : null}
-          <Suspense fallback={<div className="loading">Sayfa yükleniyor…</div>}>{content}</Suspense>
+          <PageErrorBoundary resetKey={page} onGoHome={() => setPage("overview")}>
+            <Suspense fallback={<div className="loading">Sayfa yükleniyor…</div>}>{content}</Suspense>
+          </PageErrorBoundary>
         </div>
       </main>
     </div>

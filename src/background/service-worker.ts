@@ -2,6 +2,7 @@ import type { ExtensionMessage } from "../shared/messages";
 import type { ArchivedWatchlistItem, VideoDecision, VideoRecord, WatchlistItem } from "../shared/types";
 import { calculatePreference } from "../analytics/preference-score";
 import { makeVideoDecision } from "../analytics/decision-assistant";
+import { calculateDailyPulse } from "../analytics/daily-pulse";
 import { derivePersonalModel, type PersonalModel } from "../analytics/personal-model";
 import {
   checkDataLoss, clearData, exportData, finalizeStaleSessions, generateAndStoreWeeklyReport, getDiagnostics, getSettings,
@@ -19,6 +20,7 @@ import {
 import { repairUnknownChannels } from "./youtube-metadata";
 import { uid } from "../shared/utils";
 import { isAllowedCaptionUrl } from "../content/caption-tracks";
+import { dayKey, deriveBudgetState, endOfDayIso } from "../shared/budget";
 
 // ── Kısa süreli yanıt önbelleği ──────────────────────────────────────────────
 // Panel 5 saniyede bir aynı ağır istekleri gönderir; 30 saniyelik TTL ile
@@ -304,13 +306,27 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
           shortCount: shortVideos.length
         };
       }
+      case "GET_DAILY_PULSE": {
+        const [videos, sessions, settings] = await Promise.all([
+          videoRepository.all(), sessionRepository.all(), getSettings()
+        ]);
+        return calculateDailyPulse(videos, sessions, settings);
+      }
+      case "GET_BUDGET_STATE": return readBudgetState();
+      case "SET_SHORTS_PAUSE": {
+        await chrome.storage.local.set({
+          shortsPauseUntil: message.active ? endOfDayIso() : undefined,
+          // Duraklatmayı seçen kullanıcıya aynı şeridi tekrar göstermeyiz.
+          budgetNoticeDismissedFor: message.active ? dayKey() : undefined
+        });
+        return readBudgetState();
+      }
+      case "DISMISS_BUDGET_NOTICE": {
+        await chrome.storage.local.set({ budgetNoticeDismissedFor: dayKey() });
+        return readBudgetState();
+      }
       case "GET_TODAY_WATCH": {
-        const sessions = await sessionRepository.all();
-        const todayKey = new Date().toDateString();
-        const seconds = sessions
-          .filter((session) => new Date(session.startedAt).toDateString() === todayKey)
-          .reduce((sum, session) => sum + Math.max(0, session.watchSeconds), 0);
-        const settings = await getSettings();
+        const [seconds, settings] = await Promise.all([todayWatchSeconds(), getSettings()]);
         return { seconds, budgetMinutes: settings.dailyWatchBudgetMinutes };
       }
       case "NTFY_TEST": {
@@ -349,6 +365,33 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
   });
   return true;
 });
+
+
+/** Bugün başlayan oturumların toplam aktif süresi (saniye). */
+async function todayWatchSeconds() {
+  const now = new Date();
+  const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const sessions = await sessionRepository.startedSince(dayStart.toISOString());
+  const todayKey = now.toDateString();
+  return sessions
+    .filter((session) => new Date(session.startedAt).toDateString() === todayKey)
+    .reduce((sum, session) => sum + Math.max(0, session.watchSeconds), 0);
+}
+
+/** Bugünkü aktif süreyi, bütçeyi ve Shorts duraklatmasını tek durumda toplar. */
+async function readBudgetState() {
+  const [seconds, settings, stored] = await Promise.all([
+    todayWatchSeconds(),
+    getSettings(),
+    chrome.storage.local.get(["shortsPauseUntil", "budgetNoticeDismissedFor"])
+  ]);
+  return deriveBudgetState({
+    seconds,
+    budgetMinutes: settings.dailyWatchBudgetMinutes,
+    shortsPauseUntil: stored.shortsPauseUntil as string | undefined,
+    noticeDismissedFor: stored.budgetNoticeDismissedFor as string | undefined
+  });
+}
 
 async function logError(errorCode: string, component: string, error: unknown, recovered: boolean) {
   const value = error instanceof Error ? error : new Error(String(error));

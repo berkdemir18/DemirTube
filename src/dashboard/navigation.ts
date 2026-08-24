@@ -5,7 +5,7 @@ import { BarChart3, History, LayoutDashboard, Newspaper, Settings as SettingsIco
 import type { LucideIcon } from "lucide-react";
 
 export type PageId =
-  | "overview" | "topics" | "channels" | "statistics" | "intelligence" | "journey" | "goals" | "durations"
+  | "overview" | "topics" | "channels" | "statistics" | "cost" | "intelligence" | "journey" | "goals" | "durations"
   | "time" | "titles" | "shorts" | "calendar" | "compare"
   | "watchlist" | "feedback" | "history" | "report" | "capsule" | "settings";
 
@@ -39,6 +39,7 @@ export const navigationSections: NavSection[] = [
       ["topics", "Konular"],
       ["channels", "Kanallar"],
       ["statistics", "İstatistikler"],
+      ["cost", "Zaman Maliyeti"],
       ["durations", "Video Süresi"],
       ["time", "İzleme Zamanları"],
       ["titles", "Başlık Analizi"],
@@ -70,7 +71,7 @@ export const navigationSections: NavSection[] = [
 
 /** Üst çubukta dönem seçici ve dönem karşılaştırması gösterilen sayfalar. */
 export const periodPages = new Set<PageId>([
-  "overview", "journey", "topics", "channels", "statistics", "durations", "time", "titles", "shorts",
+  "overview", "journey", "topics", "channels", "statistics", "cost", "durations", "time", "titles", "shorts",
 ]);
 
 const knownPages = new Set<string>(

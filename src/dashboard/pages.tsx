@@ -25,6 +25,7 @@ const ComparePage = lazy(async () => ({ default: (await import("./ComparePage"))
 const IntelligenceHub = lazy(async () => ({ default: (await import("./IntelligenceHub")).IntelligenceHub }));
 const Watchlist = lazy(async () => ({ default: (await import("./Watchlist")).Watchlist }));
 const CapsulePage = lazy(async () => ({ default: (await import("./CapsulePage")).CapsulePage }));
+const CostPage = lazy(async () => ({ default: (await import("./CostPage")).CostPage }));
 const StatisticsPage = lazy(async () => ({ default: (await import("./StatisticsPage")).StatisticsPage }));
 const JourneyPage = lazy(async () => ({ default: (await import("./JourneyPage")).JourneyPage }));
 const GoalsPage = lazy(async () => ({ default: (await import("./GoalsPage")).GoalsPage }));
@@ -53,6 +54,12 @@ export type PageContext = {
   exportData(): Promise<AppData>;
   generateReport(): Promise<WeeklyReport>;
   removeFromWatchlist(videoId: string): void;
+  /** Kanallar ekranında açık profil ve seçiciyi değiştiren kabuk fonksiyonu. */
+  channel?: string;
+  setChannel(channelName?: string): void;
+  /** Konular ekranında odaklanılan konu. */
+  topic?: string;
+  setTopic(topic?: string): void;
   reclassifyTopics(): void;
 };
 
@@ -61,9 +68,10 @@ export const pages: Record<PageId, (context: PageContext) => ReactNode> = {
   intelligence: (c) => <IntelligenceHub videos={c.data.videos} sessions={c.data.sessions} feedback={c.data.feedback} />,
   journey: (c) => <JourneyPage videos={c.videos} sessions={c.sessions} allVideos={c.data.videos} allSessions={c.data.sessions} />,
   goals: (c) => <GoalsPage videos={c.currentWeekVideos} sessions={c.currentWeekSessions} settings={c.data.settings} onSettings={c.setSettings} />,
-  topics: (c) => <Topics videos={c.videos} />,
-  channels: (c) => <Channels videos={c.videos} sessions={c.sessions} />,
+  topics: (c) => <Topics videos={c.videos} selected={c.topic} onSelect={c.setTopic} />,
+  channels: (c) => <Channels videos={c.videos} sessions={c.sessions} selected={c.channel} onSelect={c.setChannel} />,
   statistics: (c) => <StatisticsPage videos={c.videos} sessions={c.sessions} />,
+  cost: (c) => <CostPage videos={c.videos} feedback={c.data.feedback} onOpenChannel={c.setChannel} onOpenTopic={c.setTopic} />,
   durations: (c) => <Durations videos={c.videos} />,
   time: (c) => <TimeAnalytics videos={c.videos} sessions={c.sessions} />,
   titles: (c) => <TitleAnalysis videos={c.videos} feedback={c.data.feedback} rules={c.data.keywordRules} />,

@@ -1,10 +1,10 @@
 // DemirTube · dashboard hash yönlendirmesi
 //
 // Sayfa, analiz dönemi ve dönem çıpası artık yalnızca bellekte değil URL'de tutulur:
-//   #/channels?period=week&at=2026-07-28
+//   #/channels?period=week&at=2026-07-28&channel=Fireship
 // Böylece dashboard yenilendiğinde aynı ekran açılır, tarayıcı geri/ileri tuşları
 // çalışır ve belirli bir ekranın bağlantısı paylaşılabilir.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { AnalyticsPeriod } from "../../analytics/period";
 import { isPageId, type PageId } from "../navigation";
 
@@ -12,6 +12,10 @@ export type Route = {
   page: PageId;
   period: AnalyticsPeriod;
   anchor: Date;
+  /** Kanallar ekranında açık olan kanal profili; liste görünümünde boştur. */
+  channel?: string;
+  /** Konular ekranında odaklanılan konu; liste görünümünde boştur. */
+  topic?: string;
 };
 
 const DEFAULT_ROUTE: Route = { page: "overview", period: "week", anchor: new Date() };
@@ -40,19 +44,32 @@ export function parseHash(hash: string): Route {
     page: isPageId(pagePart) ? pagePart : DEFAULT_ROUTE.page,
     period: period && periods.has(period) ? period as AnalyticsPeriod : DEFAULT_ROUTE.period,
     anchor: parseAnchor(query.get("at")) ?? new Date(),
+    channel: query.get("channel") || undefined,
+    topic: query.get("topic") || undefined,
   };
 }
 
-export function routeToHash({ page, period, anchor }: Route) {
-  return `#/${page}?period=${period}&at=${dateKey(anchor)}`;
+export function routeToHash({ page, period, anchor, channel, topic }: Route) {
+  const base = `#/${page}?period=${period}&at=${dateKey(anchor)}`;
+  // Ayrıntı seçimleri yalnızca ait oldukları ekranda adreste tutulur; başka
+  // sayfaya geçince adres temiz kalsın.
+  if (page === "channels" && channel) return `${base}&channel=${encodeURIComponent(channel)}`;
+  if (page === "topics" && topic) return `${base}&topic=${encodeURIComponent(topic)}`;
+  return base;
 }
 
 export function useHashRoute() {
   const [route, setRoute] = useState<Route>(() => parseHash(location.hash));
+  // Bir sonraki adres yazımının geçmişe yeni kayıt bırakıp bırakmayacağı.
+  // Bayrak, `history.pushState` çağrısını state güncelleyicisinin dışında tutar:
+  // React StrictMode güncelleyiciyi iki kez çalıştırdığı için, pushState orada
+  // kalsaydı tek tıklamada iki geçmiş kaydı oluşuyor ve geri tuşu boş bir adıma
+  // düşüyordu.
+  const pushNext = useRef(false);
 
   // Tarayıcı geri/ileri tuşu ve elle yazılan adres.
   useEffect(() => {
-    const sync = () => setRoute(parseHash(location.hash));
+    const sync = () => { pushNext.current = false; setRoute(parseHash(location.hash)); };
     window.addEventListener("hashchange", sync);
     return () => window.removeEventListener("hashchange", sync);
   }, []);
@@ -60,16 +77,19 @@ export function useHashRoute() {
   // Durum değiştikçe adresi güncelle; aynı hash için yeni geçmiş kaydı oluşturma.
   useEffect(() => {
     const next = routeToHash(route);
-    if (location.hash !== next) history.replaceState(null, "", next);
-  }, [route.page, route.period, route.anchor.getTime()]);
+    const push = pushNext.current;
+    pushNext.current = false;
+    if (location.hash === next) return;
+    if (push) history.pushState(null, "", next);
+    else history.replaceState(null, "", next);
+  }, [route.page, route.period, route.anchor.getTime(), route.channel, route.topic]);
 
+  // Sayfa değişimi gerçek bir gezinme: geri tuşu önceki sayfaya dönsün.
   const setPage = useCallback((page: PageId) => {
-    setRoute((current) => {
-      if (current.page === page) return current;
-      // Sayfa değişimi gerçek bir gezinme: geri tuşu önceki sayfaya dönsün.
-      history.pushState(null, "", routeToHash({ ...current, page }));
-      return { ...current, page };
-    });
+    pushNext.current = true;
+    // Menüden sayfa değişimi ayrıntı seçimini bırakır; kanal profili açıkken
+    // başka ekrana geçip geri dönünce liste görünümü beklenir.
+    setRoute((current) => current.page === page ? current : { ...current, page, channel: undefined, topic: undefined });
   }, []);
 
   // Dönem değişince çıpa bugüne döner (eski davranış korunur).
@@ -81,5 +101,20 @@ export function useHashRoute() {
     setRoute((current) => ({ ...current, anchor }));
   }, []);
 
-  return { ...route, setPage, setPeriod, setAnchor };
+  // Kanal profili açmak da gezinmedir: geri tuşu kanal listesine dönmeli.
+  const setChannel = useCallback((channel?: string) => {
+    pushNext.current = true;
+    setRoute((current) => current.channel === channel && current.page === "channels"
+      ? current
+      : { ...current, page: "channels", channel });
+  }, []);
+
+  const setTopic = useCallback((topic?: string) => {
+    pushNext.current = true;
+    setRoute((current) => current.topic === topic && current.page === "topics"
+      ? current
+      : { ...current, page: "topics", topic });
+  }, []);
+
+  return { ...route, setPage, setPeriod, setAnchor, setChannel, setTopic };
 }

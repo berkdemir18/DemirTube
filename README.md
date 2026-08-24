@@ -1,5 +1,7 @@
 # DemirTube AI
 
+[![CI](https://github.com/berkdemir18/DemirTube/actions/workflows/ci.yml/badge.svg)](https://github.com/berkdemir18/DemirTube/actions/workflows/ci.yml)
+
 DemirTube, YouTube izleme davranışını yalnızca cihazında kaydeden ve zamanla hangi konu, kanal, başlık ve video sürelerini gerçekten sevdiğini açıklanabilir kurallarla analiz eden bir Chrome eklentisidir.
 
 Sürüm 0.10.0; yerel akıllı yardımcıyı, isteğe bağlı Groq derin analizini, keşfet kartlarındaki ön analiz rozetlerini ve Aurora dashboard deneyimini birlikte sunar. DemirTube YouTube sayfasında görünen video metadata'sını analiz eder; oynatma davranışını yalnızca geçerli watch ve Shorts sayfalarında kaydeder. Kullanıcı Groq'u açıkça bağlarsa yalnızca video metadata'sı ve altyazıdan çıkarılmış kısa sinyaller ikinci bir yapay zekâ değerlendirmesine gider; ham altyazı ve izleme geçmişi gönderilmez. Yerel analiz, kişisel kalibrasyon ve isteğe bağlı bulut yedeği (Firebase veya Supabase) birbirinden bağımsız çalışır.
@@ -70,6 +72,12 @@ Sürüm 0.10.0; yerel akıllı yardımcıyı, isteğe bağlı Groq derin analizi
 - Analizlerde örnek sayısına bağlı düşük/orta/yüksek veri güvenilirliği
 - Kullanıcı izniyle çalışan yerel JSON yedek hatırlatması
 - İlk kurulum gizlilik ve veri olgunluğu tanıtımı
+- Popup'ta dashboard açmadan okunan günlük nabız: bugünkü aktif süre, bütçe durumu, son yedi günün çubukları, izleme serisi ve günün öne çıkan konusu
+- Dashboard'da Ctrl/Cmd+K komut paleti: sayfa, kanal, konu, analiz dönemi, hızlı işlem ve geçmişteki videoyu tek arama kutusundan açma
+- Pişmanlık puanını izleme süresiyle çarpan Zaman Maliyeti ekranı: dönemin kaç saatinin pişman olunan içeriğe gittiği, en pahalı kanal ve konular
+- Kanal profili ve konu odağı için paylaşılabilir adres (`#/channels?...&channel=…`), tarayıcı geri tuşuyla listeye dönüş
+- Günlük bütçe aşılınca YouTube'da bir kez çıkan sakin uyarı şeridi ve tek tıkla "Shorts'u bugünlük gizle"
+- Bir ekran hata verse bile ayakta kalan dashboard kabuğu
 - Koyu/açık tema ve responsive dashboard
 - YouTube sayfasında müdahalesiz, Shadow DOM ile izole edilmiş analiz paneli
 - Aynı video içindeki metadata/altyazı güncellemelerinde sökülmeden yerinde yenilenen ve kapalıyken ağır analiz sorgusu çalıştırmayan akıcı YouTube yan paneli
@@ -267,6 +275,8 @@ npm test
 npm run build
 npm run test:browser
 ```
+
+Her `main` push'unda ve pull request'te GitHub Actions aynı üçlüyü (`typecheck`, `test`, `build`) çalıştırır, ayrı bir işte üretim paketini xvfb altında Playwright ile açar ve yüklenebilir `dist` paketini artifact olarak bırakır: [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 `test:browser`, üretim `dist` paketini Playwright Chromium’a MV3 uzantısı olarak yükler, dashboard açılışını ve müdahale edilmiş bir YouTube watch sayfasında içerik panelinin montajını doğrular. Yerel makinede Playwright'ın görünür Chromium penceresi açmasına izin verilmelidir.
 

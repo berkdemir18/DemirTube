@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Tip kontrolü, testler ve paket
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Tip kontrolü
+        run: npm run typecheck
+
+      - name: Birim testleri
+        run: npm test
+
+      - name: Üretim paketi
+        run: npm run build
+
+      # Yüklenebilir MV3 paketi; her yeşil koşuda indirilebilir olur.
+      - name: Paketi yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: demirtube-dist
+          path: dist
+          retention-days: 14
+
+  browser:
+    name: Uzantı duman testi
+    runs-on: ubuntu-latest
+    # MV3 uzantısı yalnızca başlıklı Chromium'da yüklenir; CI'da xvfb ile sürülür.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Üretim paketi
+        run: npm run build
+
+      - name: Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Uzantı testleri
+        run: xvfb-run -a npm run test:browser
+
+      - name: Hata izlerini yükle
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-trace
+          path: test-results
+          retention-days: 7

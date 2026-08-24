@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { ArrowLeft, CalendarDays, Clock3, Film, Lightbulb, Repeat2 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { VideoRecord, WatchSession } from "../shared/types";
@@ -7,17 +6,36 @@ import { channelStats } from "./analytics";
 import { channelDecision } from "../analytics/insights-suite";
 import { ChartFrame, Empty, Meter, PageHeading, Score } from "./ui";
 
-export function Channels({ videos, sessions }: { videos: VideoRecord[]; sessions: WatchSession[] }) {
-  const [selected, setSelected] = useState<string>();
+/**
+ * Açık kanal profili adreste tutulur (`#/channels?...&channel=Fireship`), böylece
+ * yenilemede aynı profil açılır, geri tuşu listeye döner ve bir kanalın raporu
+ * bağlantı olarak paylaşılabilir. Seçim üst kabuktan (useHashRoute) gelir.
+ */
+export function Channels({
+  videos, sessions, selected, onSelect,
+}: {
+  videos: VideoRecord[];
+  sessions: WatchSession[];
+  selected?: string;
+  onSelect: (channelName?: string) => void;
+}) {
   const rows = channelStats(videos);
   const records = new Map(rows.map((row) => [row.channelName, videos.filter((video) => video.channelName === row.channelName)]));
 
-  useEffect(() => {
-    if (selected && !records.has(selected)) setSelected(undefined);
-  }, [selected, videos]);
+  // Dönem değişince seçili kanalın o aralıkta kaydı olmayabilir; adresteki
+  // seçim korunur ama kullanıcıya boş profil yerine açıklama gösterilir.
+  if (selected && !records.has(selected)) {
+    return (
+      <>
+        <PageHeading eyebrow="KANAL UYUMU" title={selected} copy="Bu kanalın seçili dönemde kaydı yok." />
+        <Empty>Seçili dönemde bu kanaldan izleme yok. Dönemi genişlet veya listeye dön.</Empty>
+        <button className="button" type="button" onClick={() => onSelect(undefined)}><ArrowLeft size={15} />Kanallara dön</button>
+      </>
+    );
+  }
 
   if (selected) {
-    return <ChannelDetail name={selected} videos={records.get(selected) ?? []} sessions={sessions} onBack={() => setSelected(undefined)} />;
+    return <ChannelDetail name={selected} videos={records.get(selected) ?? []} sessions={sessions} onBack={() => onSelect(undefined)} />;
   }
 
   return (
@@ -30,7 +48,7 @@ export function Channels({ videos, sessions }: { videos: VideoRecord[]; sessions
             const latest = channelVideos.toSorted((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt))[0];
             const avatar = channelVideos.find((video) => video.channelAvatarUrl)?.channelAvatarUrl ?? latest?.thumbnailUrl;
             return (
-              <button className="channel-card" key={row.channelName} type="button" onClick={() => setSelected(row.channelName)}>
+              <button className="channel-card" key={row.channelName} type="button" onClick={() => onSelect(row.channelName)}>
                 <div className="channel-card-top">
                   <div className="channel-avatar">{avatar ? <img src={avatar} alt="" referrerPolicy="no-referrer" /> : <span>{row.channelName.slice(0, 1).toLocaleUpperCase("tr-TR")}</span>}</div>
                   <div><small>KANAL PROFİLİ</small><h2>{row.channelName}</h2><p>{row.videoCount} video · {formatDuration(row.watchSeconds)}</p></div>

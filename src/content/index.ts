@@ -14,6 +14,7 @@ import { clearFeedDecorations, startFeedDecorator } from "./feed-decorator";
 import { refreshSearchFilterBar } from "./search-filter-bar";
 import { mountPlayerOverlay, unmountPlayerOverlay } from "./player-overlay";
 import { refreshChannelBadge } from "./channel-report-badge";
+import { startBudgetGuard, stopBudgetGuard } from "./budget-guard";
 import type { VideoUi } from "./video-ui";
 
 let tracker: YouTubeTracker | undefined;
@@ -198,6 +199,7 @@ const stopNavigationObserver = observeYouTubeNavigation(() => {
 });
 let stopFeedDecorator: () => void = () => undefined;
 void startFeedDecorator().then((stop) => { stopFeedDecorator = stop; }).catch(() => undefined);
+startBudgetGuard();
 safeBegin();
 const replacementTimer = window.setInterval(() => {
   if (!globalThis.chrome?.runtime?.id) {
@@ -205,6 +207,7 @@ const replacementTimer = window.setInterval(() => {
     clearInterval(replacementTimer);
     stopNavigationObserver();
     stopFeedDecorator();
+    stopBudgetGuard();
     tracker?.abort();
     tracker = undefined;
     activeVideo = undefined;
