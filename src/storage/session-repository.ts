@@ -11,6 +11,15 @@ export const sessionRepository = {
   async all() {
     return withDatabase((database) => database.getAll("sessions"));
   },
+  /**
+   * Yalnızca verilen andan sonra başlayan oturumlar. Günlük bütçe her dakika
+   * sorulduğu için tüm geçmişi taramak (binlerce kayıt) gereksiz pahalıydı;
+   * `by-started` indeksi aramayı bugüne indiriyor.
+   */
+  async startedSince(iso: string) {
+    return withDatabase((database) =>
+      database.getAllFromIndex("sessions", "by-started", IDBKeyRange.lowerBound(iso)));
+  },
   async updateLeaveReason(id: string, reason: WatchSession["leaveReason"], reasonText?: string) {
     const database = await getDatabase();
     const session = await database.get("sessions", id);

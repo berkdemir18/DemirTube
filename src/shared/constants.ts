@@ -5,7 +5,6 @@ export const EXPORT_SCHEMA_VERSION = 2;
 export const DEFAULT_SETTINGS: Settings = {
   trackingEnabled: true,
   theme: "dark",
-  language: "tr",
   earlyExitPromptEnabled: true,
   weeklyNotificationEnabled: false,
   panelCollapsed: false,

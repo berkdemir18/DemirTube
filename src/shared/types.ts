@@ -44,6 +44,20 @@ export type FeedRuntimeStatus = {
   updatedAt: string;
 };
 
+/** Günlük izleme bütçesinin anlık durumu; içerik betiği ve popup bunu okur. */
+export type BudgetState = {
+  seconds: number;
+  budgetMinutes: number;
+  /** Bütçe açık ve aşılmış mı. */
+  exceeded: boolean;
+  percent: number;
+  /** Shorts gün sonuna kadar gizlenmiş mi. */
+  shortsPaused: boolean;
+  shortsPausedUntil?: string;
+  /** Aşım uyarısı bugün kapatıldı mı. */
+  noticeDismissed: boolean;
+};
+
 export type TrackingRuntimeStatus = {
   state: "counting" | "paused" | "hidden" | "buffering" | "seeking" | "ended" | "waiting";
   label: string;
@@ -253,7 +267,6 @@ export type UserPreferenceProfile = {
 export type Settings = {
   trackingEnabled: boolean;
   theme: "dark" | "light" | "system";
-  language: "tr" | "en";
   earlyExitPromptEnabled: boolean;
   weeklyNotificationEnabled: boolean;
   panelCollapsed: boolean;

@@ -42,6 +42,10 @@ export type ExtensionMessage =
   | { type: "WATCHLIST_ARCHIVE_GET" }
   | { type: "GET_CHANNEL_STATS"; channelName: string; days?: 30 | 90 }
   | { type: "GET_TODAY_WATCH" }
+  | { type: "GET_DAILY_PULSE" }
+  | { type: "GET_BUDGET_STATE" }
+  | { type: "SET_SHORTS_PAUSE"; active: boolean }
+  | { type: "DISMISS_BUDGET_NOTICE" }
   | { type: "TOGGLE_PANEL" }
   | { type: "INJECT_VIDEO_UI" }
   | { type: "NTFY_TEST" }

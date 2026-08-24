@@ -40,4 +40,23 @@ describe("dashboard hash yönlendirmesi", () => {
     expect(routeToHash({ page: "overview", period: "week", anchor: new Date(2026, 2, 9) }))
       .toBe("#/overview?period=week&at=2026-03-09");
   });
+
+  it("kanal ve konu seçimini adresten okur, geri yazarken kodlar", () => {
+    const parsed = parseHash("#/channels?period=week&at=2026-07-28&channel=Kod%20Kanal%C4%B1");
+    expect(parsed.channel).toBe("Kod Kanalı");
+
+    const hash = routeToHash({ page: "channels", period: "week", anchor: new Date(2026, 6, 28), channel: "Kod Kanalı" });
+    expect(hash).toBe("#/channels?period=week&at=2026-07-28&channel=Kod%20Kanal%C4%B1");
+    expect(parseHash(hash).channel).toBe("Kod Kanalı");
+
+    const topicHash = routeToHash({ page: "topics", period: "all", anchor: new Date(2026, 6, 28), topic: "Yapay zekâ" });
+    expect(parseHash(topicHash).topic).toBe("Yapay zekâ");
+  });
+
+  it("ayrıntı seçimini yalnızca ait olduğu sayfada adrese yazar", () => {
+    // Kanal seçimi Konular ekranının adresine sızmamalı.
+    const hash = routeToHash({ page: "topics", period: "week", anchor: new Date(2026, 6, 28), channel: "Kod Kanalı" });
+    expect(hash).toBe("#/topics?period=week&at=2026-07-28");
+    expect(parseHash(hash).channel).toBeUndefined();
+  });
 });
