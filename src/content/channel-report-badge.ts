@@ -312,51 +312,51 @@ function injectChannelBadgeStyles() {
   style.textContent = `
     #demirtube-channel-badge {
       width:min(1040px,calc(100% - 24px)); margin-top:14px; overflow:hidden;
-      border:1px solid rgba(93,211,247,.24); border-radius:18px;
-      background:linear-gradient(135deg,#091521 0%,#0b1826 58%,#10152a 100%); color:#eef4fa;
+      border:1px solid rgba(174,170,166,.24); border-radius:18px;
+      background:linear-gradient(135deg,#161514 0%,#1a1917 58%,#1e1d1c 100%); color:#f5f4f3;
       box-shadow:0 16px 40px rgba(0,0,0,.24),inset 0 1px rgba(255,255,255,.025);
-      font:500 12px/1.45 Inter,Roboto,Arial,sans-serif; box-sizing:border-box; position:relative; z-index:10;
+      font:500 13px/1.45 Inter,Roboto,Arial,sans-serif; box-sizing:border-box; position:relative; z-index:10;
       max-height:440px; opacity:1; transform:translateY(0);
       transition:max-height .22s ease,margin-top .22s ease,opacity .16s ease,transform .22s ease,border-width .22s ease;
     }
-    #demirtube-channel-badge::before { content:""; position:absolute; inset:0 auto 0 0; width:3px; background:linear-gradient(#8b5cf6,#00c9d4); z-index:2; }
+    #demirtube-channel-badge::before { content:""; position:absolute; inset:0 auto 0 0; width:3px; background:#C0522F; z-index:2; }
     #demirtube-channel-badge.dt-channel-hidden { max-height:0; margin-top:0; border-width:0; opacity:0; transform:translateY(-8px); pointer-events:none; }
     #demirtube-channel-badge * { box-sizing:border-box; }
-    #demirtube-channel-badge header { min-height:66px; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:13px 18px; border-bottom:1px solid rgba(148,163,184,.13); }
+    #demirtube-channel-badge header { min-height:66px; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:13px 18px; border-bottom:1px solid rgba(169,166,163,.13); }
     #demirtube-channel-badge .dt-channel-identity { display:flex; align-items:center; gap:11px; min-width:0; }
-    #demirtube-channel-badge .dt-channel-brand { flex:0 0 38px; height:38px; border-radius:10px; background:url("${BRAND_MARK_DATA_URI}") center/contain no-repeat; box-shadow:0 9px 22px rgba(139,92,246,.22); }
-    #demirtube-channel-badge header strong { display:block; color:#fff; font-size:16px; font-weight:850; letter-spacing:-.02em; }
-    #demirtube-channel-badge header small { display:block; margin-top:2px; color:#8fa2b7; font-size:11px; }
-    #demirtube-channel-badge .dt-channel-range { display:flex; align-items:center; gap:4px; padding:3px; border:1px solid rgba(148,163,184,.16); border-radius:999px; background:#0a1521; }
-    #demirtube-channel-badge .dt-channel-range button { min-height:30px; padding:0 11px; border:0; border-radius:999px; background:transparent; color:#8fa2b7; cursor:pointer; font:750 11px Inter,Roboto,sans-serif; }
-    #demirtube-channel-badge .dt-channel-range button:hover { color:#eef7fb; }
-    #demirtube-channel-badge .dt-channel-range button[aria-pressed="true"] { background:linear-gradient(120deg,rgba(139,92,246,.16),rgba(0,201,212,.12)); color:#67e8f0; box-shadow:inset 0 0 0 1px rgba(139,92,246,.18); }
-    #demirtube-channel-badge .dt-channel-range button:focus-visible { outline:2px solid #00c9d4; outline-offset:1px; }
-    #demirtube-channel-badge .dt-channel-memory { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid rgba(148,163,184,.12); background:rgba(4,12,20,.22); }
-    #demirtube-channel-badge .dt-channel-memory-icon { width:32px; height:32px; display:grid; place-items:center; border-radius:10px; background:rgba(139,124,246,.13); color:#b7aaff; font-size:13px; font-weight:900; }
-    #demirtube-channel-badge .dt-channel-memory-positive .dt-channel-memory-icon { background:rgba(52,211,153,.12); color:#63dfb0; }
+    #demirtube-channel-badge .dt-channel-brand { flex:0 0 38px; height:38px; border-radius:10px; background:url("${BRAND_MARK_DATA_URI}") center/contain no-repeat; box-shadow:0 9px 22px rgba(192,82,47,.22); }
+    #demirtube-channel-badge header strong { display:block; color:#fff; font-size:17px; font-weight:850; letter-spacing:-.02em; }
+    #demirtube-channel-badge header small { display:block; margin-top:2px; color:#a6a3a0; font-size:12px; }
+    #demirtube-channel-badge .dt-channel-range { display:flex; align-items:center; gap:4px; padding:3px; border:1px solid rgba(169,166,163,.16); border-radius:999px; background:#171614; }
+    #demirtube-channel-badge .dt-channel-range button { min-height:30px; padding:0 11px; border:0; border-radius:999px; background:transparent; color:#a6a3a0; cursor:pointer; font:750 12px Inter,Roboto,sans-serif; }
+    #demirtube-channel-badge .dt-channel-range button:hover { color:#f5f5f4; }
+    #demirtube-channel-badge .dt-channel-range button[aria-pressed="true"] { background:linear-gradient(120deg,rgba(192,82,47,.16),rgba(217,150,60,.12)); color:#FFB02E; box-shadow:inset 0 0 0 1px rgba(192,82,47,.18); }
+    #demirtube-channel-badge .dt-channel-range button:focus-visible { outline:2px solid #D9963C; outline-offset:1px; }
+    #demirtube-channel-badge .dt-channel-memory { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid rgba(169,166,163,.12); background:rgba(13,12,11,.22); }
+    #demirtube-channel-badge .dt-channel-memory-icon { width:32px; height:32px; display:grid; place-items:center; border-radius:10px; background:rgba(188,185,181,.13); color:#d7d5d2; font-size:14px; font-weight:900; }
+    #demirtube-channel-badge .dt-channel-memory-positive .dt-channel-memory-icon { background:rgba(52,211,153,.12); color:#7FE07A; }
     #demirtube-channel-badge .dt-channel-memory-caution .dt-channel-memory-icon { background:rgba(246,189,104,.12); color:#f6bd68; }
-    #demirtube-channel-badge .dt-channel-memory > div > span { display:block; color:#9285e9; font-size:8px; font-weight:900; letter-spacing:.13em; }
-    #demirtube-channel-badge .dt-channel-memory > div > strong { display:block; margin-top:2px; color:#f4f7fb; font-size:13px; font-weight:800; }
-    #demirtube-channel-badge .dt-channel-memory p { margin:3px 0 0; color:#9dafc1; font-size:10px; line-height:1.45; }
-    #demirtube-channel-badge .dt-channel-sample { padding:5px 9px; border:1px solid rgba(148,163,184,.16); border-radius:999px; background:rgba(255,255,255,.03); color:#a9b8c8; font-size:9px; font-weight:800; white-space:nowrap; }
+    #demirtube-channel-badge .dt-channel-memory > div > span { display:block; color:#bbb7b3; font-size:8px; font-weight:900; letter-spacing:.13em; }
+    #demirtube-channel-badge .dt-channel-memory > div > strong { display:block; margin-top:2px; color:#f8f8f7; font-size:14px; font-weight:800; }
+    #demirtube-channel-badge .dt-channel-memory p { margin:3px 0 0; color:#b2afac; font-size:11px; line-height:1.45; }
+    #demirtube-channel-badge .dt-channel-sample { padding:5px 9px; border:1px solid rgba(169,166,163,.16); border-radius:999px; background:rgba(255,255,255,.03); color:#bbb9b6; font-size:10px; font-weight:800; white-space:nowrap; }
     #demirtube-channel-badge .dt-channel-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); }
-    #demirtube-channel-badge .dt-channel-metric { min-width:0; padding:14px 18px 13px; border-left:1px solid rgba(148,163,184,.12); }
+    #demirtube-channel-badge .dt-channel-metric { min-width:0; padding:14px 18px 13px; border-left:1px solid rgba(169,166,163,.12); }
     #demirtube-channel-badge .dt-channel-metric:first-child { border-left:0; }
-    #demirtube-channel-badge .dt-channel-metric > span:first-child { display:block; color:#93a4b8; font-size:9px; font-weight:800; letter-spacing:.03em; text-transform:uppercase; }
-    #demirtube-channel-badge .dt-channel-metric strong { display:block; margin:4px 0 2px; color:#f8fbff; font-size:21px; font-weight:880; letter-spacing:-.04em; }
-    #demirtube-channel-badge .dt-channel-metric small { display:block; overflow:hidden; color:#8fa2b7; font-size:10px; text-overflow:ellipsis; white-space:nowrap; }
-    #demirtube-channel-badge .dt-channel-progress { display:block; height:3px; margin-top:9px; overflow:hidden; border-radius:999px; background:rgba(148,163,184,.12); }
-    #demirtube-channel-badge .dt-channel-progress i { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#8b5cf6,#00c9d4); }
+    #demirtube-channel-badge .dt-channel-metric > span:first-child { display:block; color:#a8a6a3; font-size:10px; font-weight:800; letter-spacing:.03em; text-transform:uppercase; }
+    #demirtube-channel-badge .dt-channel-metric strong { display:block; margin:4px 0 2px; color:#fcfcfb; font-size:21px; font-weight:880; letter-spacing:-.04em; }
+    #demirtube-channel-badge .dt-channel-metric small { display:block; overflow:hidden; color:#a6a3a0; font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
+    #demirtube-channel-badge .dt-channel-progress { display:block; height:3px; margin-top:9px; overflow:hidden; border-radius:999px; background:rgba(169,166,163,.12); }
+    #demirtube-channel-badge .dt-channel-progress i { display:block; height:100%; border-radius:inherit; background:#C0522F; }
     #demirtube-channel-badge .dt-channel-evidence { display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding:0 18px 12px; }
-    #demirtube-channel-badge .dt-channel-evidence > span { display:inline-flex; align-items:center; gap:6px; padding:5px 9px; border:1px solid rgba(148,163,184,.13); border-radius:999px; background:rgba(255,255,255,.025); color:#91a4b8; font-size:9px; font-weight:700; }
-    #demirtube-channel-badge .dt-channel-evidence i { color:#6edbfb; font-style:normal; }
-    #demirtube-channel-badge footer { display:flex; justify-content:space-between; gap:16px; padding:9px 18px; border-top:1px solid rgba(148,163,184,.12); color:#7f91a6; font-size:10px; }
-    #demirtube-channel-badge footer span:first-child { color:#b4c1cf; }
+    #demirtube-channel-badge .dt-channel-evidence > span { display:inline-flex; align-items:center; gap:6px; padding:5px 9px; border:1px solid rgba(169,166,163,.13); border-radius:999px; background:rgba(255,255,255,.025); color:#a8a5a1; font-size:10px; font-weight:700; }
+    #demirtube-channel-badge .dt-channel-evidence i { color:#FFB02E; font-style:normal; }
+    #demirtube-channel-badge footer { display:flex; justify-content:space-between; gap:16px; padding:9px 18px; border-top:1px solid rgba(169,166,163,.12); color:#96938f; font-size:11px; }
+    #demirtube-channel-badge footer span:first-child { color:#c4c2bf; }
     @media(max-width:900px) {
       #demirtube-channel-badge .dt-channel-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
-      #demirtube-channel-badge .dt-channel-metric:nth-child(3) { border-left:0; border-top:1px solid rgba(148,163,184,.13); }
-      #demirtube-channel-badge .dt-channel-metric:nth-child(4) { border-top:1px solid rgba(148,163,184,.13); }
+      #demirtube-channel-badge .dt-channel-metric:nth-child(3) { border-left:0; border-top:1px solid rgba(169,166,163,.13); }
+      #demirtube-channel-badge .dt-channel-metric:nth-child(4) { border-top:1px solid rgba(169,166,163,.13); }
     }
     @media(max-width:620px) {
       #demirtube-channel-badge header { align-items:flex-start; flex-direction:column; gap:8px; }

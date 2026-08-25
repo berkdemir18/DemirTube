@@ -1,5 +1,6 @@
 // DemirTube Aurora UI v2 · unified dashboard visual system
 import { useMemo, useState, type CSSProperties } from "react";
+import { chartAccent, chartSeries } from "./chart-theme";
 import {
   BrainCircuit, Clock3, Gauge, Network,
   RefreshCw, Search, Sparkles, Target, TrendingUp,
@@ -239,11 +240,11 @@ function ModelWeightsCard({
   accuracy: { accuracyRate: number; sampleCount: number; improving: boolean };
 }) {
   const signals: { key: keyof typeof model.weights; label: string; color: string }[] = [
-    { key: "channel", label: "Kanal geçmişi", color: "#8b5cf6" },
-    { key: "topic", label: "Konu ilgisi", color: "#00c9d4" },
-    { key: "duration", label: "Süre uyumu", color: "#10b981" },
-    { key: "title", label: "Başlık biçimi", color: "#f59e0b" },
-    { key: "format", label: "Video formatı", color: "#c4b5fd" },
+    { key: "channel", label: "Kanal geçmişi", color: chartAccent },
+    { key: "topic", label: "Konu ilgisi", color: chartSeries[1] },
+    { key: "duration", label: "Süre uyumu", color: chartSeries[2] },
+    { key: "title", label: "Başlık biçimi", color: chartSeries[1] },
+    { key: "format", label: "Video formatı", color: chartSeries[4] },
   ];
 
   return (

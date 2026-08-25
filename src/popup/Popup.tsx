@@ -156,6 +156,15 @@ export function Popup() {
         </p>
       ) : null}
 
+      {/* Dashboard en sık istenen eylem: nabız kartının hemen altında ve tek
+          tıklık mesafede duruyor. Takibi durdurmak ise nadir ve geri
+          döndürülebilir bir karar; listenin sonunda. */}
+      <button
+        className="button primary"
+        onClick={() => { if (extensionRuntimeAvailable) void chrome.runtime.openOptionsPage(); }}
+      >
+        <BarChart3 size={17} />Dashboard'u aç
+      </button>
       <section>
         <div className={`status-dot ${settings.trackingEnabled ? "active" : ""}`} />
         <div>
@@ -172,15 +181,10 @@ export function Popup() {
         </div>
       </section>
 
+
       <button className="button" onClick={() => void toggle()}>
         {settings.trackingEnabled ? <PauseCircle size={17} /> : <PlayCircle size={17} />}
         {settings.trackingEnabled ? "Takibi durdur" : "Takibi başlat"}
-      </button>
-      <button
-        className="button primary"
-        onClick={() => { if (extensionRuntimeAvailable) void chrome.runtime.openOptionsPage(); }}
-      >
-        <BarChart3 size={17} />Dashboard'u aç
       </button>
 
       <footer><ShieldCheck size={15} />Bulut yalnızca sen etkinleştirirsen kullanılır.</footer>

@@ -26,7 +26,7 @@ import type { ReactNode, SyntheticEvent } from "react";
 import type { PreferenceResult } from "../analytics/preference-score";
 import { VIDEO_FORMAT_OPTIONS } from "../analytics/video-intelligence";
 import { buildAttentionSections } from "../analytics/insights-suite";
-import { sendMessage } from "../shared/messages";
+import { sendMessage, onStorageChanged } from "../shared/messages";
 import type {
   Settings,
   CloudAnalysisInput,
@@ -166,7 +166,7 @@ export function RecommendationPanel({ metadata, trackingStatus }: { metadata: Vi
   }, [collapsed, metadata.videoId]);
 
   useEffect(() => {
-    if (!globalThis.chrome?.storage?.onChanged) return;
+
     const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
       if (area !== "local") return;
       const next = changes.settings?.newValue as Settings | undefined;
@@ -175,8 +175,7 @@ export function RecommendationPanel({ metadata, trackingStatus }: { metadata: Vi
         applyCollapsed(next.panelCollapsed);
       }
     };
-    chrome.storage.onChanged.addListener(listener);
-    return () => chrome.storage.onChanged.removeListener(listener);
+    return onStorageChanged(listener);
   }, [applyCollapsed]);
 
   const saveFeedback = async (patch: Partial<UserVideoFeedback>) => {
@@ -342,7 +341,7 @@ export function RecommendationPanel({ metadata, trackingStatus }: { metadata: Vi
               </div>
               <div
                 className={`dt-score-ring ${loading || score === null ? "dt-score-empty" : ""}`}
-                style={{ background: score === null ? undefined : `conic-gradient(var(--dt-score-color) ${score * 3.6}deg, #203044 0)` }}
+                style={{ background: score === null ? undefined : `conic-gradient(var(--dt-score-color) ${score * 3.6}deg, #35322f 0)` }}
               >
                 <span><strong>{loading ? "…" : score === null ? "—" : score}</strong><small>{loading ? "ANALİZ" : loadError ? "HATA" : score === null ? "PUAN YOK" : "/ 100"}</small></span>
               </div>
@@ -358,6 +357,22 @@ export function RecommendationPanel({ metadata, trackingStatus }: { metadata: Vi
               <small>İZLEME KARARI</small>
               <h3>{recommendationTitle}</h3>
               <p>{primaryReason}</p>
+              {/* Tahmin ile gerçekleşen yan yana: karar kartının asıl işi bu ikisini
+                  karşılaştırmak, ayrıntı bölümüne saklanmamalı. */}
+              <div className="dt-summary-stats">
+                <span>
+                  <small>{isLivestream ? "Tamamlama" : "Tahmini izleme"}</small>
+                  <b>{isLivestream
+                    ? "Uygulanmaz"
+                    : result?.estimatedCompletion === undefined ? "—" : `%${result.estimatedCompletion}`}</b>
+                </span>
+                <span>
+                  <small>Senin izlediğin</small>
+                  <b>{video
+                    ? `${Math.round(video.totalActiveWatchSeconds / 60)} dk · %${Math.round(video.completionRate * 100)}`
+                    : "İlk kez"}</b>
+                </span>
+              </div>
             </div>
           </div>
 
@@ -380,17 +395,6 @@ export function RecommendationPanel({ metadata, trackingStatus }: { metadata: Vi
               </button>
             ) : null}
           </div>
-
-          {!isLivestream && video?.predictionSnapshot?.estimatedCompletion !== undefined && video.totalActiveWatchSeconds > 0 ? (
-            <div className="dt-prediction-outcome">
-              <BarChart3 size={18}/>
-              <span>
-                <small>{video.isCurrentlyWatching ? "TAHMİN TAKİBİ" : "TAHMİN SONUCU"}</small>
-                <strong>Tahmin: %{video.predictionSnapshot.estimatedCompletion} · {video.isCurrentlyWatching ? "Şu an" : "Gerçekleşen"}: %{Math.round(video.completionRate * 100)}</strong>
-              </span>
-              <b>{Math.abs(video.predictionSnapshot.estimatedCompletion - video.completionRate * 100) <= 15 ? "Yakın" : `${Math.round(Math.abs(video.predictionSnapshot.estimatedCompletion - video.completionRate * 100))} puan fark`}</b>
-            </div>
-          ) : null}
 
           {detailsOpen ? (
             <section className="dt-details" aria-label="Ayrıntılı video analizi">

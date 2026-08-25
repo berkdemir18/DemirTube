@@ -2,6 +2,9 @@ import { isExtensionContextInvalidated, sendMessage } from "../shared/messages";
 import type { TranscriptMoment, VideoDecision, VideoMetadata } from "../shared/types";
 import { BRAND_MARK_DATA_URI } from "../shared/brand-assets";
 
+/** HUD'ın imleç durduktan sonra soluklaşma süresi. 3 sn, düğmeye uzanmaya yetmiyordu. */
+const HUD_HIDE_DELAY_MS = 6_000;
+
 let overlayHost: HTMLElement | null = null;
 let hudHost: HTMLElement | null = null;
 let mouseHideTimer = 0;
@@ -57,6 +60,26 @@ export function isSkippableMomentActive(window: SkippableMomentWindow, currentTi
 }
 
 export function mountPlayerOverlay(metadata: VideoMetadata) {
+  // Metadata aynı video için tazelendiğinde (oEmbed/JSON-LD onarımı, canlı yayın
+  // geçişi) katman yeniden kurulursa kullanıcının o an açtığı analiz kartı
+  // elinden alınıyordu. Aynı videoda katman sökülmez, yalnızca künye güncellenir.
+  // Altyazı geç geldiğinde atlama düğmesi ilk kez gerekebilir; o durumda katman
+  // yine de kurulur, aksi halde düğme hiç görünmezdi.
+  const nextSkipWindow = skippableMomentWindow(
+    metadata.transcriptAnalysis?.keyMoments ?? [],
+    metadata.durationSeconds
+  );
+  const skipUnchanged = !nextSkipWindow || Boolean(overlayHost);
+
+  if (skipUnchanged && hudHost && hudMetadata?.videoId === metadata.videoId && document.contains(hudHost)) {
+    hudMetadata = metadata;
+    const type = hudHost.querySelector<HTMLElement>(".dt-hud-type");
+    const time = hudHost.querySelector<HTMLElement>(".dt-hud-time");
+    if (type) type.textContent = metadata.contentType.toUpperCase();
+    if (time) time.textContent = `${Math.round(metadata.durationSeconds / 60)} dk`;
+    return;
+  }
+
   unmountPlayerOverlay();
 
   const video = document.querySelector<HTMLVideoElement>("video.html5-main-video");
@@ -64,10 +87,7 @@ export function mountPlayerOverlay(metadata: VideoMetadata) {
   if (!video || !playerContainer) return;
 
   // 1. Sponsor / Intro Atlama Butonu Overlay
-  const skipWindow = skippableMomentWindow(
-    metadata.transcriptAnalysis?.keyMoments ?? [],
-    metadata.durationSeconds
-  );
+  const skipWindow = nextSkipWindow;
 
   if (skipWindow) {
     overlayHost = document.createElement("div");
@@ -111,15 +131,29 @@ export function mountPlayerOverlay(metadata: VideoMetadata) {
   const pill = document.createElement("div");
   pill.className = "dt-hud-pill";
   const pillTitle = document.createElement("span");
-  pillTitle.textContent = "DemirTube AI";
+  pillTitle.textContent = "DemirTube";
   pillTitle.className = "dt-hud-brand";
-  const pillInfo = document.createElement("small");
-  pillInfo.textContent = `${metadata.contentType.toUpperCase()} • ${Math.round(metadata.durationSeconds / 60)} dk`;
-  pill.append(pillTitle, pillInfo);
+  // "STANDARD • 15 dk" iki farklı türde bilgiyi tek metne sıkıştırıyordu; süre
+  // artık kendi hücresinde ve hizalı rakamlarla, tür ise küçük etiket olarak.
+  const pillType = document.createElement("small");
+  pillType.className = "dt-hud-type";
+  pillType.textContent = metadata.contentType.toUpperCase();
+  const pillTime = document.createElement("small");
+  pillTime.className = "dt-hud-time";
+  pillTime.textContent = `${Math.round(metadata.durationSeconds / 60)} dk`;
+  pill.append(pillTitle, pillType, pillTime);
   pill.title = "Detay için tıkla";
   pill.setAttribute("role", "button");
   pill.tabIndex = 0;
   pill.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    void toggleHudDetail();
+  });
+  // role="button" + tabIndex vardı ama klavyeyle açılmıyordu.
+  pill.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
     event.stopPropagation();
     void toggleHudDetail();
   });
@@ -143,9 +177,20 @@ export function mountPlayerOverlay(metadata: VideoMetadata) {
     if (!hudExpanded) {
       mouseHideTimer = window.setTimeout(() => {
         if (!hudExpanded) hudHost?.classList.add("dt-hud-hidden");
-      }, 3_000);
+      }, HUD_HIDE_DELAY_MS);
     }
   };
+
+  // İmleç HUD'ın üstüne gelince gizleme sayacı durur; aksi halde kullanıcı
+  // düğmeye uzanırken kart kaybolup tıklama videoya gidiyordu.
+  hudHost.addEventListener("mouseenter", () => clearTimeout(mouseHideTimer));
+  hudHost.addEventListener("mouseleave", () => {
+    if (hudExpanded) return;
+    clearTimeout(mouseHideTimer);
+    mouseHideTimer = window.setTimeout(() => {
+      if (!hudExpanded) hudHost?.classList.add("dt-hud-hidden");
+    }, HUD_HIDE_DELAY_MS);
+  });
 
   mouseMoveTarget = playerContainer;
   mouseMoveHandler = handleMouseMove;
@@ -253,7 +298,23 @@ async function toggleHudDetail() {
     renderHudDetail(hudDetail, hudMetadata, decision, today);
   } catch (error) {
     if (isExtensionContextInvalidated(error)) { unmountPlayerOverlay(); return; }
-    if (hudDetail) hudDetail.textContent = "Analiz şu an alınamadı.";
+    if (!hudDetail) return;
+    // Ölü bir "alınamadı" metni yerine tekrar denenebilir bir durum.
+    hudDetail.textContent = "";
+    const message = document.createElement("p");
+    message.className = "dt-hud-error";
+    message.textContent = "Analiz şu an alınamadı.";
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.textContent = "Tekrar dene";
+    retry.addEventListener("click", (event) => {
+      event.stopPropagation();
+      hudExpanded = false;
+      hudDetail?.remove();
+      hudDetail = null;
+      void toggleHudDetail();
+    });
+    hudDetail.append(message, retry);
   }
 }
 
@@ -342,72 +403,96 @@ function injectOverlayStyles() {
   style.textContent = `
     .dt-player-skip[hidden] { display: none !important; }
     .dt-skip-btn {
-      padding: 8px 14px; border-radius: 10px; border: 1px solid rgba(139,92,246,.5);
-      background: rgba(13, 23, 33, 0.9); backdrop-filter: blur(12px);
-      color: #ffffff; font: 600 12px Inter, sans-serif; cursor: pointer;
+      padding: 8px 14px; border-radius: 10px; border: 1px solid rgba(192,82,47,.5);
+      background: rgba(24,23,22, 0.9); backdrop-filter: blur(12px);
+      color: #ffffff; font: 600 13px Inter, sans-serif; cursor: pointer;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); transition: all 0.2s;
     }
-    .dt-skip-btn:hover { background: linear-gradient(120deg,#8b5cf6,#00c9d4); color:#090d16; transform: translateY(-2px); }
+    .dt-skip-btn:hover { background: #C0522F; color:#0c0c0c; transform: translateY(-2px); }
 
+    /* Oynatıcı HUD'ı: video büyütülünce sağ üstte duran ölçüm etiketi.
+       Bulanık cam hap ve parıltı yerine düz, köşeli, dar bir şerit; oynatıcının
+       kendi arayüzüyle yarışmaz, sol kenarındaki oksit çizgiyle kendini belli eder. */
+    /* Konak kutusu tıklamayı yutmaz, çocukları yutar: aksi halde HUD'ın boş
+       alanı videonun oynat/duraklat tıklamalarını çalıyordu. Gizliyken çocuklar
+       da geçirgen olur ki tıklama videoya gitsin. */
     .dt-player-hud {
-      position: absolute; top: 20px; right: 20px; z-index: 9999;
-      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s;
+      position: absolute; top: 16px; right: 16px; z-index: 2147483000;
+      display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+      pointer-events: none;
+      transition: opacity .3s cubic-bezier(.22,.61,.36,1), transform .3s cubic-bezier(.22,.61,.36,1);
     }
-    .dt-player-hud.dt-hud-hidden { opacity: 0; pointer-events: none; transform: translateY(-8px); }
+    .dt-player-hud > * { pointer-events: auto; }
+    .dt-player-hud.dt-hud-hidden { opacity: 0; transform: translateY(-6px); }
+    .dt-player-hud.dt-hud-hidden > * { pointer-events: none; }
 
-    .dt-player-hud { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
     .dt-hud-pill {
-      display: flex; align-items: center; gap: 8px;
-      padding: 6px 12px; border-radius: 99px; cursor: pointer;
-      background: rgba(13, 23, 33, 0.82); backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.1); color: #f8fafc; font: 600 11px Inter, sans-serif;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-      transition: border-color 0.2s ease, transform 0.2s ease;
+      display: flex; align-items: center; gap: 9px;
+      padding: 6px 12px 6px 9px; border-radius: 4px; cursor: pointer;
+      background: rgba(12,12,12, .9); backdrop-filter: blur(6px);
+      border: 1px solid rgba(231, 230, 227, .16);
+      border-left: 3px solid #D9542B;
+      color: #E7E6E3; font: 600 13px/1.3 Inter, sans-serif;
+      box-shadow: none;
+      transition: border-color .16s ease, background .16s ease;
     }
-    .dt-hud-pill:hover { border-color: rgba(56, 189, 248, 0.5); transform: translateY(-1px); }
-    .dt-hud-pill small { color: #aebbd0; font-size: 10px; }
-    .dt-hud-brand { display:flex; align-items:center; gap:6px; }
-    .dt-hud-brand::before { content:""; width:18px; height:18px; border-radius:5px; background:url("${BRAND_MARK_DATA_URI}") center/contain no-repeat; }
+    .dt-hud-pill:hover { background: rgba(22,22,21, .95); border-color: rgba(217, 84, 43, .5); border-left-color: #D9542B; }
+    .dt-hud-brand { display: flex; align-items: center; gap: 7px; letter-spacing: -.01em; }
+    .dt-hud-brand::before { content:""; width:16px; height:16px; border-radius:4px; background:url("${BRAND_MARK_DATA_URI}") center/contain no-repeat; }
+    .dt-hud-type {
+      padding: 2px 6px; border-radius: 3px; background: rgba(231, 230, 227, .08);
+      color: rgba(231, 230, 227, .62);
+      font: 500 10px/1.4 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .1em;
+    }
+    .dt-hud-time {
+      color: rgba(231, 230, 227, .62);
+      font: 500 12px/1.3 "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums;
+    }
 
     .dt-hud-detail {
-      width: 240px; padding: 12px 14px; border-radius: 14px;
-      background: rgba(11, 19, 27, 0.96); backdrop-filter: blur(18px);
-      border: 1px solid rgba(255, 255, 255, 0.14); color: #e2e8f0;
-      font: 500 12px/1.5 Inter, sans-serif;
-      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6);
-      animation: dt-fadein 0.2s ease;
+      width: 252px; padding: 13px 15px; border-radius: 6px;
+      background: rgba(12,12,12, .96); backdrop-filter: blur(10px);
+      border: 1px solid rgba(231, 230, 227, .16); color: #E7E6E3;
+      font: 500 13px/1.5 Inter, sans-serif;
+      box-shadow: none;
+      animation: dt-fadein .2s cubic-bezier(.22,.61,.36,1);
     }
     @keyframes dt-fadein { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
-    .dt-hud-row { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; }
-    .dt-hud-row span { color: #aebbd0; font-size: 11.5px; }
-    .dt-hud-row strong { color: #f8fafc; font-size: 12.5px; font-weight: 700; text-align: right; }
-    .dt-hud-budget { margin-top: 8px; }
-    .dt-hud-budget small { color: #aebbd0; font-size: 11px; display: block; margin-bottom: 4px; }
-    .dt-hud-budget-bar { height: 6px; border-radius: 99px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
-    .dt-hud-budget-bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #38bdf8, #34d399); }
-    .dt-hud-budget-bar i.over { background: linear-gradient(90deg, #fb923c, #ef4444); }
-    .dt-hud-actions { display: flex; gap: 6px; margin-top: 10px; }
+    .dt-hud-row { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px solid rgba(231, 230, 227, .08); }
+    .dt-hud-row:last-of-type { border-bottom: 0; }
+    .dt-hud-row span { color: rgba(231, 230, 227, .55); font: 500 11px/1.4 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; }
+    .dt-hud-row strong { color: #E7E6E3; font-size: 13px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+    .dt-hud-budget { margin-top: 10px; }
+    .dt-hud-budget small { color: rgba(231, 230, 227, .55); font-size: 12px; display: block; margin-bottom: 5px; }
+    .dt-hud-budget-bar { height: 3px; border-radius: 2px; background: rgba(231, 230, 227, .12); overflow: hidden; }
+    .dt-hud-budget-bar i { display: block; height: 100%; border-radius: 2px; background: #D9542B; }
+    .dt-hud-budget-bar i.over { background: #FF5233; }
+    .dt-hud-actions { display: flex; gap: 6px; margin-top: 11px; }
     .dt-hud-actions button {
-      flex: 1; padding: 7px 8px; border: 1px solid rgba(255, 81, 72, 0.45); border-radius: 9px;
-      background: rgba(255, 81, 72, 0.14); color: #ffd7d4; font: 700 11.5px Inter, sans-serif; cursor: pointer;
+      flex: 1; padding: 7px 8px; border: 1px solid rgba(217, 84, 43, .45); border-radius: 4px;
+      background: rgba(217, 84, 43, .14); color: #E7E6E3; font: 600 12px Inter, sans-serif; cursor: pointer;
+      transition: background .16s ease;
     }
-    .dt-hud-actions button:hover { background: rgba(255, 81, 72, 0.28); }
-    .dt-hud-actions button.ghost { border-color: rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.05); color: #cbd5e1; }
+    .dt-hud-actions button:hover { background: rgba(217, 84, 43, .26); }
+    .dt-hud-error { margin: 0 0 9px; color: rgba(231, 230, 227, .75); }
+    .dt-hud-detail > button { width: 100%; padding: 7px 8px; border: 1px solid rgba(217, 84, 43, .45); border-radius: 4px;
+      background: rgba(217, 84, 43, .14); color: #E7E6E3; font: 600 12px Inter, sans-serif; cursor: pointer; }
+    .dt-hud-actions button.ghost { border-color: rgba(231, 230, 227, .16); background: rgba(231, 230, 227, .05); color: rgba(231, 230, 227, .75); }
 
     .dt-worth-prompt {
       position: absolute; bottom: 76px; left: 50%; transform: translateX(-50%);
       display: flex; align-items: center; gap: 14px; z-index: 9999;
       padding: 10px 16px; border-radius: 14px;
-      background: rgba(11, 19, 27, 0.95); backdrop-filter: blur(18px);
-      border: 1px solid rgba(255, 255, 255, 0.16); color: #f8fafc;
-      font: 600 13px Inter, sans-serif; box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+      background: rgba(20,19,18, 0.95); backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.16); color: #E7E6E3;
+      font: 600 14px Inter, sans-serif; box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
       animation: dt-fadein 0.25s ease;
     }
     .dt-worth-prompt div { display: flex; gap: 8px; }
     .dt-worth-prompt button {
       padding: 7px 13px; border-radius: 10px; cursor: pointer;
       border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.06);
-      color: #e2e8f0; font: 700 12.5px Inter, sans-serif; transition: all 0.15s ease;
+      color: #E7E6E3; font: 700 12.5px Inter, sans-serif; transition: all 0.15s ease;
     }
     .dt-worth-prompt button:hover { border-color: rgba(52, 211, 153, 0.5); background: rgba(52, 211, 153, 0.14); transform: translateY(-1px); }
     .dt-worth-prompt.answered { border-color: rgba(52, 211, 153, 0.45); }

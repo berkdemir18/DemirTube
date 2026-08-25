@@ -1,4 +1,4 @@
-import { isExtensionContextInvalidated, sendMessage } from "../shared/messages";
+import { isExtensionContextInvalidated, onStorageChanged, sendMessage } from "../shared/messages";
 import type { FeedRuntimeStatus, Settings, VideoDecision, VideoMetadata } from "../shared/types";
 import { classifyTopics } from "../analytics/topic-classifier";
 import { classifyContentType } from "../analytics/content-type";
@@ -234,64 +234,59 @@ function injectStyles() {
       100% { background-position: -200% 0; }
     }
 
+    /* Keşfet rozeti: YouTube kartının altında duran bir ölçüm etiketi.
+       Yuvarlak hap, parıltı ve gradyan yerine düz, köşeli, okunur bir şerit;
+       durum rengi noktada değil sol kenar çubuğunda taşınır. */
     .demirtube-feed-badge {
       display: inline-flex !important;
       align-items: center;
       gap: 8px;
-      padding: 4px 10px 4px 6px;
-      border-radius: 99px;
-      background: #0b151f !important;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      color: #f8fafc !important;
-      font: 700 11px/1.2 Inter, Roboto, sans-serif !important;
-      font-size: 11px !important;
+      padding: 4px 10px 4px 8px;
+      border-radius: 4px;
+      background: rgba(12,12,12, .92) !important;
+      border: 1px solid rgba(231, 230, 227, .16);
+      border-left: 3px solid #FFB02E;
+      color: #E7E6E3 !important;
+      font: 600 13px/1.25 Inter, Roboto, sans-serif !important;
       white-space: nowrap;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.32);
+      box-shadow: none;
       transition: border-color .16s ease, background .16s ease;
       flex-shrink: 0;
     }
     .demirtube-feed-badge:hover {
-      background: #101d2a !important;
-      border-color: rgba(56, 189, 248, 0.5);
+      background: rgba(22,22,21, .96) !important;
+      border-color: rgba(217, 84, 43, .55);
     }
+    .demirtube-feed-badge.strong  { border-left-color: #5FD35A; color: #E7E6E3 !important; }
+    .demirtube-feed-badge.warning { border-left-color: #FF5233; color: #E7E6E3 !important; }
 
-    .demirtube-feed-badge.strong  {
-      border-color: rgba(52, 211, 153, 0.6);
-      color: #ffffff !important;
-      box-shadow: 0 4px 12px rgba(0,0,0,.28);
-    }
-    .demirtube-feed-badge.warning {
-      border-color: rgba(239, 68, 68, 0.6);
-      color: #fca5a5 !important;
-      box-shadow: 0 4px 12px rgba(0,0,0,.28);
-    }
-
+    /* Nokta yerine ince bir işaret: kenar çubuğu zaten durumu söylüyor. */
     .demirtube-feed-dot {
-      width: 9px; height: 9px; border-radius: 50%; background: #38bdf8; flex: 0 0 auto;
-      box-shadow: 0 0 7px rgba(56,189,248,.7);
+      width: 4px; height: 14px; border-radius: 1px; background: #FFB02E;
+      flex: 0 0 auto; box-shadow: none;
     }
-    .demirtube-feed-badge.strong  .demirtube-feed-dot { background: #34d399; box-shadow: 0 0 12px #34d399; }
-    .demirtube-feed-badge.warning .demirtube-feed-dot { background: #ef4444; box-shadow: 0 0 12px #ef4444; }
+    .demirtube-feed-badge.strong  .demirtube-feed-dot { background: #5FD35A; }
+    .demirtube-feed-badge.warning .demirtube-feed-dot { background: #FF5233; }
 
     .demirtube-feed-score {
       padding: 2px 8px;
       border-radius: 8px;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05));
-      font: 900 12px/1 'Outfit', Inter, monospace !important;
-      font-size: 12px !important;
+      background: rgba(231, 230, 227, .08);
+      font: 900 13px/1 'Outfit', Inter, monospace !important;
+      font-size:13px !important;
       color: #ffffff !important;
       letter-spacing: -0.02em;
     }
     .demirtube-feed-badge.strong  .demirtube-feed-score {
-      background: linear-gradient(135deg, rgba(52, 211, 153, 0.35), rgba(16, 185, 129, 0.25));
-      color: #34d399 !important;
-      border: 1px solid rgba(52, 211, 153, 0.4);
+      background: linear-gradient(135deg, rgba(95,211,90,0.35), rgba(16, 185, 129, 0.25));
+      color: #5FD35A !important;
+      border: 1px solid rgba(95,211,90,0.4);
     }
     .demirtube-feed-badge.warning .demirtube-feed-score {
-      background: linear-gradient(135deg, rgba(239, 68, 68, 0.35), rgba(220, 38, 38, 0.25));
+      background: linear-gradient(135deg, rgba(255,82,51,0.35), rgba(220, 38, 38, 0.25));
       color: #f87171 !important;
-      border: 1px solid rgba(239, 68, 68, 0.4);
+      border: 1px solid rgba(255,82,51,0.4);
     }
 
     /* Segmentli puan halkası + karar etiketi */
@@ -304,50 +299,64 @@ function injectStyles() {
       text-align: left;
       box-shadow: none;
     }
+    /* Puan halkası değil, ölçüm bloğu: konik gradyanlı donut her yapay zekâ
+       ürününde var. Puan kendi karesinde durur, altındaki ince çizgi puanın
+       0–100 ölçeğindeki yerini gösterir. */
     .demirtube-feed-ring {
-      --dt-feed-angle: 0deg;
-      width: 34px; height: 34px; display: grid; place-items: center; flex: 0 0 auto;
-      position: relative; border-radius: 50%;
-      background: conic-gradient(#f5b84c var(--dt-feed-angle), #253446 0);
+      --dt-feed-score: 0;
+      width: 34px; height: 34px; flex: 0 0 auto; position: relative;
+      display: grid; place-items: center;
+      border: 1px solid rgba(255,176,46,.45); border-radius: 4px;
+      background: rgba(255,176,46,.07);
+    }
+    .demirtube-feed-ring::after {
+      content: ""; position: absolute; left: 3px; right: 3px; bottom: 3px; height: 2px;
+      border-radius: 1px; background: rgba(231,230,227,.14);
     }
     .demirtube-feed-ring::before {
-      content: ""; position: absolute; inset: 4px; border-radius: inherit;
-      background: #0b151f; box-shadow: inset 0 0 0 1px rgba(255,255,255,.07);
+      content: ""; position: absolute; left: 3px; bottom: 3px; height: 2px; z-index: 1;
+      width: calc((100% - 6px) * var(--dt-feed-score) / 100);
+      border-radius: 1px; background: #FFB02E;
     }
     .demirtube-feed-ring strong {
-      position: relative; z-index: 1; color: #fff !important;
-      font: 900 12px/1 Inter,Roboto,sans-serif !important;
+      position: relative; z-index: 1; margin-bottom: 3px;
+      color: #E7E6E3 !important;
+      font: 600 14px/1 Inter, Roboto, sans-serif !important;
+      font-variant-numeric: tabular-nums;
     }
-    .demirtube-feed-badge.warning .demirtube-feed-ring { background: conic-gradient(#ff5b52 var(--dt-feed-angle), #253446 0); }
-    .demirtube-feed-badge:not([data-scored="true"]) .demirtube-feed-ring { background:#253446; }
+    .demirtube-feed-badge.strong .demirtube-feed-ring { border-color: rgba(95,211,90,.5); }
+    .demirtube-feed-badge.strong .demirtube-feed-ring::before { background: #5FD35A; }
+    .demirtube-feed-badge.warning .demirtube-feed-ring { border-color: rgba(255,82,51,.5); }
+    .demirtube-feed-badge.warning .demirtube-feed-ring::before { background: #FF5233; }
+    .demirtube-feed-badge:not([data-scored="true"]) .demirtube-feed-ring::before { width: 0; }
     .demirtube-feed-badge-copy { display:grid; gap:2px; min-width:0; }
-    .demirtube-feed-badge-copy>strong { color:#f8fafc !important; font-size:11px !important; line-height:1.1 !important; }
-    .demirtube-feed-badge.strong .demirtube-feed-badge-copy>strong { color:#f5c15f !important; }
-    .demirtube-feed-badge.warning .demirtube-feed-badge-copy>strong { color:#ff8a82 !important; }
-    .demirtube-feed-badge-copy>small { color:#8294a8 !important; font:700 9px/1 Inter,Roboto,sans-serif !important; letter-spacing:.03em; }
-    .demirtube-feed-badge:focus-visible { outline:2px solid #00c9d4; outline-offset:2px; }
+    .demirtube-feed-badge-copy>strong { color:#FFB02E !important; font-size:12px !important; line-height:1.1 !important; }
+    .demirtube-feed-badge.strong .demirtube-feed-badge-copy>strong { color:#8FE08A !important; }
+    .demirtube-feed-badge.warning .demirtube-feed-badge-copy>strong { color:#FF8566 !important; }
+    .demirtube-feed-badge-copy>small { color:rgba(231,230,227,.55) !important; font:500 11px/1.2 "IBM Plex Mono",ui-monospace,monospace !important; letter-spacing:.04em; }
+    .demirtube-feed-badge:focus-visible { outline:2px solid #D9963C; outline-offset:2px; }
     .dt-feed-mini-summary {
       position:fixed; top:0; left:0; z-index:2147483646;
       width:min(286px,calc(100vw - 24px)); display:grid; gap:0;
       box-sizing:border-box;
-      padding:13px; border:1px solid rgba(112,145,178,.38); border-radius:13px;
-      background:#09131e !important; color:#f1f5f9 !important; box-shadow:0 18px 38px rgba(0,0,0,.58);
+      padding:13px; border:1px solid rgba(150,145,140,.38); border-radius:13px;
+      background:#141413 !important; color:#f5f5f4 !important; box-shadow:0 18px 38px rgba(0,0,0,.58);
       opacity:0; visibility:hidden; transform:translateY(-4px); pointer-events:none;
       transition:opacity .14s ease,transform .14s ease,visibility .14s;
-      font:12px/1.35 Inter,Roboto,sans-serif !important;
+      font:13px/1.35 Inter,Roboto,sans-serif !important;
     }
     .dt-feed-mini-summary.mini-open {
       opacity:1 !important; visibility:visible !important; transform:translateY(0) !important;
     }
-    .dt-feed-mini-summary>strong { margin-bottom:7px; color:#f5b84c !important; font-size:13px; }
-    .dt-feed-mini-summary>span { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-top:1px solid rgba(148,163,184,.12); }
-    .dt-feed-mini-summary small { color:#8fa2b7 !important; font-size:10px !important; }
-    .dt-feed-mini-summary b { color:#fff !important; font-size:10px !important; text-align:right; }
+    .dt-feed-mini-summary>strong { margin-bottom:7px; color:#f5b84c !important; font-size:14px; }
+    .dt-feed-mini-summary>span { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-top:1px solid rgba(169,166,163,.12); }
+    .dt-feed-mini-summary small { color:#a6a3a0 !important; font-size:11px !important; }
+    .dt-feed-mini-summary b { color:#fff !important; font-size:11px !important; text-align:right; }
 
     /* Feature #7: True Title Clickbait Badge */
     .dt-true-title-badge {
       display: inline-flex; align-items: center; margin-top: 4px;
-      font: 700 12px Inter, sans-serif !important; font-size: 12px !important;
+      font: 700 13px Inter, sans-serif !important; font-size:13px !important;
       color: #ff8c84; background: rgba(255, 81, 72, 0.16);
       border: 1px solid rgba(255, 81, 72, 0.4);
       padding: 4px 10px; border-radius: 8px; width: fit-content;
@@ -361,20 +370,20 @@ function injectStyles() {
     .dt-watched-badge {
       display: inline-flex; align-items: center; gap: 4px;
       padding: 3px 8px; border-radius: 8px;
-      font-size: 11px !important; font-weight: 700 !important;
-      background: rgba(56, 189, 248, 0.14); border: 1px solid rgba(56, 189, 248, 0.4);
-      color: #7dd3fc !important;
+      font-size:12px !important; font-weight: 700 !important;
+      background: rgba(217,84,43,0.14); border: 1px solid rgba(217,84,43,0.4);
+      color: #FFB02E !important;
     }
 
     .dt-channel-trust-badge {
       display: inline-flex; align-items: center; gap: 4px; margin-left: 4px;
       padding: 3px 7px; border-radius: 8px;
-      font-size: 11px !important; font-weight: 800 !important;
-      background: #111d29; border: 1px solid rgba(148,163,184,.22);
-      color: #aebccc !important; box-shadow: none;
+      font-size:12px !important; font-weight: 800 !important;
+      background: #1e1d1c; border: 1px solid rgba(169,166,163,.22);
+      color: #bfbdbb !important; box-shadow: none;
     }
     .dt-channel-trust-badge:hover {
-      border-color: rgba(0,201,212,.32);
+      border-color: rgba(217,150,60,.32);
     }
 
     /* Glassmorphic Popover */
@@ -382,34 +391,34 @@ function injectStyles() {
       position: absolute; right: 0; left: auto; top: calc(100% + 8px);
       width: min(320px, calc(100vw - 24px)); max-width: calc(100vw - 24px);
       min-width: 0; padding: 16px; border-radius: 16px; overflow-wrap: anywhere;
-      background: #09131e !important;
-      border: 1px solid rgba(112,145,178,.38); color: #f1f5f9 !important;
-      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.56); font: 13px/1.5 Inter, Roboto, sans-serif !important;
+      background: #141413 !important;
+      border: 1px solid rgba(150,145,140,.38); color: #f5f5f4 !important;
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.56); font:14px/1.5 Inter, Roboto, sans-serif !important;
       z-index: 99999;
     }
     .demirtube-feed-detail[hidden] { display: none !important; }
-    .demirtube-feed-detail-heading { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; color: #fff; font-size: 14px; font-weight: 850; }
-    .demirtube-feed-detail-title { display: -webkit-box; overflow: hidden; margin-bottom: 12px; color: #94a3b8; font-size: 11px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-    .demirtube-feed-detail-method { margin: 0 0 12px; padding: 9px 10px; border: 1px solid rgba(56,189,248,.2); border-radius: 9px; background: rgba(56,189,248,.055); color: #cdefff; font-size: 11px; line-height: 1.5; }
-    .demirtube-feed-detail-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; padding: 9px 0; border-bottom: 1px solid rgba(148,163,184,.12); color: #cbd5e1; font-size: 12px; }
+    .demirtube-feed-detail-heading { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; color: #fff; font-size:15px; font-weight: 850; }
+    .demirtube-feed-detail-title { display: -webkit-box; overflow: hidden; margin-bottom: 12px; color: #a9a6a3; font-size:12px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+    .demirtube-feed-detail-method { margin: 0 0 12px; padding: 9px 10px; border: 1px solid rgba(217,84,43,.2); border-radius: 9px; background: rgba(217,84,43,.055); color: #e7e6e5; font-size:12px; line-height: 1.5; }
+    .demirtube-feed-detail-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; padding: 9px 0; border-bottom: 1px solid rgba(169,166,163,.12); color: #d8d6d4; font-size:13px; }
     .demirtube-feed-detail-row span { display:grid; gap:2px; min-width:0; }
-    .demirtube-feed-detail-row small { overflow:hidden; color:#8294a8; font-size:10px; text-overflow:ellipsis; white-space:nowrap; }
-    .demirtube-feed-detail-row b { color: #fff; font-size: 12px; }
-    .demirtube-feed-detail-reason { display: block; margin-top: 10px; color: #94a3b8; font-size: 11px; line-height: 1.5; }
+    .demirtube-feed-detail-row small { overflow:hidden; color:#989592; font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
+    .demirtube-feed-detail-row b { color: #fff; font-size:13px; }
+    .demirtube-feed-detail-reason { display: block; margin-top: 10px; color: #a9a6a3; font-size:12px; line-height: 1.5; }
     .demirtube-feed-detail button {
       margin-top: 12px; padding: 10px 14px; border: 0; border-radius: 10px;
-      background: linear-gradient(120deg,#8b5cf6,#00c9d4); color: #090d16;
-      font: 800 12px Inter, sans-serif; cursor: pointer; width: 100%;
-      box-shadow: 0 6px 18px rgba(139,92,246,.22);
+      background: #C0522F; color: #0c0c0c;
+      font: 800 13px Inter, sans-serif; cursor: pointer; width: 100%;
+      box-shadow: 0 6px 18px rgba(192,82,47,.22);
     }
     .demirtube-feed-detail button:hover { filter:brightness(1.08); }
 
     /* Feature #11: Thumbnail Chapter Overlay */
     .dt-thumb-chapter-overlay {
       position: absolute; bottom: 8px; left: 8px; right: 8px;
-      padding: 6px 12px; border-radius: 8px; background: rgba(11, 19, 27, 0.94);
+      padding: 6px 12px; border-radius: 8px; background: rgba(20,19,18, 0.94);
       backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.18);
-      color: #f1f5f9; font-size: 11px; font-weight: 700; z-index: 100;
+      color: #f5f5f4; font-size:12px; font-weight: 700; z-index: 100;
       opacity: 0; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
     }
@@ -482,7 +491,10 @@ function renderBadge(
 
   const scoreRing = document.createElement("span");
   scoreRing.className = "demirtube-feed-ring";
-  if (finalScore !== undefined) scoreRing.style.setProperty("--dt-feed-angle", `${finalScore * 3.6}deg`);
+  if (finalScore !== undefined) {
+    scoreRing.style.setProperty("--dt-feed-angle", `${finalScore * 3.6}deg`);
+    scoreRing.style.setProperty("--dt-feed-score", String(Math.round(finalScore)));
+  }
   const scoreValue = document.createElement("strong");
   scoreValue.textContent = finalScore === undefined ? "—" : String(finalScore);
   scoreRing.append(scoreValue);
@@ -829,7 +841,7 @@ export async function startFeedDecorator() {
     if (feedBadgesEnabled) schedule();
     else clearFeedDecorations();
   };
-  chrome.storage.onChanged.addListener(settingsListener);
+  const unsubscribeSettings = onStorageChanged(settingsListener);
   void scan();
 
   return () => {
@@ -838,7 +850,7 @@ export async function startFeedDecorator() {
     clearInterval(periodic);
     document.removeEventListener("visibilitychange", visibilityListener);
     observer.disconnect();
-    chrome.storage.onChanged.removeListener(settingsListener);
+    unsubscribeSettings();
     clearPendingFeedDecorations();
   };
 }

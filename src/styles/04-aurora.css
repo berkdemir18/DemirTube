@@ -8,24 +8,24 @@
    ========================================================================== */
 
 :root {
-  --cyan:#00f2fe;
-  --violet:#8b5cf6;
-  --emerald:#10b981;
+  --cyan:#FFB02E;
+  --violet:var(--accent);
+  --emerald:#5FD35A;
   --amber:#f59e0b;
-  --glass:rgba(14,21,38,.72);
-  --glass-strong:rgba(16,25,44,.9);
+  --glass:rgba(27,26,25,.72);
+  --glass-strong:rgba(32,30,28,.9);
   --hairline:rgba(255,255,255,.075);
   --hairline-strong:rgba(255,255,255,.13);
   --glow-coral:0 0 0 1px rgba(255,81,72,.16), 0 18px 60px rgba(255,81,72,.10);
-  --glow-cyan:0 0 0 1px rgba(0,242,254,.15), 0 18px 60px rgba(0,242,254,.08);
+  --glow-cyan:0 0 0 1px rgba(255,176,46,.15), 0 18px 60px rgba(255,176,46,.08);
   --radius-xl:24px;
   --radius-lg:18px;
   --ease:cubic-bezier(.22,1,.36,1);
 }
 
 html.demirtube-ui {
-  background:#090d16;
-  scrollbar-color:rgba(139,92,246,.55) transparent
+  background:#10100f;
+  scrollbar-color:color-mix(in srgb,var(--accent) 55%,transparent) transparent
 }
 
 body:before {
@@ -77,14 +77,14 @@ body:before {
 }
 
 .topbar-context small {
-  font-size:9px;
+  font-size:10px;
   letter-spacing:.18em;
   color:var(--accent);
   font-weight:800
 }
 
 .topbar-context strong {
-  font-size:13px;
+  font-size:14px;
   color:var(--text)
 }
 
@@ -104,8 +104,8 @@ body:before {
   display:inline-flex;
   align-items:center;
   gap:8px;
-  color:#9fb2c7;
-  font-size:10px;
+  color:#b6b3b0;
+  font-size:11px;
   font-weight:800;
   letter-spacing:.18em;
   margin-bottom:12px
@@ -123,14 +123,14 @@ body:before {
   line-height:1.04;
   letter-spacing:-.045em;
   margin:0;
-  background:linear-gradient(120deg,#fff 25%,#cbd5e1 70%,#8fa2ba);
+  background:linear-gradient(120deg,#fff 25%,#d8d6d4 70%,#a8a5a1);
   -webkit-background-clip:text;
   background-clip:text;
   color:transparent
 }
 
 .page-heading p {
-  font-size:14px;
+  font-size:15px;
   line-height:1.7;
   margin:10px 0 0;
   color:var(--muted);
@@ -170,8 +170,8 @@ body:before {
 .duration-row:hover,
 .weekly-comparisons>article:hover {
   transform:translateY(-3px);
-  border-color:rgba(0,242,254,.16);
-  box-shadow:0 22px 70px rgba(0,0,0,.28), 0 0 0 1px rgba(0,242,254,.05)
+  border-color:rgba(255,176,46,.16);
+  box-shadow:0 22px 70px rgba(0,0,0,.28), 0 0 0 1px rgba(255,176,46,.05)
 }
 
 .metric {
@@ -220,7 +220,7 @@ body:before {
 .premium-controls,
 .premium-toolbar {
   border:1px solid var(--hairline);
-  background:rgba(14,21,38,.62);
+  background:rgba(27,26,25,.62);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
   backdrop-filter:blur(18px);
   border-radius:var(--radius-lg);
@@ -247,18 +247,18 @@ body:before {
 }
 
 .neon-chart .recharts-cartesian-grid-horizontal line {
-  stroke:rgba(148,163,184,.10)
+  stroke:rgba(231,230,227,.10)
 }
 
 .neon-chart .recharts-default-tooltip {
-  background:rgba(9,13,22,.95)!important;
+  background:rgba(16,16,15,.95)!important;
   border:1px solid var(--hairline-strong)!important;
   border-radius:14px!important;
   box-shadow:0 20px 55px rgba(0,0,0,.42)!important
 }
 
 .recharts-text {
-  font-size:11px
+  font-size:12px
 }
 
 .meter {
@@ -278,31 +278,31 @@ body:before {
   height:34px;
   border-radius:999px;
   color:#fff;
-  background:linear-gradient(120deg,rgba(139,92,246,.22),rgba(0,242,254,.12));
-  border:1px solid rgba(139,92,246,.3);
-  box-shadow:0 0 24px rgba(139,92,246,.13)
+  background:linear-gradient(120deg,color-mix(in srgb,var(--accent) 22%,transparent),rgba(255,176,46,.12));
+  border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);
+  box-shadow:0 0 24px color-mix(in srgb,var(--accent) 13%,transparent)
 }
 
 .empty {
   min-height:190px;
-  border:1px dashed rgba(148,163,184,.18);
+  border:1px dashed rgba(231,230,227,.18);
   border-radius:var(--radius-xl);
   display:grid;
   place-items:center;
   align-content:center;
   gap:14px;
   color:var(--muted);
-  background:radial-gradient(circle at 50% 0,rgba(139,92,246,.08),transparent 55%)
+  background:radial-gradient(circle at 50% 0,color-mix(in srgb,var(--accent) 8%,transparent),transparent 55%)
 }
 
 .empty-orbit {
   width:44px;
   height:44px;
-  border:1px solid rgba(0,242,254,.25);
+  border:1px solid rgba(255,176,46,.25);
   border-radius:50%;
   display:grid;
   place-items:center;
-  box-shadow:0 0 28px rgba(0,242,254,.08)
+  box-shadow:0 0 28px rgba(255,176,46,.08)
 }
 
 .empty-orbit i {
@@ -314,13 +314,13 @@ body:before {
 }
 
 .playback-heatmap[data-density="high"] i.rewatched {
-  box-shadow:0 0 12px rgba(139,92,246,.45)
+  box-shadow:0 0 12px color-mix(in srgb,var(--accent) 45%,transparent)
 }
 
 .onboarding-card-premium {
-  border:1px solid rgba(0,242,254,.14);
-  background:linear-gradient(145deg,rgba(18,29,50,.96),rgba(8,13,24,.98));
-  box-shadow:0 35px 100px rgba(0,0,0,.55), 0 0 80px rgba(139,92,246,.10)
+  border:1px solid rgba(255,176,46,.14);
+  background:linear-gradient(145deg,rgba(36,34,32,.96),rgba(17,16,15,.98));
+  box-shadow:0 35px 100px rgba(0,0,0,.55), 0 0 80px color-mix(in srgb,var(--accent) 10%,transparent)
 }
 
 .button,
@@ -338,8 +338,8 @@ input {
 input:focus,
 select:focus {
   outline:none;
-  border-color:rgba(0,242,254,.42);
-  box-shadow:0 0 0 3px rgba(0,242,254,.08)
+  border-color:rgba(255,176,46,.42);
+  box-shadow:0 0 0 3px rgba(255,176,46,.08)
 }
 
 .table-wrap {
@@ -351,7 +351,7 @@ table tbody tr {
 }
 
 table tbody tr:hover {
-  background:rgba(0,242,254,.025)
+  background:rgba(255,176,46,.025)
 }
 
 @media(max-width:900px) {
@@ -377,7 +377,7 @@ table tbody tr:hover {
     font-size:28px
   }
   .page-eyebrow {
-    font-size:9px
+    font-size:10px
   }
   .premium-controls {
     padding:9px
@@ -404,12 +404,12 @@ table tbody tr:hover {
 
 /* Native select açılır listeleri koyu temada okunaklı tutar (Windows'ta beyaz zemin + açık yazı hatası). */
 select option {
-  background:#0d1520;
-  color:#e8eef6
+  background:#181715;
+  color:#f0efee
 }
 
 select option:checked {
-  background:#1b2a3d;
+  background:#2e2c2a;
   color:#ffffff
 }
 
@@ -419,14 +419,14 @@ select option:checked {
   border-radius:12px;
   background:rgba(251,146,60,.08);
   color:#fdba74;
-  font-size:13px;
+  font-size:14px;
   margin-bottom:14px
 }
 
 .watchlist-stale-badge {
   color:#fdba74;
   font-style:normal;
-  font-size:11px
+  font-size:12px
 }
 
 .watchlist-archive {
@@ -435,7 +435,7 @@ select option:checked {
 
 .watchlist-archive-stats {
   color:var(--muted);
-  font-size:12.5px;
+  font-size:13.5px;
   line-height:1.7;
   margin:0 0 10px
 }
@@ -455,7 +455,7 @@ select option:checked {
   padding:7px 10px;
   border:1px solid var(--border);
   border-radius:9px;
-  font-size:12.5px
+  font-size:13.5px
 }
 
 .watchlist-archive-list li span {
@@ -478,12 +478,12 @@ select option:checked {
   border:1px solid rgba(52,211,153,.35);
   border-radius:11px;
   background:rgba(52,211,153,.07);
-  color:#a7f3d0;
-  font-size:13px
+  color:#B6ECB2;
+  font-size:14px
 }
 
 .capsule-prep strong {
-  color:#34d399
+  color:#7FE07A
 }
 
 /* ==========================================================================
@@ -491,12 +491,12 @@ select option:checked {
    Mevcut Aurora v2 seçicilerini bozmadan üstüne ince ayar uygular.
    ========================================================================== */
 :root {
-  --muted:#9aa7c0;
+  --muted:#b0adaa;
   --border:rgba(255,255,255,.085)
 }
 
 body {
-  background-image:radial-gradient(circle at 18% -10%,rgba(0,242,254,.08),transparent 32%), radial-gradient(circle at 92% 4%,rgba(139,92,246,.11),transparent 30%), radial-gradient(circle at 60% 115%,rgba(255,81,72,.06),transparent 42%), radial-gradient(circle at 85% 80%,rgba(245,158,11,.045),transparent 36%), linear-gradient(160deg,var(--bg-deep),var(--bg))
+  background-image:radial-gradient(circle at 18% -10%,rgba(255,176,46,.08),transparent 32%), radial-gradient(circle at 92% 4%,color-mix(in srgb,var(--accent) 11%,transparent),transparent 30%), radial-gradient(circle at 60% 115%,rgba(255,81,72,.06),transparent 42%), radial-gradient(circle at 85% 80%,rgba(245,158,11,.045),transparent 36%), linear-gradient(160deg,var(--bg-deep),var(--bg))
 }
 
 ::-webkit-scrollbar {
@@ -512,7 +512,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background:rgba(0,242,254,.22);
+  background:rgba(255,176,46,.22);
   border:2px solid transparent;
   background-clip:padding-box
 }
@@ -526,11 +526,11 @@ p {
 }
 
 th {
-  color:#8d9bb4
+  color:#a4a19d
 }
 
 .page-heading h1 {
-  text-shadow:0 4px 30px rgba(139,92,246,.12)
+  text-shadow:0 4px 30px color-mix(in srgb,var(--accent) 12%,transparent)
 }
 
 .sidebar nav button.active {
@@ -560,7 +560,7 @@ th {
 .empty {
   border:1px dashed var(--border-bright);
   border-radius:20px;
-  background:radial-gradient(circle at 50% 0,rgba(0,242,254,.05),transparent 60%)
+  background:radial-gradient(circle at 50% 0,rgba(255,176,46,.05),transparent 60%)
 }
 
 /* Genel Bakış duo kartları (veri seviyesi + kanal çeşitliliği) */
@@ -584,7 +584,7 @@ th {
 
 .duo-card:hover {
   transform:translateY(-2px);
-  border-color:rgba(0,242,254,.16);
+  border-color:rgba(255,176,46,.16);
   box-shadow:0 18px 45px rgba(0,0,0,.28)
 }
 
@@ -609,7 +609,7 @@ th {
 }
 
 .duo-card-head strong {
-  font-size:15px;
+  font-size:16px;
   letter-spacing:-.01em;
   white-space:nowrap;
   overflow:hidden;
@@ -634,11 +634,11 @@ th {
 .diversity-chip {
   background:var(--cyan-soft);
   color:var(--cyan);
-  box-shadow:0 0 18px rgba(0,242,254,.1)
+  box-shadow:0 0 18px rgba(255,176,46,.1)
 }
 
 .duo-count {
-  font-size:11px;
+  font-size:12px;
   color:var(--muted);
   white-space:nowrap;
   max-width:40%;
@@ -664,7 +664,7 @@ th {
 
 .diversity-card .duo-track i {
   background:linear-gradient(90deg,var(--cyan),var(--violet));
-  box-shadow:0 0 12px rgba(0,242,254,.22)
+  box-shadow:0 0 12px rgba(255,176,46,.22)
 }
 
 .diversity-card .duo-track i.warn {
@@ -673,7 +673,7 @@ th {
 
 .duo-card p {
   margin:9px 0 0;
-  font-size:12px;
+  font-size:13px;
   color:var(--muted)
 }
 
@@ -685,10 +685,10 @@ th {
   margin:0 0 14px;
   padding:11px 16px;
   border-radius:14px;
-  border:1px solid rgba(139,92,246,.28);
-  background:linear-gradient(90deg,rgba(139,92,246,.1),rgba(0,242,254,.05));
-  color:#d5cdf3;
-  font-size:13px
+  border:1px solid color-mix(in srgb,var(--accent) 28%,transparent);
+  background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 10%,transparent),rgba(255,176,46,.05));
+  color:#E9CFC2;
+  font-size:14px
 }
 
 .nostalgia-card svg {
@@ -701,7 +701,7 @@ th {
 }
 
 :root[data-theme=light] .nostalgia-card strong {
-  color:#111827
+  color:#161615
 }
 
 @media(max-width:900px) {
@@ -718,13 +718,13 @@ th {
 }
 
 .surface:hover {
-  border-color:rgba(0,242,254,.12)
+  border-color:rgba(255,176,46,.12)
 }
 
 /* ── Sayfa başlığı revizyonu ────────────────────────────────────────────── */
 .page-heading h1 {
   font-size:clamp(30px,3.2vw,46px);
-  text-shadow:0 4px 36px rgba(139,92,246,.15), 0 0 0 transparent
+  text-shadow:0 4px 36px color-mix(in srgb,var(--accent) 15%,transparent), 0 0 0 transparent
 }
 
 .page-eyebrow i {
@@ -736,7 +736,7 @@ th {
 }
 
 .page-heading p {
-  font-size:13px;
+  font-size:14px;
   color:var(--muted);
   line-height:1.5;
   max-width:640px
@@ -753,8 +753,8 @@ th {
   width:54px;
   height:54px;
   border-radius:16px;
-  background:linear-gradient(135deg,var(--accent),#ff755c,var(--violet));
-  box-shadow:0 0 30px rgba(255,81,72,.35), 0 0 60px rgba(139,92,246,.12)
+  background:linear-gradient(135deg,var(--accent),#FF7A5C,var(--violet));
+  box-shadow:0 0 30px rgba(255,81,72,.35), 0 0 60px color-mix(in srgb,var(--accent) 12%,transparent)
 }
 
 .pulse-progress>div {
@@ -764,22 +764,22 @@ th {
 
 /* ── Tablo revizyonu ────────────────────────────────────────────────────── */
 th {
-  font-size:9px;
+  font-size:10px;
   letter-spacing:.1em;
   text-transform:uppercase;
-  color:#7d8ba6;
+  color:#95928e;
   font-weight:700;
   padding:12px 14px!important;
   background:rgba(255,255,255,.018)
 }
 
 td {
-  font-size:12.5px;
+  font-size:13.5px;
   padding:11px 14px!important
 }
 
 tbody tr:hover {
-  background:rgba(0,242,254,.03)
+  background:rgba(255,176,46,.03)
 }
 
 /* ── Buton revizyonu ────────────────────────────────────────────────────── */
@@ -795,7 +795,7 @@ tbody tr:hover {
 }
 
 .button.primary {
-  background:linear-gradient(135deg,#ff5148,#ff755c);
+  background:linear-gradient(135deg,#FF5233,#FF7A5C);
   box-shadow:0 10px 30px rgba(255,81,72,.24)
 }
 
@@ -829,12 +829,12 @@ tbody tr:hover {
   width:18px;
   height:18px;
   border-radius:50%;
-  background:#64748b;
+  background:rgba(231,230,227,.55);
   transition:all .25s cubic-bezier(.34,1.56,.64,1)
 }
 
 .toggle.active {
-  background:linear-gradient(135deg,var(--accent),#ff755c)
+  background:linear-gradient(135deg,var(--accent),#FF7A5C)
 }
 
 .toggle.active i {
@@ -845,12 +845,12 @@ tbody tr:hover {
 
 /* ── Light tema uyumu ───────────────────────────────────────────────────── */
 :root[data-theme=light] {
-  --muted:#64748b;
-  --border:rgba(15,23,42,.08)
+  --muted:rgba(231,230,227,.55);
+  --border:rgba(30,29,27,.08)
 }
 
 :root[data-theme=light] .sidebar {
-  background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(245,248,252,.95));
+  background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(249,249,248,.95));
   border-right-color:var(--border)
 }
 

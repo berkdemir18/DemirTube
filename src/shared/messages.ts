@@ -128,3 +128,29 @@ export function sendMessage<T>(message: ExtensionMessage, attempt = 0): Promise<
     }
   });
 }
+
+/**
+ * `chrome.storage.onChanged` aboneliği, uzantı yeniden yüklendiğinde eski
+ * sekmelerde çöker: yetim içerik betiğinde `chrome.storage` tanımsız kalır ve
+ * her erişim "Cannot read properties of undefined (reading 'onChanged')"
+ * fırlatır. Abonelik buradan kurulur; API yoksa sessizce hiçbir şey yapmaz ve
+ * geri döndürdüğü sökme fonksiyonu da güvenlidir.
+ */
+export function onStorageChanged(
+  listener: (changes: Record<string, chrome.storage.StorageChange>, area: chrome.storage.AreaName) => void
+): () => void {
+  const api = globalThis.chrome?.storage?.onChanged;
+  if (!api) return () => undefined;
+  try {
+    api.addListener(listener);
+  } catch {
+    return () => undefined;
+  }
+  return () => {
+    try {
+      globalThis.chrome?.storage?.onChanged?.removeListener(listener);
+    } catch {
+      // Uzantı bağlamı çoktan gitmiş; sökülecek bir şey yok.
+    }
+  };
+}

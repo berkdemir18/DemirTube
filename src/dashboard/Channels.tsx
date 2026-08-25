@@ -1,4 +1,5 @@
 import { ArrowLeft, CalendarDays, Clock3, Film, Lightbulb, Repeat2 } from "lucide-react";
+import { chartSeries } from "./chart-theme";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { VideoRecord, WatchSession } from "../shared/types";
 import { formatDuration, round } from "../shared/utils";
@@ -51,11 +52,18 @@ export function Channels({
               <button className="channel-card" key={row.channelName} type="button" onClick={() => onSelect(row.channelName)}>
                 <div className="channel-card-top">
                   <div className="channel-avatar">{avatar ? <img src={avatar} alt="" referrerPolicy="no-referrer" /> : <span>{row.channelName.slice(0, 1).toLocaleUpperCase("tr-TR")}</span>}</div>
-                  <div><small>KANAL PROFİLİ</small><h2>{row.channelName}</h2><p>{row.videoCount} video · {formatDuration(row.watchSeconds)}</p></div>
+                  <div>
+                    <small>KANAL PROFİLİ</small>
+                    <h2>{row.channelName}</h2>
+                    <p><span className="num">{row.videoCount}</span> video · <span className="num">{formatDuration(row.watchSeconds)}</span></p>
+                  </div>
                 </div>
                 <div className="channel-score"><span>Uyum</span><Score value={row.affinityScore} /></div>
-                <div className="channel-meter"><span>Tamamlama %{row.averageCompletion}</span><Meter value={row.averageCompletion} /></div>
-                <div className="channel-card-foot"><span>Erken çıkış %{row.earlyExitRate}</span><small>{latest?.topics.slice(0, 2).join(" · ") || "Konu algılanıyor"}</small></div>
+                <div className="channel-meter"><span>Tamamlama <b className="num">%{row.averageCompletion}</b></span><Meter value={row.averageCompletion} /></div>
+                <div className="channel-card-foot">
+                  <span>Erken çıkış <b className="num">%{row.earlyExitRate}</b></span>
+                  <small>{latest?.topics.slice(0, 2).join(" · ") || "Konu algılanıyor"}</small>
+                </div>
               </button>
             );
           })}
@@ -97,7 +105,7 @@ function ChannelDetail({ name, videos, sessions, onBack }: { name: string; video
       <div className="channel-detail-grid">
         <section className="surface chart-block">
           <div className="section-head"><div><h2>Gün gün izleme</h2><p>Seçili dönemde kanala ayrılan gerçek aktif süre</p></div></div>
-          {daily.length ? <ChartFrame summary={`Gün gün izleme: ${daily.map((point) => `${point.date} ${formatDuration(point.seconds)}`).join(", ")}.`}><ResponsiveContainer width="100%" height={260}><AreaChart data={daily}><defs><linearGradient id="channelArea" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#00c9d4" stopOpacity={.42}/><stop offset="95%" stopColor="#00c9d4" stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" vertical={false}/><XAxis dataKey="date"/><YAxis tickFormatter={(value) => `${round(Number(value) / 60)} dk`}/><Tooltip formatter={(value) => formatDuration(Number(value))}/><Area type="monotone" dataKey="seconds" name="Aktif izleme" stroke="#00c9d4" fill="url(#channelArea)" strokeWidth={2}/></AreaChart></ResponsiveContainer></ChartFrame> : <Empty>Bu dönemde kanal oturumu yok.</Empty>}
+          {daily.length ? <ChartFrame summary={`Gün gün izleme: ${daily.map((point) => `${point.date} ${formatDuration(point.seconds)}`).join(", ")}.`}><ResponsiveContainer width="100%" height={260}><AreaChart data={daily}><defs><linearGradient id="channelArea" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={chartSeries[1]} stopOpacity={.42}/><stop offset="95%" stopColor={chartSeries[1]} stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" vertical={false}/><XAxis dataKey="date"/><YAxis tickFormatter={(value) => `${round(Number(value) / 60)} dk`}/><Tooltip formatter={(value) => formatDuration(Number(value))}/><Area type="monotone" dataKey="seconds" name="Aktif izleme" stroke={chartSeries[1]} fill="url(#channelArea)" strokeWidth={2} isAnimationActive={false}/></AreaChart></ResponsiveContainer></ChartFrame> : <Empty>Bu dönemde kanal oturumu yok.</Empty>}
         </section>
         <section className="surface channel-detail-quality"><h2>İzleme davranışı</h2><div><span>Kanal uyumu</span><Score value={row?.affinityScore}/></div><div><span>Ortalama tamamlama</span><b>%{row?.averageCompletion ?? 0}</b><Meter value={row?.averageCompletion ?? 0}/></div><dl><div><dt>Benzersiz izleme</dt><dd>{formatDuration(uniqueWatch)}</dd></div><div><dt>Tekrar payı</dt><dd>%{totalWatch ? round(rewatch / totalWatch * 100) : 0}</dd></div><div><dt>Erken çıkış</dt><dd>%{row?.earlyExitRate ?? 0}</dd></div></dl></section>
       </div>

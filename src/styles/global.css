@@ -2,9 +2,11 @@
 @import "@fontsource/inter/latin-ext-500.css";
 @import "@fontsource/inter/latin-ext-600.css";
 @import "@fontsource/inter/latin-ext-700.css";
-@import "@fontsource/sora/latin-ext-600.css";
-@import "@fontsource/sora/latin-ext-700.css";
-@import "@fontsource/sora/latin-ext-800.css";
+@import "@fontsource/archivo/latin-ext-500.css";
+@import "@fontsource/archivo/latin-ext-600.css";
+@import "@fontsource/archivo/latin-ext-700.css";
+@import "@fontsource/ibm-plex-mono/latin-ext-400.css";
+@import "@fontsource/ibm-plex-mono/latin-ext-500.css";
 
 /* ========================================================================== 
    DemirTube · dashboard ve popup stil giriş noktası

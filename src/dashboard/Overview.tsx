@@ -6,12 +6,14 @@ import {
 import {
   Bar, BarChart, CartesianGrid, Cell, Pie, PieChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
+  ReferenceLine,
 } from "recharts";
+import { chartAccent, chartAxis, chartGrid, chartMuted, chartSeries } from "./chart-theme";
 import type { Settings, VideoRecord, WatchSession } from "../shared/types";
 import { formatDuration, round } from "../shared/utils";
 import { isEarlyAbandonment } from "../analytics/completion";
 import { durationStats, topicStats } from "./analytics";
-import { ChartFrame, Empty, InfoTip, Meter, PageHeading } from "./ui";
+import { ChartFrame, Empty, InfoTip, Meter } from "./ui";
 import { analyticsPeriodLabels, periodDateLabel, watchTrend, type AnalyticsPeriod } from "../analytics/period";
 import { selectionReasons } from "../analytics/selection-reasons";
 import { evidenceLevel } from "../analytics/evidence";
@@ -20,7 +22,7 @@ import { dataLevel } from "../analytics/data-level";
 import { channelDiversity } from "../analytics/diversity";
 import { comparePeriodSummaries, summarizePeriod } from "../analytics/insights-suite";
 
-const COLORS = ["#8b5cf6", "#00c9d4", "#10b981", "#f59e0b", "#c4b5fd", "#0891a1"];
+const COLORS = chartSeries;
 
 /** Ortalama tamamlama %70, yüksek etkileşimli video oranı %30 ağırlıkla birleşir. */
 function focusOf(videos: VideoRecord[]) {
@@ -65,7 +67,7 @@ export function Overview({
   previousVideos?: VideoRecord[];
   previousSessions?: WatchSession[];
 }) {
-  const dateLabel = `${analyticsPeriodLabels[period]} · ${periodDateLabel(period, anchor)}`;
+  const dateLabel = periodDateLabel(period, anchor);
   const watch = videos.reduce((sum, v) => sum + v.totalActiveWatchSeconds, 0);
 
   const average = videos.length
@@ -151,29 +153,20 @@ export function Overview({
     },
   ];
 
+  const [lead, ...supporting] = metrics;
+
   return (
     <>
-      <PageHeading
-        eyebrow={analyticsPeriodLabels[period].toLocaleUpperCase("tr-TR")}
-        title={overviewTitle}
-        copy={`${dateLabel} · ${videos.length} video · Baskın konu: ${dominantTopic}`}
+      <PeriodLede
+        period={period}
+        dateLabel={dateLabel}
+        headline={overviewTitle}
+        videoCount={videos.length}
+        dominantTopic={dominantTopic}
+        lead={lead}
+        supporting={supporting}
+        today={todayProgress(sessions, settings)}
       />
-      <DashboardPulse videos={videos} sessions={sessions} settings={settings} />
-      <div className="metric-grid overview-primary-metrics">
-        {metrics.map(({ icon: Icon, label, value, help, change, lowerIsBetter }) => (
-          <article className={`metric metric-${label.toLocaleLowerCase("tr-TR").replaceAll(" ", "-")}`} key={label}>
-            <span><Icon size={19} /></span>
-            <div>
-              <div className="metric-label">
-                <small>{label}</small>
-                <InfoTip title={label}>{help}</InfoTip>
-              </div>
-              <strong>{value}</strong>
-              <MetricDelta change={change} lowerIsBetter={lowerIsBetter} />
-            </div>
-          </article>
-        ))}
-      </div>
       {videos.length > 0 && videos.length < 3 ? (
         <StarterSummary
           video={videos.toSorted((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt))[0]}
@@ -215,6 +208,103 @@ export function Overview({
 }
 
 // ── Alt bileşenler ─────────────────────────────────────────────────────────
+
+
+// ── Dönem künyesi ───────────────────────────────────────────────────────────
+//
+// Eski üst blok üç ayrı kutuydu: dev başlık, "izleme nabzı" kartı ve dört eş
+// metrik kartı. Üçü de aynı sesle konuştuğu için ekranın ilk yarısı hiçbir şeye
+// öncelik vermiyordu. Burada tek panel var: bir baskın figür, onu okumaya yarayan
+// bağlam satırı ve daha küçük puntoda üç destek ölçüsü. Kutu yerine çizgi ayırıyor.
+
+type MetricEntry = {
+  label: string;
+  value: string;
+  help: string;
+  change?: number;
+  lowerIsBetter: boolean;
+};
+
+/** Bugünkü dakika ve günlük bütçe; künyedeki ilerleme şeridini besler. */
+function todayProgress(sessions: WatchSession[], settings?: Settings) {
+  const today = new Date().toDateString();
+  const minutes = Math.round(
+    sessions
+      .filter((session) => new Date(session.startedAt).toDateString() === today)
+      .reduce((sum, session) => sum + session.watchSeconds, 0) / 60
+  );
+  const budget = settings?.dailyWatchBudgetMinutes ?? 0;
+  return { minutes, budget };
+}
+
+function PeriodLede({
+  period, dateLabel, headline, videoCount, dominantTopic, lead, supporting, today,
+}: {
+  period: AnalyticsPeriod;
+  dateLabel: string;
+  headline: string;
+  videoCount: number;
+  dominantTopic: string;
+  lead: MetricEntry;
+  supporting: MetricEntry[];
+  today: { minutes: number; budget: number };
+}) {
+  const used = today.budget > 0 ? Math.min(100, Math.round((today.minutes / today.budget) * 100)) : 0;
+
+  return (
+    <section className="lede">
+      <header className="lede-top">
+        <p className="lede-meta">
+          <span className="lede-period">{analyticsPeriodLabels[period].toLocaleUpperCase("tr-TR")}</span>
+          <span>{dateLabel}</span>
+          <span><b className="num">{videoCount}</b> video</span>
+          <span>baskın konu: {dominantTopic}</span>
+        </p>
+        <h1>{headline}</h1>
+      </header>
+
+      <div className="lede-figures">
+        <div className="lede-lead">
+          <div className="lede-label">
+            <small>{lead.label}</small>
+            <InfoTip title={lead.label}>{lead.help}</InfoTip>
+          </div>
+          <strong className="num">{lead.value}</strong>
+          <MetricDelta change={lead.change} lowerIsBetter={lead.lowerIsBetter} />
+        </div>
+
+        <div className="lede-support">
+          {supporting.map((metric) => (
+            <div key={metric.label}>
+              <div className="lede-label">
+                <small>{metric.label}</small>
+                <InfoTip title={metric.label} align="right">{metric.help}</InfoTip>
+              </div>
+              <b className="num">{metric.value}</b>
+              <MetricDelta change={metric.change} lowerIsBetter={metric.lowerIsBetter} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {today.budget > 0 ? (
+        <div className="lede-budget">
+          <div className="scrub" role="img" aria-label={`Bugün ${today.minutes} dakika, günlük bütçe ${today.budget} dakika`}>
+            <i style={{ width: `${used}%` }} />
+            <b style={{ left: `${used}%` }} />
+          </div>
+          <p>
+            <span>bugün</span>
+            <b className="num">{today.minutes}</b>
+            <span>/</span>
+            <b className="num">{today.budget}</b>
+            <span>dk günlük bütçe</span>
+          </p>
+        </div>
+      ) : null}
+    </section>
+  );
+}
 
 function MetricDelta({ change, lowerIsBetter }: { change?: number; lowerIsBetter: boolean }) {
   if (change === undefined) return null;
@@ -366,6 +456,16 @@ function WatchTrendChart({
   trendTitle: string;
   chartUnit: string;
 }) {
+  // Grafik tek başına "şu gün şu kadar" diyordu; asıl bilgi hangi günün kendi
+  // ortalamandan saptığı. Medyan referans çizgisi ve işaretlenmiş zirve, grafiği
+  // bakılan bir şeyden okunan bir şeye çeviriyor.
+  const values = trend.map((point) => point.izleme).toSorted((a, b) => a - b);
+  const median = values.length
+    ? values.length % 2 ? values[(values.length - 1) / 2] : (values[values.length / 2 - 1] + values[values.length / 2]) / 2
+    : 0;
+  const peak = trend.reduce((top, point) => (point.izleme > top.izleme ? point : top), trend[0] ?? { label: "", izleme: 0 });
+  const peakRatio = median > 0 ? round(peak.izleme / median, 1) : undefined;
+
   return (
     <section className="surface chart-wide">
       <div className="section-head">
@@ -373,21 +473,31 @@ function WatchTrendChart({
           <h2>{trendTitle}</h2>
           <p>Aktif oynatma süresi, {chartUnit}</p>
         </div>
+        {peakRatio && peakRatio >= 1.5 ? (
+          <p className="chart-note">
+            <b>{peak.label}</b> medyanın <b className="num">{peakRatio}×</b>'i
+          </p>
+        ) : null}
       </div>
-      <ChartFrame summary={`${trendTitle}: ${trend.map((point) => `${point.label} ${point.izleme} ${chartUnit}`).join(", ")}.`}>
+      <ChartFrame summary={`${trendTitle}: ${trend.map((point) => `${point.label} ${point.izleme} ${chartUnit}`).join(", ")}. Medyan ${median} ${chartUnit}.`}>
       <ResponsiveContainer width="100%" height={260}>
-        <BarChart data={trend} barCategoryGap="26%">
-          <defs>
-            <linearGradient id="watchFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#00c9d4" stopOpacity={0.95} />
-              <stop offset="1" stopColor="#8b5cf6" stopOpacity={0.45} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid stroke="#1f3442" vertical={false} />
-          <XAxis dataKey="label" stroke="#728797" tickLine={false} axisLine={false} />
-          <YAxis domain={[0, "auto"]} allowDecimals={false} stroke="#728797" tickLine={false} axisLine={false} />
-          <Tooltip contentStyle={{ background: "rgba(9,13,22,.94)", border: "1px solid rgba(255,255,255,.10)", borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,.45)" }} cursor={{ fill: "rgba(255,255,255,.05)" }} />
-          <Bar dataKey="izleme" name={chartUnit} fill="url(#watchFill)" radius={[8, 8, 2, 2]} maxBarSize={56} />
+        <BarChart data={trend} barCategoryGap="30%">
+          <CartesianGrid stroke={chartGrid} vertical={false} />
+          <XAxis dataKey="label" stroke={chartAxis} tickLine={false} axisLine={false} fontSize={11} />
+          <YAxis domain={[0, "auto"]} allowDecimals={false} stroke={chartAxis} tickLine={false} axisLine={false} fontSize={11} width={34} />
+          <Tooltip
+            contentStyle={{ background: "#141617", border: "1px solid rgba(231,230,227,.14)", borderRadius: 4, boxShadow: "none", fontSize: 12 }}
+            cursor={{ fill: "rgba(231,230,227,.05)" }}
+          />
+          {median > 0 ? (
+            <ReferenceLine
+              y={median}
+              stroke={chartAxis}
+              strokeDasharray="3 4"
+              label={{ value: `medyan ${median}`, position: "insideTopLeft", fill: chartAxis, fontSize: 10 }}
+            />
+          ) : null}
+          <Bar dataKey="izleme" name={chartUnit} fill={chartAccent} radius={[2, 2, 0, 0]} maxBarSize={44}  isAnimationActive={false}/>
         </BarChart>
       </ResponsiveContainer>
       </ChartFrame>
@@ -415,7 +525,7 @@ function TopicPerfCard({ topics }: { topics: ReturnType<typeof topicStats> }) {
               innerRadius={55}
               outerRadius={82}
               paddingAngle={2}
-            >
+             isAnimationActive={false}>
               {topics.slice(0, 6).map((topic, index) => (
                 <Cell key={topic.topic} fill={COLORS[index]} />
               ))}
@@ -552,62 +662,6 @@ function AutonomousInsightsSection({
             </span>
           </article>
         ))}
-      </div>
-    </section>
-  );
-}
-
-// ── DashboardPulse ──────────────────────────────────────────────────────────
-
-function DashboardPulse({
-  videos,
-  sessions,
-  settings,
-}: {
-  videos: VideoRecord[];
-  sessions: WatchSession[];
-  settings?: Settings;
-}) {
-  const today = new Date().toDateString();
-  const minutes = Math.round(
-    sessions
-      .filter((s) => new Date(s.startedAt).toDateString() === today)
-      .reduce((sum, s) => sum + s.watchSeconds, 0) / 60
-  );
-  const budget = settings?.dailyWatchBudgetMinutes ?? 90;
-  const progress = Math.min(100, Math.round((minutes / budget) * 100));
-  const intent = {
-    learn: "Öğrenme",
-    research: "Araştırma",
-    focus: "Odak",
-    relax: "Rahatlama",
-    open: "Serbest keşif",
-  }[settings?.watchIntent ?? "open"] ?? "Serbest keşif";
-  const recent = videos.toSorted((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt))[0];
-
-  return (
-    <section className="dashboard-pulse">
-      <div className="pulse-orbit">
-        <i /><i /><b>✦</b>
-      </div>
-      <div>
-        <small>BUGÜNÜN İZLEME NABZI</small>
-        <h2>{intent} modu açık</h2>
-        <p>
-          {minutes
-            ? `${minutes} dk izledin. ${budget - minutes > 0 ? `${budget - minutes} dk bütçen kaldı.` : "Bugünkü izleme bütçeni doldurdun."}`
-            : "Henüz kayıt yok; ilk videonla kişisel ritmin oluşmaya başlar."}
-        </p>
-      </div>
-      <div className="pulse-progress">
-        <strong>%{progress}</strong>
-        <span>günlük ritim</span>
-        <div><i style={{ width: `${progress}%` }} /></div>
-      </div>
-      <div className="pulse-fun">
-        <span>{recent?.topics[0] ?? "Yeni"}</span>
-        <b>{recent ? "Son keşfin hazır" : "Keşfe hazır"}</b>
-        <small>{recent?.title ?? "Bugün sana ne saracak?"}</small>
       </div>
     </section>
   );
