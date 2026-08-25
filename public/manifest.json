@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "DemirTube AI",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "version_name": "0.10.0 Aurora v3 + Zaman navigasyonu",
   "description": "YouTube videolarını, altyazılarını ve kişisel izleme davranışını yerel-first analiz eder.",
   "permissions": ["storage", "alarms", "scripting"],
