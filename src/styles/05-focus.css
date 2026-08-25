@@ -764,15 +764,25 @@
   cursor:not-allowed
 }
 
+/*
+ * `min-width` bilerek `max-width`'e çevrildi. Üst çubuk esnek bir satır ve
+ * `.date-nav` içeriğinden daha dar kalabiliyor; oklar (`flex:0 0 auto`) ve
+ * 218px taban genişlikli tarih kutusu küçülemediği için tarih gezgini kutusunu
+ * TAŞIYORDU. Taşan ok düğmesi "Önceki dönem" düğmesinin tam üstüne biniyor ve
+ * o düğmeyi tıklanamaz hâle getiriyordu: 1280px genişlikte karşılaştırma
+ * açılamıyor, duman testi de bu tıklamada süresiz bekliyordu.
+ */
 .date-nav-picker {
   position:relative;
   display:block;
-  min-width:218px;
+  min-width:0;
+  max-width:218px;
   cursor:pointer
 }
 
 .date-nav-display {
-  min-width:218px;
+  min-width:0;
+  max-width:218px;
   height:48px;
   display:flex;
   align-items:center;
@@ -793,7 +803,10 @@
 }
 
 .date-nav-display small {
+  overflow:hidden;
   color:var(--focus-muted);
+  text-overflow:ellipsis;
+  white-space:nowrap;
   font-size:10px;
   font-weight:800;
   letter-spacing:.1em;
