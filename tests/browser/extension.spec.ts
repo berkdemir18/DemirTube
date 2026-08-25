@@ -222,11 +222,11 @@ test("MV3 paketi açılır ve tüm YouTube rotasındaki içerik betiği watch sa
     await dashboard.reload();
     await dashboard.getByRole("button", { name: "Bugün", exact: true }).click();
     await dashboard.getByLabel("İzleme süresi hakkında bilgi").click();
-    const tooltipHeading = dashboard.locator(".overview-primary-metrics .info-tip-popover strong").first();
+    const tooltipHeading = dashboard.locator(".lede-figures .info-tip-popover strong").first();
     await expect(tooltipHeading).toBeVisible();
     expect(await tooltipHeading.evaluate((element) => parseFloat(getComputedStyle(element).fontSize))).toBeLessThanOrEqual(14);
     await dashboard.getByLabel("Ortalama tamamlama hakkında bilgi").click();
-    await expect(dashboard.locator(".overview-primary-metrics .info-tip[open]")).toHaveCount(1);
+    await expect(dashboard.locator(".lede-figures .info-tip[open]")).toHaveCount(1);
     await dashboard.getByRole("button", { name: "Raporlar", exact: true }).click();
     await dashboard.getByRole("button", { name: "Haftalık Rapor" }).click();
     await expect(dashboard.getByRole("heading", { name: "Bu hafta sende ne değişti?" })).toBeVisible();
