@@ -1,5 +1,12 @@
 # Değişiklik günlüğü
 
+## 0.11.1 — 2026-08-25
+
+### Düzeltmeler
+
+- **Üst çubuktaki "Önceki dönem" düğmesi 1280px genişlikte tıklanamıyordu.** Üst çubuk esnek bir satır ve `.date-nav` içeriğinden dar kalabiliyor; oklar `flex:0 0 auto`, tarih kutusu ise 218px `min-width` taşıdığı için kutu küçülemiyor, taşıyordu. Taşan sağ ok tam olarak düğmenin üstüne düşüp tıklamayı yiyordu. `min-width` yerine `max-width` kullanılarak metne taşma yerine kısalma davranışı verildi; tarih metni 1280px'te hâlâ tam okunuyor.
+- Uzantı duman testi üç sürümdür CI'da düşüyordu. Sebep yavaşlık sanılıp zaman aşımı 60 sn'den 150 sn'ye çıkarılmıştı; gerçek sebep yukarıdaki tıklanamayan düğme ve tasarım değişiminde adı değişen bir seçiciydi (`.overview-primary-metrics` → `.lede-figures`). Test artık 30 saniyede geçiyor, zaman aşımı 120 sn'ye çekildi. Zaman aşımını büyütmek gerçek bir arayüz hatasını gizliyordu.
+
 ## 0.11.0 — 2026-08-25
 
 ### Eklenenler
