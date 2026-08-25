@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { beforeEach, describe, expect, it } from "vitest";
-import { clearFeedDecorations, feedResultTargetIsCurrent, repairFeedCardState } from "../src/content/feed-decorator";
+import { candidates, clearFeedDecorations, feedResultTargetIsCurrent, repairFeedCardState } from "../src/content/feed-decorator";
 
 describe("ana sayfa rozet yaşam döngüsü", () => {
   beforeEach(() => {
@@ -78,5 +78,66 @@ describe("ana sayfa rozet yaşam döngüsü", () => {
     expect(feedResultTargetIsCurrent(card, wrapper, "video-a")).toBe(false);
     wrapper.remove();
     expect(feedResultTargetIsCurrent(card, wrapper, "video-b")).toBe(false);
+  });
+});
+
+describe("tarama maliyeti", () => {
+  /**
+   * Gerçekçi bir YouTube kartı: başlık bağlantısı ve metadata çapası.
+   * Çapa `id` yerine sınıfla veriliyor — jsdom, belgede tekrarlanan `id`
+   * değerlerinde `card.querySelector("#meta")` çağrısını kart kapsamında değil
+   * belge kapsamında çözüyor ve ilk karttan sonrası boş dönüyor. Gerçek
+   * tarayıcıda sorun değil, ama testin kurgusu buna takılmamalı.
+   */
+  const makeCard = (index: number) => {
+    const card = document.createElement("ytd-compact-video-renderer");
+    card.innerHTML = `<div class="details"><a class="yt-simple-endpoint" href="/watch?v=video-${index}">Başlık ${index}</a></div>`;
+    document.body.append(card);
+    return card;
+  };
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("kart konumunu kart başına bir kez okur ve okuma/yazmayı ayırır", () => {
+    const cardCount = 30;
+    for (let index = 0; index < cardCount; index += 1) makeCard(index);
+
+    let rectReads = 0;
+    /** Konum okunurken kaç kart zaten işaretlenmişti? Sıfırdan büyükse thrash var. */
+    let readsAfterWrite = 0;
+    const original = Element.prototype.getBoundingClientRect;
+    Element.prototype.getBoundingClientRect = function stub(this: Element) {
+      rectReads += 1;
+      if (document.querySelectorAll("[data-demirtube-pending]").length > 0) readsAfterWrite += 1;
+      return { top: 0, bottom: 200, left: 0, right: 300, width: 300, height: 200, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
+    };
+
+    try {
+      const found = candidates(20);
+
+      expect(found).toHaveLength(20);
+      // Kart başına tek okuma. Eskiden sıralama karşılaştırıcısının içinde
+      // okunuyordu: O(n log n) okuma, yani burada 30 yerine 100'ün üzerinde.
+      expect(rectReads).toBe(cardCount);
+      // Tüm okumalar, ilk DOM yazmasından önce bitmiş olmalı (forced reflow yok).
+      expect(readsAfterWrite).toBe(0);
+    } finally {
+      Element.prototype.getBoundingClientRect = original;
+    }
+  });
+
+  it("görünmeyen kartları puanlamaya almaz", () => {
+    makeCard(0);
+    const original = Element.prototype.getBoundingClientRect;
+    Element.prototype.getBoundingClientRect = () =>
+      ({ top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}) } as DOMRect);
+
+    try {
+      expect(candidates(20)).toHaveLength(0);
+    } finally {
+      Element.prototype.getBoundingClientRect = original;
+    }
   });
 });

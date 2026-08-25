@@ -1,5 +1,5 @@
 // DemirTube Aurora UI v2 · unified dashboard visual system
-import type { AppData, Topic, VideoRecord, WatchSession } from "../shared/types";
+import type { AppData, FeedImpression, Topic, VideoRecord, WatchSession } from "../shared/types";
 import { APP_VERSION, DEFAULT_KEYWORD_RULES, DEFAULT_SETTINGS } from "../shared/constants";
 
 const seeds: Array<[string, string, string, number, number, Topic[], number]> = [
@@ -118,3 +118,33 @@ export const oneVideoSeedData: AppData = {
   }],
   counts: { videos: 1, sessions: 1, feedback: 0, customTopics: 0 }
 };
+
+/**
+ * Geliştirme sunucusunda (eklenti bağlamı yokken) seçim yanlılığı kartının
+ * dolu hâlini göstermek için örnek gösterim kaydı. Gerçek veri arka uçtaki
+ * `impressions` mağazasından gelir.
+ */
+export const seedImpressions: FeedImpression[] = seedVideos.flatMap((video, index) => [
+  {
+    videoId: video.videoId,
+    title: video.title,
+    channelName: video.channelName,
+    score: 62 + (index % 5) * 8,
+    estimatedCompletion: 55 + (index % 4) * 9,
+    modelVersion: "adaptive-v5",
+    firstShownAt: video.firstSeenAt,
+    lastShownAt: video.lastSeenAt,
+    shownCount: 1 + (index % 3),
+  },
+  ...[0, 1].map((offset) => ({
+    videoId: `atlanan-${index}-${offset}`,
+    title: `Açılmayan öneri ${index * 2 + offset + 1}`,
+    channelName: "Karışık kanal",
+    score: 30 + ((index * 2 + offset) % 7) * 9,
+    estimatedCompletion: 28 + ((index + offset) % 5) * 7,
+    modelVersion: "adaptive-v5",
+    firstShownAt: video.firstSeenAt,
+    lastShownAt: video.lastSeenAt,
+    shownCount: 1 + (index % 2),
+  })),
+]);

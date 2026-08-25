@@ -1,5 +1,7 @@
 import type { Confidence, UserVideoFeedback, VideoRecord, WatchSession } from "../shared/types";
 import { derivePersonalModel, strongestModelSignal } from "./personal-model";
+import { calibrationFromHistory, type BacktestResult } from "./model-calibration";
+import { skillPercent } from "./model-training";
 import { analyzeVideoIntelligence } from "./video-intelligence";
 import { evidenceLevel } from "./evidence";
 import { normalizeText, round } from "../shared/utils";
@@ -30,6 +32,27 @@ export type PredictionAccuracy = {
   confidence: Confidence;
   strongestSignal: string;
   improving: boolean;
+  /**
+   * Sistematik sapma: pozitifse model olduğundan düşük, negatifse olduğundan
+   * yüksek tahmin ediyor. Modelin kendini düzeltmek için kullandığı sayı bu.
+   */
+  systematicBias: number;
+  /** Tahmine uygulanan düzeltme (puan). */
+  appliedCorrection: number;
+  /**
+   * Dürüst sınama: ağırlıkların görmediği dilimde ölçülen hata. Yukarıdaki
+   * `meanAbsoluteError` yalnızca gerçekten izlenmiş videoların snapshot'larını
+   * karşılaştırır ve model bu kayıtları zaten görmüştür; asıl soru "model, hep
+   * kişisel ortalamayı söyleyen taban modelden iyi mi?" idi ve bugüne kadar
+   * hiçbir yerde cevaplanmıyordu.
+   */
+  backtest: BacktestResult;
+  /** Modelin taban çizgisine göre sildiği hata payı (%). Negatif = tabandan kötü. */
+  skillPercent: number;
+  /** Model taban çizgisini gerçekten yeniyor mu? */
+  beatsBaseline: boolean;
+  /** Ağırlıklar geçmişten arandı mı, yoksa öncülde mi kalındı? */
+  weightsLearned: boolean;
 };
 
 export function analyzeCurrentSession(
@@ -170,6 +193,9 @@ export function predictionAccuracy(videos: VideoRecord[]): PredictionAccuracy {
   const errors = samples.map((video) =>
     Math.abs((video.predictionSnapshot?.estimatedCompletion ?? 0) - video.completionRate * 100)
   );
+  // Doğruluk ve sapma model ile aynı kaynaktan okunur; ekranda gösterilen sayı
+  // ile modelin kendini düzeltirken kullandığı sayı ayrışmasın.
+  const calibration = calibrationFromHistory(videos);
   const meanAbsoluteError = errors.length ? errors.reduce((sum, error) => sum + error, 0) / errors.length : 0;
   const accurate = errors.filter((error) => error <= 20).length;
   const midpoint = Math.floor(errors.length / 2);
@@ -183,6 +209,12 @@ export function predictionAccuracy(videos: VideoRecord[]): PredictionAccuracy {
     meanAbsoluteError: round(meanAbsoluteError),
     confidence: evidenceLevel(samples.length, 5, 15).confidence,
     strongestSignal: strongestModelSignal(model).label,
-    improving: samples.length >= 6 && average(recent) < average(first)
+    improving: samples.length >= 6 && average(recent) < average(first),
+    systematicBias: calibration.medianSignedError,
+    appliedCorrection: calibration.correction,
+    backtest: model.benchmark,
+    skillPercent: skillPercent(model.benchmark),
+    beatsBaseline: model.benchmark.sampleCount >= 5 && model.benchmark.skill > 0,
+    weightsLearned: model.weightsLearned
   };
 }

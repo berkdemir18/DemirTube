@@ -7,11 +7,23 @@ import { channelKey, clamp, round } from "../shared/utils";
 import { analyzeVideoIntelligence, evaluateWatchOutcome, recordVideoFormat, type VideoIntelligence, type WatchOutcome } from "./video-intelligence";
 import { derivePersonalModel, type PersonalModel } from "./personal-model";
 import { hasWatchPageDetail, toScoringMetadata } from "./scoring-metadata";
+import { buildTopicMemory, type TopicMemory } from "./topic-memory";
+import { SIGNAL_TIERS, evidenceWeight, predictCompletionDetailed } from "./model-calibration";
+
+/**
+ * Tahmin motoru kalibrasyon modülünde yaşıyor: geriye dönük sınama da aynı
+ * fonksiyonu çağırmak zorunda ve tahmin/ölçüm ikiye ayrılırsa model kendi
+ * hatasını yanlış ölçer. Buradan yeniden dışa açılıyor ki çağıranlar tek
+ * kapıdan geçsin.
+ */
+export { predictCompletion, type CompletionEvidence } from "./model-calibration";
 
 export type PreferenceResult = {
   enoughData: boolean;
   score?: number;
   estimatedCompletion?: number;
+  /** Tahminin ± payı (puan); ölçülen ortalama hatadan gelir. Veri yoksa tanımsız. */
+  estimatedCompletionMargin?: number;
   explanation: string[];
   /** Puanı üreten analiz; keşfet kartı ile panelde aynı tabandan hesaplanır. */
   intelligence: VideoIntelligence;
@@ -22,6 +34,8 @@ export type PreferenceResult = {
    */
   contentIntelligence: VideoIntelligence;
   outcome?: WatchOutcome;
+  /** Tanıdık olmayan içeriğe verilen küçük keşif payı (puan). */
+  explorationBonus?: number;
   model: PersonalModel;
   signals?: {
     channel: number | undefined;
@@ -38,6 +52,24 @@ export type PreferenceResult = {
     format: string;
   };
 };
+
+/** Keşif payının üst sınırı (puan). Küçük tutuluyor: yön verir, karar vermez. */
+const EXPLORATION_BONUS = 4;
+
+/**
+ * Puanın duvar saatine bağlı olmaması için tüm tazelik hesapları geçmişin kendi
+ * son kaydına göre yapılır. Daha önce `Date.now()` kullanılıyordu: aynı video,
+ * aynı geçmişle bir gün sonra farklı puan alıyordu ve kullanıcı bunu "model
+ * tutarsız" olarak görüyordu.
+ */
+function historyAnchor(history: VideoRecord[]): number {
+  let anchor = 0;
+  for (const video of history) {
+    const seen = new Date(video.lastSeenAt).getTime();
+    if (Number.isFinite(seen) && seen > anchor) anchor = seen;
+  }
+  return anchor || Date.now();
+}
 
 /**
  * Geçmişteki her başlığın n-gram'ı, puanlanan her aday için yeniden
@@ -71,7 +103,7 @@ function extractNgrams(title: string): string[] {
 }
 
 /** Kosinüs benzerliği & TF-IDF kelime skoru (Advanced Semantic N-gram Scoring). */
-function calculateNgramSimilarity(targetTitle: string, history: VideoRecord[], personalBaseline = 50): number {
+function calculateNgramSimilarity(targetTitle: string, history: VideoRecord[], personalBaseline = 50, anchor = Date.now()): number {
   const targetNgrams = new Set(extractNgrams(targetTitle));
   if (!targetNgrams.size || !history.length) return 50;
 
@@ -93,8 +125,8 @@ function calculateNgramSimilarity(targetTitle: string, history: VideoRecord[], p
     // uzun video izleyen kullanıcıda her başlık "kötü" görünür.
     const relativeCompletion = clamp(0.5 + (completionSignal - personalBaseline / 100) * 1.2, 0, 1);
     const satisfactionWeight = (relativeCompletion * 0.7 + (item.engagementScore / 100) * 0.3) - (item.regretScore / 100) * 0.5;
-    const lastSeenTime = item.lastSeenAt ? new Date(item.lastSeenAt).getTime() : Date.now();
-    const recencyDays = Math.max(0, (Date.now() - (isNaN(lastSeenTime) ? Date.now() : lastSeenTime)) / (1000 * 60 * 60 * 24));
+    const lastSeenTime = item.lastSeenAt ? new Date(item.lastSeenAt).getTime() : anchor;
+    const recencyDays = Math.max(0, (anchor - (isNaN(lastSeenTime) ? anchor : lastSeenTime)) / (1000 * 60 * 60 * 24));
     const recencyWeight = Math.exp(-recencyDays / 25);
 
     weightedSim += sim * satisfactionWeight * recencyWeight * 100;
@@ -107,9 +139,9 @@ function calculateNgramSimilarity(targetTitle: string, history: VideoRecord[], p
 }
 
 /** Zamana ve Etkileşim Derinliğine göre ağırlıklı tamamlama. */
-function weightedCompletion(videos: VideoRecord[]): number {
+function weightedCompletion(videos: VideoRecord[], anchor = Date.now()): number {
   if (!videos.length) return 50;
-  const now = Date.now();
+  const now = anchor;
   let totalWeight = 0;
   let weightedSum = 0;
 
@@ -129,6 +161,26 @@ function weightedCompletion(videos: VideoRecord[]): number {
   }
 
   return totalWeight > 0 ? clamp(weightedSum / totalWeight) : 50;
+}
+
+/**
+ * Yalnızca tamamlanma ölçeğinde ağırlıklı ortalama: pişmanlık cezası yok.
+ * `weightedCompletion` tercih sinyali üretir ve pişmanlığı düşer; tamamlanma
+ * TAHMİNİ ise "bu videonun yüzde kaçını izlersin" sorusunun cevabıdır ve
+ * içine başka eksen karıştırılmamalıdır.
+ */
+function completionRateOf(videos: VideoRecord[], anchor: number): number | undefined {
+  const usable = videos.filter((video) => video.contentType !== "livestream");
+  if (!usable.length) return undefined;
+  let weightedSum = 0;
+  let totalWeight = 0;
+  for (const video of usable) {
+    const ageDays = (anchor - new Date(video.lastSeenAt).getTime()) / (1000 * 60 * 60 * 24);
+    const weight = Math.exp(-Math.max(0, ageDays) / 45);
+    weightedSum += clamp(video.completionRate * 100, 0, 100) * weight;
+    totalWeight += weight;
+  }
+  return totalWeight > 0 ? weightedSum / totalWeight : undefined;
 }
 
 /**
@@ -153,25 +205,18 @@ export function calibratePreferenceSignal(observed: number, personalBaseline: nu
   return round(clamp(50 + relativeLift + absoluteLift, 5, 98));
 }
 
-/** Günün saat dilimi biyolojik odak bonusu. */
-function timeOfDayBonus(metadata: VideoMetadata): number {
-  const hour = new Date().getHours();
-  const isLateNight = hour >= 23 || hour < 6;
-  const isShortDuration = metadata.durationSeconds < 600;
-
-  if (isLateNight && isShortDuration) return 4;
-  if (!isLateNight && !isShortDuration) return 3;
-  return 0;
-}
-
 export function calculatePreference(
   fullMetadata: VideoMetadata,
   history: VideoRecord[],
-  precomputedModel?: PersonalModel
+  precomputedModel?: PersonalModel,
+  precomputedTopicMemory?: TopicMemory
 ): PreferenceResult {
+  // Konu hafızası geçmişten türetilir ve kart başına yeniden kurulması pahalıdır;
+  // keşfet taraması gibi toplu çağrılarda çağıran taraf bir kez kurup geçirir.
+  const topicMemory = precomputedTopicMemory ?? buildTopicMemory(history);
   // Puan yalnızca keşfet kartında da okunabilen alanlardan hesaplanır; aksi
   // halde aynı video kartta ve panelde farklı puan alıyordu.
-  const metadata = toScoringMetadata(fullMetadata);
+  const metadata = toScoringMetadata(fullMetadata, topicMemory);
   const current = history.find((video) => video.videoId === metadata.videoId);
   // Süresi okunamamış kayıtların tamamlanma oranı zorunlu olarak 0'dır; tercih
   // istatistiklerine girerlerse tüm sinyalleri aşağı çekerler.
@@ -204,17 +249,18 @@ export function calculatePreference(
   const formatVideos = eligible.filter((video) => recordVideoFormat(video) === intelligence.format);
 
   // Az örnekli kanallar kullanıcının kendi ortalamasına çekilir, evrensel bir öncüle değil.
+  const anchor = historyAnchor(eligible);
   const channel = calculateChannelAffinity(channelVideos, rawChannelAffinity(eligible));
-  const personalBaseline = weightedCompletion(eligible);
-  const observedTopic = topicVideos.length ? weightedCompletion(topicVideos) : undefined;
-  const observedDuration = durationVideos.length ? weightedCompletion(durationVideos) : undefined;
-  const observedFormat = formatVideos.length ? weightedCompletion(formatVideos) : undefined;
+  const personalBaseline = weightedCompletion(eligible, anchor);
+  const observedTopic = topicVideos.length ? weightedCompletion(topicVideos, anchor) : undefined;
+  const observedDuration = durationVideos.length ? weightedCompletion(durationVideos, anchor) : undefined;
+  const observedFormat = formatVideos.length ? weightedCompletion(formatVideos, anchor) : undefined;
   const topic = observedTopic === undefined ? 50 : calibratePreferenceSignal(observedTopic, personalBaseline, topicVideos.length);
   const duration = observedDuration === undefined ? 50 : calibratePreferenceSignal(observedDuration, personalBaseline, durationVideos.length);
   const format = observedFormat === undefined ? 50 : calibratePreferenceSignal(observedFormat, personalBaseline, formatVideos.length);
 
   // Gelişmiş Semantik N-Gram Kosinüs Benzerliği
-  const ngramScore = calculateNgramSimilarity(metadata.title, eligible, personalBaseline);
+  const ngramScore = calculateNgramSimilarity(metadata.title, eligible, personalBaseline, anchor);
 
   // Eski kelime analizi ile N-Gram skoru harmanlama
   const keywordStats = calculateKeywordStatistics(eligible, 2);
@@ -230,9 +276,12 @@ export function calculatePreference(
   const keyword = round(ngramScore * 0.65 + legacyKeyword * 0.35);
   const observedKeyword = hasTitleEvidence ? keyword : undefined;
 
-  // Pişmanlık cezası (Regret penalty)
-  const isRegretChannel = channelVideos.some((v) => v.regretScore >= 60);
-  const regretPenalty = isRegretChannel ? 14 : 0;
+  // Pişmanlık cezası orana bağlı: tek bir kötü video koca kanalı sonsuza kadar
+  // cezalandırıyordu ve puan bir videoyla 14 puan zıplıyordu.
+  const regretShare = channelVideos.length
+    ? channelVideos.filter((video) => video.regretScore >= 60).length / channelVideos.length
+    : 0;
+  const regretPenalty = channelVideos.length >= 3 ? round(18 * regretShare, 1) : 0;
 
   const effectiveChannelWeight = channel !== undefined ? model.weights.channel : 0;
   const extraTopicWeight = channel !== undefined ? 0 : model.weights.channel;
@@ -242,22 +291,75 @@ export function calculatePreference(
     topic * (model.weights.topic + extraTopicWeight * 0.5) +
     duration * model.weights.duration +
     keyword * model.weights.title +
-    format * model.weights.format +
-    timeOfDayBonus(metadata) -
+    format * model.weights.format -
     regretPenalty;
 
-  const spread = model.confidence === "high" ? 1.55 : model.confidence === "medium" ? 1.4 : 1.2;
-  const score = round(clamp(50 + (rawScore - 50) * spread, 5, 99));
+  /**
+   * Keşif payı. Model yalnızca geçmişe benzeyeni ödüllendirirse kendi körlüğünü
+   * besler: hiç izlenmemiş kanal ve konu her zaman nötr kalır, shrinkage onu
+   * tabana çeker ve o içerik bir daha asla öne çıkmaz — filtre balonunun tam
+   * mekanizması bu. Tanıdıklık düştükçe küçük ve sınırlı bir pay ekleniyor;
+   * bu hem öneriyi çeşitlendiriyor hem de modelin öğrenmesi için veri üretiyor.
+   * Pişmanlık kanıtı varsa keşif payı verilmez: orada belirsizlik yok, kötü
+   * deneyim var.
+   */
+  const familiarity = evidenceWeight(channelVideos.length + topicVideos.length * 0.5);
+  const explorationBonus = regretPenalty > 0 ? 0 : round(EXPLORATION_BONUS * (1 - familiarity), 1);
 
-  const channelW = channel !== undefined ? model.weights.channel : 0;
-  const topicW = model.weights.topic + (channel !== undefined ? 0 : model.weights.channel);
-  const estimatedCompletion = isLivestream ? undefined : round(clamp(
-    (channel ?? observedTopic ?? personalBaseline) * channelW
-      + (observedTopic ?? personalBaseline) * topicW
-      + (observedDuration ?? personalBaseline) * model.weights.duration
-      + keyword * model.weights.title
-      + (observedFormat ?? personalBaseline) * model.weights.format
-  ));
+  /**
+   * Yayılım artık yalnızca "kaç örnek var" etiketine değil, modelin ÖLÇÜLEN
+   * beceri skoruna da bağlı. Eskiden güven etiketi yükselir yükselmez puanlar
+   * uçlara savruluyordu; oysa çok örnek, iyi tahmin demek değil.
+   */
+  const baseSpread = model.confidence === "high" ? 1.55 : model.confidence === "medium" ? 1.4 : 1.2;
+  const measuredSkill = model.benchmark.sampleCount >= 8 ? clamp(model.benchmark.skill, 0, 1) : undefined;
+  const spread = measuredSkill === undefined
+    ? baseSpread
+    : 1 + (baseSpread - 1) * (0.4 + 0.6 * Math.min(1, measuredSkill / 0.4));
+  const score = round(clamp(50 + (rawScore - 50) * spread + explorationBonus, 5, 99));
+
+  // Tamamlanma tahmini yalnızca tamamlanma ölçeğindeki kanıtlardan kurulur.
+  // Başlık benzerliği ve kanal bağlılığı farklı eksenler olduğu için tahmine
+  // girmez; onlar uygunluk PUANINI besler.
+  const calibration = model.calibration;
+  /**
+   * Tahminin öncülü, TERCİH tabanı değil tamamlanma tabanıdır. `weightedCompletion`
+   * canlı yayınları "izlenen dakika / 18" gibi ayrı bir ölçekle sayıp pişmanlığı
+   * da düşüyor; oysa kanıtların hepsi `completionRateOf`'tan, yani canlı yayın
+   * içermeyen saf tamamlanma ölçeğinden geliyordu. İki farklı popülasyonun
+   * ortası, shrinkage'ı yanlış merkeze çekiyordu.
+   */
+  const completionBaseline = completionRateOf(eligible, anchor) ?? personalBaseline;
+  const prediction = isLivestream ? undefined : predictCompletionDetailed(
+    [
+      { observed: completionRateOf(channelVideos, anchor), sampleCount: channelVideos.length, weight: model.weights.channel, reliability: model.reliability.channel, tier: SIGNAL_TIERS.channel },
+      { observed: completionRateOf(topicVideos, anchor), sampleCount: topicVideos.length, weight: model.weights.topic, reliability: model.reliability.topic, tier: SIGNAL_TIERS.topic },
+      { observed: completionRateOf(durationVideos, anchor), sampleCount: durationVideos.length, weight: model.weights.duration, reliability: model.reliability.duration, tier: SIGNAL_TIERS.duration },
+      { observed: completionRateOf(formatVideos, anchor), sampleCount: formatVideos.length, weight: model.weights.format + model.weights.title, reliability: model.reliability.format, tier: SIGNAL_TIERS.format },
+    ],
+    completionBaseline,
+    calibration
+  );
+  /**
+   * Model dürüst sınamada tabanı yenemiyorsa tahmini olduğu gibi sunmak
+   * kullanıcıyı yanıltır. Susmak yerine tabana doğru harmanlıyoruz: becerisi
+   * ölçülemeyen model, hiç değilse kişisel ortalamadan daha kötü olamaz.
+   */
+  const hasSkill = model.benchmark.sampleCount < 5 || model.benchmark.skill > 0;
+  const estimatedCompletion = prediction === undefined
+    ? undefined
+    : hasSkill ? prediction.value : round(clamp(prediction.value * .5 + completionBaseline * .5, 0, 100));
+  /**
+   * Belirsizlik payı artık tahmine özel: aynı ± payını 3 videoluk kanala da
+   * 40 videoluk kanala da vermek dürüst değildi. Ölçülen ortalama hata,
+   * o tahminin arkasındaki kanıt zayıfsa genişletiliyor.
+   */
+  const measuredError = calibration.sampleCount >= 3
+    ? calibration.meanAbsoluteError
+    : model.benchmark.sampleCount >= 5 ? model.benchmark.meanAbsoluteError : undefined;
+  const estimatedCompletionMargin = prediction && measuredError !== undefined
+    ? Math.max(5, Math.round(measuredError * (1 + .8 * (1 - prediction.evidenceStrength))))
+    : undefined;
 
   const explanations: string[] = [];
   if (channel !== undefined) {
@@ -274,6 +376,12 @@ export function calculatePreference(
   if (regretPenalty > 0) {
     explanations.push("⚠️ Bu kanaldaki geçmiş videolarınızda yüksek pişmanlık oranı tespit edildi.");
   }
+  if (explorationBonus >= 2) {
+    explanations.push(`Bu kanal ve konu senin için yeni; ${explorationBonus} puanlık keşif payı eklendi.`);
+  }
+  if (!hasSkill) {
+    explanations.push("Model şu an geçmiş ortalamandan daha iyi tahmin edemiyor; tahmin tabana yaklaştırıldı.");
+  }
   if (!explanations.length) {
     explanations.push(isLivestream
       ? "Canlı yayın uyumu; kanal, konu, başlık ve geçmiş canlı yayın izleme süresiyle hesaplandı."
@@ -284,10 +392,12 @@ export function calculatePreference(
     enoughData: true,
     score,
     estimatedCompletion,
+    estimatedCompletionMargin,
     explanation: explanations,
     intelligence,
     contentIntelligence,
     outcome,
+    explorationBonus,
     model,
     signals: {
       channel,

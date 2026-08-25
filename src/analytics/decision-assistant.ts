@@ -1,6 +1,7 @@
 import { calculatePreference } from "./preference-score";
 import { toScoringMetadata } from "./scoring-metadata";
 import type { PersonalModel } from "./personal-model";
+import { buildTopicMemory, type TopicMemory } from "./topic-memory";
 import type { Settings, UserVideoFeedback, VideoDecision, VideoMetadata, VideoRecord, WatchSession } from "../shared/types";
 import { channelKey, clamp, round } from "../shared/utils";
 
@@ -22,12 +23,14 @@ export function makeVideoDecision(
   feedback: UserVideoFeedback[],
   settings: Settings,
   _sessions: WatchSession[] = [],   // bütçe hesabında kullanılmıyor artık
-  precomputedModel?: PersonalModel
+  precomputedModel?: PersonalModel,
+  precomputedTopicMemory?: TopicMemory
 ): VideoDecision {
-  const preference = calculatePreference(fullMetadata, history, precomputedModel);
+  const topicMemory = precomputedTopicMemory ?? buildTopicMemory(history);
+  const preference = calculatePreference(fullMetadata, history, precomputedModel, topicMemory);
   // Karar da puanla aynı ortak tabandan okunur; keşfet kartı ile panel arasında
   // etiket ve kanal eşleşmesi ayrışmasın.
-  const metadata = toScoringMetadata(fullMetadata);
+  const metadata = toScoringMetadata(fullMetadata, topicMemory);
   const metadataChannel = channelKey(metadata.channelName);
 
   // ── Kanal güveni ────────────────────────────────────────────────────────────

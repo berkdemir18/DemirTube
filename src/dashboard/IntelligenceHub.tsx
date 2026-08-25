@@ -1,5 +1,5 @@
 // DemirTube Aurora UI v2 · unified dashboard visual system
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { chartAccent, chartSeries } from "./chart-theme";
 import {
   BrainCircuit, Clock3, Gauge, Network,
@@ -12,6 +12,8 @@ import {
   revisitRecommendations, semanticVideoSearch,
 } from "../analytics/intelligence-hub";
 import { derivePersonalModel, strongestModelSignal, type PersonalModel } from "../analytics/personal-model";
+import { analyzeSelectionBias, discriminationLabel, type SelectionBiasReport } from "../analytics/selection-bias";
+import { sendMessage } from "../shared/messages";
 import { PageHeading } from "./ui";
 
 export function IntelligenceHub({
@@ -24,6 +26,21 @@ export function IntelligenceHub({
   feedback: UserVideoFeedback[];
 }) {
   const [query, setQuery] = useState("");
+  // Gösterim kaydı arka uçta yaşıyor (AppData'ya girmez, dışa aktarımı şişirmez);
+  // yalnızca bu sayfa açıldığında okunur.
+  const [selectionBias, setSelectionBias] = useState<SelectionBiasReport>();
+  useEffect(() => {
+    if (!globalThis.chrome?.runtime?.id) {
+      // Vite geliştirme sunucusunda eklenti bağlamı yok; diğer sayfalar gibi
+      // burada da örnek veriyle çalışılır.
+      void import("./seed-data").then(({ seedImpressions }) =>
+        setSelectionBias(analyzeSelectionBias(seedImpressions, videos)));
+      return;
+    }
+    void sendMessage<SelectionBiasReport>({ type: "GET_SELECTION_BIAS" })
+      .then(setSelectionBias)
+      .catch(() => undefined);
+  }, [videos]);
   const currentSession = useMemo(() => analyzeCurrentSession(videos, sessions), [videos, sessions]);
   const knowledge = useMemo(() => buildKnowledgeMap(videos), [videos]);
   const revisit = useMemo(() => revisitRecommendations(videos), [videos]);
@@ -66,7 +83,20 @@ export function IntelligenceHub({
           <Target />
           <small>Tahmin doğruluğu</small>
           <strong>{accuracy.sampleCount ? `%${accuracy.accuracyRate}` : "Veri birikiyor"}</strong>
-          <p>{accuracy.sampleCount} sonuç · ortalama hata {accuracy.meanAbsoluteError} puan</p>
+          <p>
+            {accuracy.sampleCount} sonuç · ortalama hata <span className="num">{accuracy.meanAbsoluteError}</span> puan
+            {accuracy.sampleCount >= 3 ? (
+              <>
+                {" · "}
+                {Math.abs(accuracy.systematicBias) < 3
+                  ? "sistematik sapma yok"
+                  : `${accuracy.systematicBias > 0 ? "düşük" : "yüksek"} tahmin eğilimi ${Math.abs(accuracy.systematicBias)} puan`}
+                {accuracy.appliedCorrection !== 0
+                  ? `, tahminlere ${accuracy.appliedCorrection > 0 ? "+" : ""}${accuracy.appliedCorrection} düzeltme uygulanıyor`
+                  : ""}
+              </>
+            ) : null}
+          </p>
         </article>
         <article>
           <Gauge />
@@ -74,20 +104,25 @@ export function IntelligenceHub({
           <strong>{confidenceLabel(model.confidence)}</strong>
           <p>En güçlü sinyal: {strongestModelSignal(model).label}</p>
         </article>
-        <article>
+        <article className={accuracy.backtest.sampleCount >= 5 ? (accuracy.beatsBaseline ? "metric-good" : "metric-warn") : undefined}>
           <TrendingUp />
-          <small>Model durumu</small>
+          <small>Taban çizgisine karşı</small>
           <strong>
-            {model.sampleCount < 6
-              ? "Öğreniyor"
-              : accuracy.improving
-              ? "Gelişiyor ↑"
-              : "Kalibre oluyor"}
+            {accuracy.backtest.sampleCount < 5
+              ? "Ölçülüyor"
+              : accuracy.beatsBaseline
+              ? `%${accuracy.skillPercent} daha iyi`
+              : "Tabanı yenemiyor"}
           </strong>
           <p>
-            {model.adaptationGeneration > 0
-              ? `${model.adaptationGeneration}. nesil · ${model.sampleCount} örnek`
-              : `${model.sampleCount} davranış örneği birikiyor`}
+            {accuracy.backtest.sampleCount < 5 ? (
+              `${model.sampleCount} davranış örneği birikiyor`
+            ) : (
+              <>
+                Geriye dönük sınama · hata <span className="num">{accuracy.backtest.meanAbsoluteError}</span> puan,
+                {" "}"hep ortalamayı söyle" tabanı <span className="num">{accuracy.backtest.baselineMeanAbsoluteError}</span> puan
+              </>
+            )}
           </p>
         </article>
         <article>
@@ -100,6 +135,9 @@ export function IntelligenceHub({
 
       {/* Kişisel model ağırlıkları */}
       <ModelWeightsCard model={model} accuracy={accuracy} />
+
+      {/* Seçim yanlılığı: modelin göremediği yarı */}
+      <SelectionBiasCard report={selectionBias} />
 
       {/* Doğal dil arama */}
       <section className="surface semantic-search">
@@ -232,12 +270,97 @@ export function IntelligenceHub({
 
 // ── Kişisel Model Ağırlık Kartı ────────────────────────────────────────────
 
+/**
+ * Modelin kör noktası: puan verip kullanıcının AÇMADIĞI kartlar. Doğruluk
+ * kartı yalnızca izlenen videoları ölçer ve bu, modeli olduğundan iyi
+ * gösterir. Burada ölçülen şey farklı bir soru: puan, hangi videoyu açacağını
+ * gerçekten öngörüyor mu?
+ */
+function SelectionBiasCard({ report }: { report?: SelectionBiasReport }) {
+  if (!report) return null;
+  const strong = report.discrimination >= .58;
+  // İki yuvarlanmış sayının farkı yuvarlanmış değildir: ham çıkarma ekranda
+  // "+20.799999999999997" gibi görünüyordu.
+  const scoreGap = round(report.openedAverageScore - report.skippedAverageScore);
+  return (
+    <section className="surface selection-bias-card">
+      <div className="section-head">
+        <div>
+          <h2><Target size={16} /> Seçim yanlılığı</h2>
+          <p>
+            Keşfette gösterilen kartların kaçını açtığın. Modelin yalnızca
+            izlediğin videolardan öğrenmesi, kendi önerilerinin tutup tutmadığını
+            görmesini engelliyordu.
+          </p>
+        </div>
+        <span>{report.shown} gösterim</span>
+      </div>
+
+      {report.enoughData ? (
+        <>
+          <div className="bias-summary">
+            <div>
+              <small>Ayırt etme gücü</small>
+              <strong className={strong ? "good" : "warn"}>{report.discrimination.toFixed(2)}</strong>
+              <p>{discriminationLabel(report.discrimination)}</p>
+            </div>
+            <div>
+              <small>Açılma oranı</small>
+              <strong>%{report.openRate}</strong>
+              <p>{report.opened} / {report.shown} kart açıldı</p>
+            </div>
+            <div>
+              <small>Puan farkı</small>
+              <strong>{scoreGap > 0 ? "+" : ""}{scoreGap}</strong>
+              <p>Açtıkların %{report.openedAverageScore}, atladıkların %{report.skippedAverageScore}</p>
+            </div>
+          </div>
+
+          <div className="bias-bands">
+            {report.bands.filter((band) => band.shown > 0).map((band) => (
+              <div key={band.label} className="bias-band-row">
+                <span>{band.label} puan</span>
+                <div className="bias-band-bar-wrap">
+                  <div className="bias-band-bar" style={{ width: `${band.openRate}%` }} />
+                </div>
+                <b>%{band.openRate}</b>
+                <small>{band.shown} kart</small>
+              </div>
+            ))}
+          </div>
+
+          {report.overconfident > 0 ? (
+            <p className="model-notice warn">
+              {report.overconfident} kart 75 puan üzerinde önerildi ama açılmadı. Bunlar modelin fazla
+              güvendiği yerler — ama "açmadın" ile "beğenmedin" aynı şey değil: kartı hiç görmemiş,
+              sonraya bırakmış veya başka cihazda izlemiş olabilirsin.
+            </p>
+          ) : null}
+        </>
+      ) : (
+        <p className="model-notice">
+          Ölçüm için en az 20 gösterim ve hem açılmış hem atlanmış kart gerekiyor.
+          Şu ana kadar {report.shown} kart kaydedildi.
+        </p>
+      )}
+    </section>
+  );
+}
+
 function ModelWeightsCard({
   model,
   accuracy,
 }: {
   model: PersonalModel;
-  accuracy: { accuracyRate: number; sampleCount: number; improving: boolean };
+  accuracy: {
+    accuracyRate: number;
+    sampleCount: number;
+    improving: boolean;
+    beatsBaseline: boolean;
+    skillPercent: number;
+    weightsLearned: boolean;
+    backtest: { sampleCount: number; meanAbsoluteError: number; baselineMeanAbsoluteError: number; hitRate: number };
+  };
 }) {
   const signals: { key: keyof typeof model.weights; label: string; color: string }[] = [
     { key: "channel", label: "Kanal geçmişi", color: chartAccent },
@@ -252,7 +375,11 @@ function ModelWeightsCard({
       <div className="section-head">
         <div>
           <h2><Sparkles size={16} /> Kişisel model ağırlıkları</h2>
-          <p>Model izledikçe bu ağırlıkları gerçek tahmin hatalarına göre ayarlar.</p>
+          <p>
+            {accuracy.weightsLearned
+              ? "Ağırlıklar geçmişin ilk diliminde aranıp hatayı en aza indirecek şekilde seçildi."
+              : "Ağırlıklar henüz öncülde: arama için en az 25 ölçülebilir kayıt gerekiyor."}
+          </p>
         </div>
         <div className="model-meta">
           {model.outcomeAccuracy !== undefined ? (
@@ -286,6 +413,13 @@ function ModelWeightsCard({
           );
         })}
       </div>
+      {accuracy.backtest.sampleCount >= 5 ? (
+        <p className={`model-notice ${accuracy.beatsBaseline ? "good" : "warn"}`}>
+          {accuracy.beatsBaseline
+            ? `Dürüst sınama: ${accuracy.backtest.sampleCount} kayıtta ortalama hata ${accuracy.backtest.meanAbsoluteError} puan, taban modelin hatası ${accuracy.backtest.baselineMeanAbsoluteError} puan. Model tabanın %${accuracy.skillPercent} altında hata yapıyor.`
+            : `Dürüst sınama: model (${accuracy.backtest.meanAbsoluteError} puan hata) "hep kişisel ortalamayı söyle" tabanını (${accuracy.backtest.baselineMeanAbsoluteError} puan) henüz geçemiyor. Tahminler tabana yaklaştırılarak gösteriliyor.`}
+        </p>
+      ) : null}
       {model.sampleCount < 8 ? (
         <p className="model-notice">
           Model henüz öğreniyor. {Math.max(0, 8 - model.sampleCount)} video sonra daha güvenilir ağırlıklar oluşur.

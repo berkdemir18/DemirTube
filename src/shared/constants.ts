@@ -1,6 +1,6 @@
 import type { DefaultTopic, KeywordRules, Settings } from "./types";
 
-export const APP_VERSION = "0.10.0";
+export const APP_VERSION = "0.11.0";
 export const EXPORT_SCHEMA_VERSION = 2;
 export const DEFAULT_SETTINGS: Settings = {
   trackingEnabled: true,
@@ -33,7 +33,7 @@ export const DEFAULT_KEYWORD_RULES: KeywordRules = {
   updatedAt: new Date(0).toISOString()
 };
 export const DB_NAME = "demirtube-ai";
-export const DB_VERSION = 2;
+export const DB_VERSION = 3;
 export const PERSIST_INTERVAL_MS = 5_000;
 export const SEGMENT_GAP_SECONDS = 1.5;
 export const EARLY_EXIT_SECONDS = 120;
@@ -41,11 +41,15 @@ export const COMPLETED_THRESHOLD = 0.9;
 export const MAX_DIAGNOSTIC_LOGS = 100;
 
 export const TOPIC_RULES: Record<Exclude<DefaultTopic, "Diğer">, string[]> = {
-  "Yapay zekâ": ["yapay zeka", "yapay zekâ", "ai", "gpt", "chatgpt", "gemini", "claude", "llm", "openai"],
+  "Yapay zekâ": ["yapay zeka", "yapay zekâ", "ai", "gpt", "chatgpt", "gemini", "claude", "llm", "openai",
+    "makine öğrenmesi", "derin öğrenme", "yapay sinir ağı", "midjourney", "copilot", "prompt"],
   "Teknoloji": ["teknoloji", "tech", "telefon", "iphone", "android", "bilgisayar", "donanım", "inceleme"],
-  "Programlama": ["kod", "coding", "programlama", "javascript", "typescript", "react", "python", "developer", "yazılım"],
-  "Siber güvenlik": ["siber", "cyber", "hacker", "güvenlik", "malware", "phishing", "exploit"],
-  "Futbol": ["futbol", "football", "maç", "gol", "transfer", "şampiyonlar ligi", "süper lig"],
+  "Programlama": ["kod", "coding", "programlama", "javascript", "typescript", "react", "python", "developer", "yazılım",
+    "rust", "java", "c++", "sql", "algoritma", "backend", "frontend", "veritabanı", "docker", "derleyici"],
+  "Siber güvenlik": ["siber", "cyber", "hacker", "güvenlik", "malware", "phishing", "exploit",
+    "linux", "kali", "sızma testi", "pentest", "zafiyet", "şifreleme", "kimlik avı", "veri ihlali", "vpn"],
+  "Futbol": ["futbol", "football", "maç", "gol", "transfer", "şampiyonlar ligi", "süper lig",
+    "derbi", "fenerbahçe", "galatasaray", "trabzonspor", "puan durumu"],
   "Beşiktaş": ["beşiktaş", "bjk", "kara kartal"],
   "Basketbol": ["basketbol", "basketball", "nba", "euroleague"],
   "Formula 1": ["formula 1", "formula one", "f1", "grand prix", "verstappen", "ferrari", "mclaren"],

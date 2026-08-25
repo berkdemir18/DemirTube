@@ -1,9 +1,12 @@
 import type { ExtensionMessage } from "../shared/messages";
-import type { ArchivedWatchlistItem, VideoDecision, VideoRecord, WatchlistItem } from "../shared/types";
+import type { ArchivedWatchlistItem, ImportedHistoryEntry, VideoDecision, VideoMetadata, VideoRecord, WatchlistItem } from "../shared/types";
+import { analyzeRegret } from "../analytics/regret-score";
+import { analyzeEngagement } from "../analytics/engagement-score";
 import { calculatePreference } from "../analytics/preference-score";
 import { makeVideoDecision } from "../analytics/decision-assistant";
 import { calculateDailyPulse } from "../analytics/daily-pulse";
 import { derivePersonalModel, type PersonalModel } from "../analytics/personal-model";
+import { buildTopicMemory, type TopicMemory } from "../analytics/topic-memory";
 import {
   checkDataLoss, clearData, exportData, finalizeStaleSessions, generateAndStoreWeeklyReport, getDiagnostics, getSettings,
   importData, putCustomTopic, putKeywordRules, rebuildAllVideoSummaries, removeOrphanSessions,
@@ -13,6 +16,8 @@ import { videoRepository } from "../storage/video-repository";
 import { sessionRepository } from "../storage/session-repository";
 import { auxiliaryRepository } from "../storage/auxiliary-repository";
 import { feedbackRepository } from "../storage/feedback-repository";
+import { impressionRepository } from "../storage/impression-repository";
+import { analyzeSelectionBias } from "../analytics/selection-bias";
 import { configureCloud, getCloudStatus, isCloudConfigured, resetCloud, scheduleCloudSync, signInCloud, signOutCloud, signUpCloud, syncCloudData } from "../cloud/cloud-service";
 import {
   analyzeVideoWithGroq, configureGroq, fingerprintCloudInput, getGroqStatus, resetGroq, testGroqConnection
@@ -55,11 +60,52 @@ function sharedPersonalModel(usable: VideoRecord[]) {
   return model;
 }
 
+/**
+ * Konu hafızası da geçmişin tamamından türetilir. Keşfet taraması 40 kart
+ * gönderiyor; her kart için yeniden kurmak taramayı karesel yapardı. Panel ve
+ * kart AYNI hafızayı kullanmak zorunda: farklı konu çıkarsa aynı video iki
+ * yerde farklı puan alır.
+ */
+function sharedTopicMemory(usable: VideoRecord[]) {
+  const cached = cacheGet<TopicMemory>("topics:shared");
+  if (cached) return cached;
+  const memory = buildTopicMemory(usable);
+  cacheSet("topics:shared", memory);
+  return memory;
+}
+
 const CACHE_INVALIDATING = new Set([
   "SET_SETTINGS", "SAVE_SESSION", "SAVE_FEEDBACK", "RESET_FEEDBACK", "SET_LEAVE_REASON", "DELETE_VIDEO",
   "CLEAR_DATA", "IMPORT_DATA", "IMPORT_DATA_V2", "PUT_CUSTOM_TOPIC", "DELETE_CUSTOM_TOPIC",
   "PUT_KEYWORD_RULES", "RECLASSIFY_TOPICS", "REBUILD_SUMMARIES", "REMOVE_ORPHANS", "FINALIZE_STALE"
 ]);
+
+/**
+ * Keşfette puanlanıp gösterilen kartları kaydeder. Model bugüne kadar yalnızca
+ * AÇILAN videoları görüyordu; yüksek puan verip kullanıcının atladığı kart
+ * hiçbir yere yazılmadığı için önerinin tutup tutmadığı ölçülemiyordu.
+ *
+ * Yazma bilerek beklenmez: keşfet taraması 250 ms'de bir çalışıyor ve rozet
+ * gecikmesi kullanıcıya doğrudan yansıyor. Kayıt başarısız olursa analiz
+ * eksik kalır, sayfa değil.
+ */
+function recordFeedImpressions(items: VideoMetadata[], decisions: VideoDecision[], watchedIds: Set<string>) {
+  const entries = items
+    .map((metadata, index) => ({ metadata, decision: decisions[index] }))
+    // Zaten izlenmiş kartlar gösterim sayılmaz: onlar için "atladı" bilgisi
+    // anlamsız, kullanıcı videoyu çoktan açmış.
+    .filter(({ metadata, decision }) => decision && !watchedIds.has(metadata.videoId))
+    .map(({ metadata, decision }) => ({
+      videoId: metadata.videoId,
+      title: metadata.title,
+      channelName: metadata.channelName,
+      score: decision.preference.score,
+      estimatedCompletion: decision.preference.estimatedCompletion,
+      modelVersion: decision.preference.model.version,
+    }));
+  if (!entries.length) return;
+  void impressionRepository.record(entries).catch(() => undefined);
+}
 
 const WATCHLIST_ARCHIVE_KEY = "watchlistArchive";
 
@@ -93,6 +139,8 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "demirtube-local-backup-reminder") {
     void notifyLocalBackup();
     void maybeAutoBackup();
+    // Gösterim kaydı sınırsız büyümesin; günde bir kez budanır.
+    void impressionRepository.prune().catch(() => undefined);
   }
 });
 
@@ -190,7 +238,11 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
         if (cached) return cached;
         const usable = (await videoRepository.all()).filter((video) => !video.excludedFromAnalytics);
         const watched = usable.some((video) => video.videoId === message.metadata.videoId);
-        const value = calculatePreference(message.metadata, usable, watched ? undefined : sharedPersonalModel(usable));
+        const value = calculatePreference(
+          message.metadata, usable,
+          watched ? undefined : sharedPersonalModel(usable),
+          sharedTopicMemory(usable)
+        );
         cacheSet(cacheKey, value);
         return value;
       }
@@ -198,8 +250,13 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
         const history = (await videoRepository.all()).filter((video) => !video.excludedFromAnalytics);
         const watchedIds = new Set(history.map((video) => video.videoId));
         const sharedModel = sharedPersonalModel(history);
+        const sharedTopics = sharedTopicMemory(history);
         return message.items.slice(0, 40).map((metadata) =>
-          calculatePreference(metadata, history, watchedIds.has(metadata.videoId) ? undefined : sharedModel)
+          calculatePreference(
+            metadata, history,
+            watchedIds.has(metadata.videoId) ? undefined : sharedModel,
+            sharedTopics
+          )
         );
       }
       case "GET_VIDEO_DECISION": {
@@ -213,7 +270,8 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
         // aynı puanı üretir hem de ağır model her istekte yeniden türetilmez.
         const decision = makeVideoDecision(
           message.metadata, usable, feedback, settings, sessions,
-          existing ? undefined : sharedPersonalModel(usable)
+          existing ? undefined : sharedPersonalModel(usable),
+          sharedTopicMemory(usable)
         );
         const value: VideoDecision = existing
           ? { ...decision, existingWatch: { lastSeenAt: existing.lastSeenAt, completionRate: existing.completionRate } }
@@ -229,7 +287,8 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
         // modeli kullanır. Karesel maliyetli modeli her kart için yeniden üretmek
         // geçmiş büyüdükçe service worker'ı dakikalarca meşgul edebiliyordu.
         const sharedModel = sharedPersonalModel(usable);
-        return message.items.slice(0, 40).map((metadata) => {
+        const sharedTopics = sharedTopicMemory(usable);
+        const results = message.items.slice(0, 40).map((metadata) => {
           const cacheKey = `dec:${metadata.videoId}`;
           const cached = cacheGet<VideoDecision>(cacheKey);
           if (cached) return cached;
@@ -240,7 +299,8 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
             feedback,
             settings,
             sessions,
-            existing ? undefined : sharedModel
+            existing ? undefined : sharedModel,
+            sharedTopics
           );
           const value: VideoDecision = existing
             ? { ...decision, existingWatch: { lastSeenAt: existing.lastSeenAt, completionRate: existing.completionRate } }
@@ -248,6 +308,12 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
           cacheSet(cacheKey, value);
           return value;
         });
+        recordFeedImpressions(message.items.slice(0, 40), results, new Set(watchedById.keys()));
+        return results;
+      }
+      case "GET_SELECTION_BIAS": {
+        const [impressions, history] = await Promise.all([impressionRepository.all(), videoRepository.all()]);
+        return analyzeSelectionBias(impressions, history);
       }
       case "FETCH_YOUTUBE_CAPTIONS": {
         if (!isAllowedCaptionUrl(message.url)) throw new Error("Geçersiz YouTube altyazı adresi.");
@@ -306,6 +372,20 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
           shortCount: shortVideos.length
         };
       }
+      case "REQUEST_HISTORY_IMPORT": {
+        await chrome.storage.local.set({
+          historyImportRequest: { days: message.days, requestedAt: new Date().toISOString() }
+        });
+        return { requested: true };
+      }
+      case "GET_HISTORY_IMPORT_REQUEST": {
+        const stored = (await chrome.storage.local.get("historyImportRequest")).historyImportRequest;
+        // İstek tek kullanımlıktır: kullanıcı geçmiş sayfasını sonra tekrar
+        // açtığında tarama kendiliğinden başlamamalı.
+        if (stored) await chrome.storage.local.remove("historyImportRequest");
+        return stored;
+      }
+      case "IMPORT_WATCH_HISTORY": return importWatchHistory(message.entries);
       case "GET_DAILY_PULSE": {
         const [videos, sessions, settings] = await Promise.all([
           videoRepository.all(), sessionRepository.all(), getSettings()
@@ -366,6 +446,94 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
   return true;
 });
 
+
+
+/**
+ * Geçmiş sayfasından okunan kayıtları video deposuna ekler.
+ *
+ * İki kural: (1) izlenerek kaydedilmiş bir video asla ezilmez — gerçek oturum
+ * verisi, ilerleme çubuğundan tahmin edilen orandan her zaman iyidir.
+ * (2) İçe aktarılan kayıt `source: "imported"` ile işaretlenir; oturumu
+ * olmadığı için ritim/ısı haritası gibi oturum tabanlı analizlere zaten girmez,
+ * ama modele kanıt olur.
+ */
+async function importWatchHistory(entries: ImportedHistoryEntry[]) {
+  const existing = new Set((await videoRepository.all()).map((video) => video.videoId));
+  let added = 0;
+  let skipped = 0;
+
+  for (const entry of entries) {
+    if (existing.has(entry.videoId)) { skipped += 1; continue; }
+    if (!entry.durationSeconds || entry.durationSeconds <= 0) { skipped += 1; continue; }
+    // İlerleme çubuğu olmayan kart, videonun hiç izlenmediği anlamına gelmez:
+    // YouTube çubuğu yalnızca kaydedilmiş bir konum varken gösterir. Tamamlanma
+    // oranını 0 varsaymak modele olmayan bir başarısızlık öğretirdi, o yüzden
+    // ölçülemeyen kayıt hiç alınmaz.
+    if (entry.progressPercent === undefined) { skipped += 1; continue; }
+
+    const completionRate = clamp01(entry.progressPercent / 100);
+    const watchedSeconds = Math.round(entry.durationSeconds * completionRate);
+    const seenAt = entry.watchedAt ?? new Date().toISOString();
+    const regret = analyzeRegret({
+      title: entry.title,
+      totalActiveWatchSeconds: watchedSeconds,
+      durationSeconds: entry.durationSeconds,
+      completionRate,
+      reopened: false,
+      followedByAnotherVideo: false,
+      endedNaturally: completionRate >= 0.9,
+      contentType: entry.contentType,
+    });
+    const engagement = analyzeEngagement({
+      completionRate,
+      totalActiveWatchSeconds: watchedSeconds,
+      sessionCount: 1,
+      rewatchSeconds: 0,
+      backwardSeeks: 0,
+      endedNaturally: completionRate >= 0.9,
+      earlyAbandoned: completionRate < 0.15,
+      contentType: entry.contentType,
+    });
+
+    await videoRepository.put({
+      videoId: entry.videoId,
+      title: entry.title,
+      channelName: entry.channelName,
+      url: entry.url,
+      durationSeconds: entry.durationSeconds,
+      topics: entry.topics,
+      inferredTopics: entry.topics,
+      firstSeenAt: seenAt,
+      lastSeenAt: seenAt,
+      totalWatchSeconds: watchedSeconds,
+      totalActiveWatchSeconds: watchedSeconds,
+      uniqueWatchedSeconds: watchedSeconds,
+      rewatchSeconds: 0,
+      uniquePlaybackSegments: watchedSeconds > 0 ? [{ start: 0, end: watchedSeconds }] : [],
+      completionRate,
+      sessionCount: 0,
+      completed: completionRate >= 0.9,
+      regretScore: regret.regretScore,
+      regretLabel: regret.regretLabel,
+      regretFactors: regret.contributingFactors,
+      regretConfidence: "low",
+      engagementScore: engagement.score,
+      engagementLabel: engagement.label,
+      engagementFactors: engagement.contributingFactors,
+      engagementConfidence: "low",
+      contentType: entry.contentType,
+      source: "imported",
+      importedAt: new Date().toISOString(),
+    });
+    existing.add(entry.videoId);
+    added += 1;
+  }
+
+  if (added) await resetDataFingerprint();
+  return { added, skipped };
+}
+
+const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
 /** Bugün başlayan oturumların toplam aktif süresi (saniye). */
 async function todayWatchSeconds() {

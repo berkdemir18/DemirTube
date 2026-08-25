@@ -15,6 +15,7 @@ import { refreshSearchFilterBar } from "./search-filter-bar";
 import { mountPlayerOverlay, unmountPlayerOverlay } from "./player-overlay";
 import { refreshChannelBadge } from "./channel-report-badge";
 import { startBudgetGuard, stopBudgetGuard } from "./budget-guard";
+import { runPendingHistoryImport } from "./history-import";
 import type { VideoUi } from "./video-ui";
 
 let tracker: YouTubeTracker | undefined;
@@ -196,10 +197,13 @@ const stopNavigationObserver = observeYouTubeNavigation(() => {
   safeBegin();
   refreshChannelBadge();
   refreshSearchFilterBar();
+  void runPendingHistoryImport().catch(() => undefined);
 });
 let stopFeedDecorator: () => void = () => undefined;
 void startFeedDecorator().then((stop) => { stopFeedDecorator = stop; }).catch(() => undefined);
 startBudgetGuard();
+// Geçmiş sayfasına girildiğinde bekleyen bir içe aktarma isteği varsa çalışır.
+void runPendingHistoryImport().catch(() => undefined);
 safeBegin();
 const replacementTimer = window.setInterval(() => {
   if (!globalThis.chrome?.runtime?.id) {

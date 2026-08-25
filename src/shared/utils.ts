@@ -15,6 +15,26 @@ export const getVideoId = (url = location.href) => {
 };
 export const normalizeText = (value: string) => value.toLocaleLowerCase("tr-TR").normalize("NFKC");
 
+/**
+ * Türkçeye özgü harfleri ASCII karşılıklarına indirger.
+ *
+ * İki ayrı sorunu birden çözer: (1) YouTube başlıkları sık sık aksansız
+ * yazılıyor ("besiktas", "guvenlik", "yapay zeka") ve bunlar sözlükteki
+ * "beşiktaş", "güvenlik", "yapay zekâ" ile eşleşmiyordu; (2) düzeltme işaretli
+ * "zekâ" ile "zeka" farklı iki kelime sayılıyordu. Katlama iki tarafa da
+ * uygulanınca her üç yazım da aynı anahtara düşer.
+ *
+ * `normalizeText` bilerek değiştirilmedi: arama ve başlık karşılaştırması gibi
+ * yerlerde görünen metnin korunması gerekiyor.
+ */
+const FOLDED_LETTERS: Record<string, string> = {
+  "â": "a", "ä": "a", "à": "a", "î": "i", "ï": "i", "û": "u", "ü": "u",
+  "ö": "o", "ô": "o", "ç": "c", "ğ": "g", "ı": "i", "ş": "s", "é": "e", "è": "e",
+};
+
+export const foldText = (value = "") =>
+  normalizeText(value).replace(/[âäàîïûüöôçğışéè]/g, (letter) => FOLDED_LETTERS[letter] ?? letter);
+
 export const UNKNOWN_CHANNEL = "Bilinmeyen kanal";
 
 /**

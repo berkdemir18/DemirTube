@@ -35,6 +35,7 @@ export type ExtensionMessage =
   | { type: "GET_FEED_RECOMMENDATIONS"; items: VideoMetadata[] }
   | { type: "GET_VIDEO_DECISION"; metadata: VideoMetadata }
   | { type: "GET_FEED_DECISIONS"; items: VideoMetadata[] }
+  | { type: "GET_SELECTION_BIAS" }
   | { type: "FETCH_YOUTUBE_CAPTIONS"; url: string }
   | { type: "WATCHLIST_GET" }
   | { type: "WATCHLIST_TOGGLE"; item: WatchlistItem }
@@ -43,6 +44,9 @@ export type ExtensionMessage =
   | { type: "GET_CHANNEL_STATS"; channelName: string; days?: 30 | 90 }
   | { type: "GET_TODAY_WATCH" }
   | { type: "GET_DAILY_PULSE" }
+  | { type: "IMPORT_WATCH_HISTORY"; entries: import("./types").ImportedHistoryEntry[] }
+  | { type: "GET_HISTORY_IMPORT_REQUEST" }
+  | { type: "REQUEST_HISTORY_IMPORT"; days: number }
   | { type: "GET_BUDGET_STATE" }
   | { type: "SET_SHORTS_PAUSE"; active: boolean }
   | { type: "DISMISS_BUDGET_NOTICE" }

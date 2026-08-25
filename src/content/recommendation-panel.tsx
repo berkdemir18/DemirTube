@@ -362,9 +362,17 @@ export function RecommendationPanel({ metadata, trackingStatus }: { metadata: Vi
               <div className="dt-summary-stats">
                 <span>
                   <small>{isLivestream ? "Tamamlama" : "Tahmini izleme"}</small>
-                  <b>{isLivestream
-                    ? "Uygulanmaz"
-                    : result?.estimatedCompletion === undefined ? "—" : `%${result.estimatedCompletion}`}</b>
+                  <b>
+                    {isLivestream || result?.estimatedCompletion === undefined
+                      ? (isLivestream ? "Uygulanmaz" : "—")
+                      : (<>%{result.estimatedCompletion}
+                          {/* Tahminin ± payı ölçülen ortalama hatadan gelir; model
+                              kendi belirsizliğini gizlemek yerine söylüyor. */}
+                          {result.estimatedCompletionMargin
+                            ? <em> ± {result.estimatedCompletionMargin}</em>
+                            : null}
+                        </>)}
+                  </b>
                 </span>
                 <span>
                   <small>Senin izlediğin</small>

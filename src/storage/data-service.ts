@@ -22,6 +22,7 @@ import { auxiliaryRepository } from "./auxiliary-repository";
 import { generateWeeklyReport } from "../analytics/weekly-report";
 import { matchCustomTopics } from "../analytics/custom-topics";
 import { classifyTopics } from "../analytics/topic-classifier";
+import { buildTopicMemory } from "../analytics/topic-memory";
 
 export async function getSettings(): Promise<Settings> {
   if (!globalThis.chrome?.storage) return DEFAULT_SETTINGS;
@@ -156,9 +157,16 @@ export async function reclassifyTopics() {
   const [videos, feedback] = await Promise.all([videoRepository.all(), feedbackRepository.all()]);
   const feedbackByVideo = new Map(feedback.map((item) => [item.videoId, item]));
   const database = await getDatabase(); let updated = 0;
+  // Hafıza yeniden sınıflamadan ÖNCE bir kez kurulur: elle düzeltilen konular
+  // ve kanal tutarlılığı, anlaşılamamış başlıkları da kurtarabilsin.
+  const memory = buildTopicMemory(videos);
   for (const video of videos) {
     if (feedbackByVideo.get(video.videoId)?.manualTopics?.length) continue;
-    const topics = classifyTopics(video.title, video.channelName, `${video.description ?? ""} ${(video.hashtags ?? []).join(" ")}`);
+    const topics = classifyTopics(
+      video.title, video.channelName,
+      `${video.description ?? ""} ${(video.hashtags ?? []).join(" ")}`,
+      memory
+    );
     await database.put("videos", { ...video, topics, inferredTopics: topics }); updated += 1;
   }
   return updated;
@@ -352,7 +360,7 @@ export async function putKeywordRules(rules: KeywordRules) {
 
 export async function clearData() {
   const database = await getDatabase();
-  const names = ["videos", "sessions", "feedback", "customTopics", "keywordRules", "weeklyReports", "diagnostics"] as const;
+  const names = ["videos", "sessions", "feedback", "customTopics", "keywordRules", "weeklyReports", "diagnostics", "impressions"] as const;
   const transaction = database.transaction(names, "readwrite");
   await Promise.all(names.map((name) => transaction.objectStore(name).clear()));
   await transaction.done;

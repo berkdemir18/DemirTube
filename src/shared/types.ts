@@ -118,6 +118,35 @@ export type PredictionSnapshot = {
   signals: string[];
 };
 
+/**
+ * Keşfette PUANLANIP kullanıcıya gösterilmiş ama henüz açılmamış bir kart.
+ *
+ * Model bugüne kadar yalnızca izlenen videolardan öğreniyordu: yüksek puan
+ * verip kullanıcının hiç açmadığı video hiçbir yere yazılmıyordu. Bu, modeli
+ * "izlenen videonun ne kadarını bitirirsin" tahmincisine indiriyor, oysa ürün
+ * "bunu izlemeli misin" sorusunu cevaplıyormuş gibi davranıyordu. Negatif
+ * örnek olmadan seçim yanlılığı ölçülemez.
+ *
+ * Not: "açılmadı" temiz bir olumsuz örnek değildir — kart görülmemiş, sonra
+ * başka cihazda izlenmiş ya da kaydedilip sonraya bırakılmış olabilir. Bu
+ * yüzden veri bir etiket değil, yanlılık ÖLÇÜSÜ olarak kullanılır.
+ */
+export type FeedImpression = {
+  videoId: string;
+  title: string;
+  channelName: string;
+  /** Kartta gösterilen uygunluk puanı. */
+  score?: number;
+  /** O anki tamamlanma tahmini. */
+  estimatedCompletion?: number;
+  /** Puanı üreten model sürümü; formül değişince eski kayıtlar ayırt edilebilsin. */
+  modelVersion: string;
+  firstShownAt: string;
+  lastShownAt: string;
+  /** Kart kaç kez puanlanıp gösterildi. */
+  shownCount: number;
+};
+
 export type UserVideoFeedback = {
   videoId: string;
   liked?: boolean;
@@ -138,6 +167,24 @@ export type ExplainableScore = {
   contributingFactors: string[];
   confidence: Confidence;
   enoughData: boolean;
+};
+
+/**
+ * YouTube geçmiş sayfasından kullanıcının isteğiyle okunan kayıt. Oturum verisi
+ * yoktur; yalnızca "ne izlendi ve kaçta kalındı" bilinir.
+ */
+export type ImportedHistoryEntry = {
+  videoId: string;
+  title: string;
+  channelName: string;
+  url: string;
+  durationSeconds: number;
+  /** Küçük resimdeki kaldığın yer çubuğundan okunan yüzde. */
+  progressPercent?: number;
+  /** Bölüm başlığından çözülen tarih (ISO). Çözülemediyse yok. */
+  watchedAt?: string;
+  contentType: ContentType;
+  topics: Topic[];
 };
 
 export type VideoRecord = {
@@ -182,6 +229,15 @@ export type VideoRecord = {
   inferredVideoFormat?: VideoFormat;
   isCurrentlyWatching?: boolean;
   excludedFromAnalytics?: boolean;
+  /**
+   * Kaydın nereden geldiği. "imported" olanlar YouTube geçmiş sayfasından
+   * kullanıcı isteğiyle alınmıştır: oturumları yoktur, tamamlanma oranı
+   * küçük resimdeki ilerleme çubuğundan gelir. Soğuk başlangıçta modele kanıt
+   * olurlar; oturum tabanlı analizler (ritim, ısı haritası) oturum tablosunu
+   * okuduğu için onları zaten görmez.
+   */
+  source?: "tracked" | "imported";
+  importedAt?: string;
 };
 
 export type WatchSession = {
