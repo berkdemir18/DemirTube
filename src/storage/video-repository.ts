@@ -30,6 +30,14 @@ export function resolveVideoMetadata(metadata: VideoMetadata, existing?: VideoRe
 export const videoRepository = {
   async get(videoId: string) { return withDatabase((database) => database.get("videos", videoId)); },
   async all() { return withDatabase((database) => database.getAll("videos")); },
+  /**
+   * Kaydı olduğu gibi yazar. Yalnızca geçmiş içe aktarımı gibi oturumdan
+   * türetilmeyen kayıtlar için; normal akış `rebuild` üzerinden gider.
+   */
+  async put(record: VideoRecord) {
+    await withDatabase((database) => database.put("videos", record));
+    return record;
+  },
   async byChannel(channelName: string) {
     return withDatabase((database) => database.getAllFromIndex("videos", "by-channel", channelName));
   },

@@ -4,9 +4,12 @@
 
 DemirTube, YouTube izleme davranışını yalnızca cihazında kaydeden ve zamanla hangi konu, kanal, başlık ve video sürelerini gerçekten sevdiğini açıklanabilir kurallarla analiz eden bir Chrome eklentisidir.
 
-Sürüm 0.10.0; yerel akıllı yardımcıyı, isteğe bağlı Groq derin analizini, keşfet kartlarındaki ön analiz rozetlerini ve Aurora dashboard deneyimini birlikte sunar. DemirTube YouTube sayfasında görünen video metadata'sını analiz eder; oynatma davranışını yalnızca geçerli watch ve Shorts sayfalarında kaydeder. Kullanıcı Groq'u açıkça bağlarsa yalnızca video metadata'sı ve altyazıdan çıkarılmış kısa sinyaller ikinci bir yapay zekâ değerlendirmesine gider; ham altyazı ve izleme geçmişi gönderilmez. Yerel analiz, kişisel kalibrasyon ve isteğe bağlı bulut yedeği (Firebase veya Supabase) birbirinden bağımsız çalışır.
+Sürüm 0.11.0; kendi tahmin hatasını ölçüp ağırlıklarını geçmişten öğrenen kişisel modeli, önerilerin tutup tutmadığını gösteren seçim yanlılığı ölçümünü, yerel akıllı yardımcıyı, isteğe bağlı Groq derin analizini ve keşfet kartlarındaki ön analiz rozetlerini birlikte sunar. DemirTube YouTube sayfasında görünen video metadata'sını analiz eder; oynatma davranışını yalnızca geçerli watch ve Shorts sayfalarında kaydeder. Kullanıcı Groq'u açıkça bağlarsa yalnızca video metadata'sı ve altyazıdan çıkarılmış kısa sinyaller ikinci bir yapay zekâ değerlendirmesine gider; ham altyazı ve izleme geçmişi gönderilmez. Yerel analiz, kişisel kalibrasyon ve isteğe bağlı bulut yedeği (Firebase veya Supabase) birbirinden bağımsız çalışır.
 
 ![DemirTube dashboard genel bakış ekranı](docs/dashboard.png)
+
+> Bu depodaki ekran görüntüleri `src/dashboard/seed-data.ts` içindeki örnek veriyle üretilir
+> (`node scripts/capture-dashboard.mjs`); gerçek bir izleme geçmişi içermez.
 
 ## Neler çalışıyor?
 
@@ -61,7 +64,15 @@ Sürüm 0.10.0; yerel akıllı yardımcıyı, isteğe bağlı Groq derin analizi
 - Konu derinliği ve konu bağlantılarını gösteren bilgi–ilgi haritası
 - “Beğendiğim ama tamamlamadığım videolar” gibi sorguları anlayan yerel doğal dil araması
 - Yarım kalan, sardığın veya bilgi yoğun videolar için akıllı yeniden izleme önerileri
-- Tahmin doğruluğu, ortalama hata, gelişim yönü ve kişisel model güveni
+- Tahmin doğruluğu, ortalama hata, sistematik sapma, gelişim yönü ve kişisel model güveni
+- Geçmiş tahmin hatalarından kendini düzelten kalibrasyon ve kendi belirsizliğini bildiren tamamlanma tahmini ("%62 ± 14")
+- Modeli geçmiş üzerinde kronolojik sınayan geriye dönük ölçüm; her video yalnızca kendisinden önceki kayıtlarla tahmin edilir
+- Sinyal ağırlıklarını sabit bir tablodan okumak yerine geçmişte arayarak bulan öğrenme; ağırlıklar geçmişin ilk %70'inde öğrenilip dokunulmamış son %30'da ölçülür
+- "Hep kişisel ortalamayı söyle" diyen taban modelle açık kıyas; model tabanı yenemiyorsa gizlenmez, arayüzde söylenir ve tahmin tabana yaklaştırılır
+- Keşfette gösterilip açılmayan kartları da kaydeden seçim yanlılığı ölçümü: puanın hangi videoyu açtığını ne kadar öngördüğü (AUC), puan bantlarına göre açılma oranı ve "yüksek puan verilip açılmayan" kör noktalar
+- Türkçe ek ve ünsüz yumuşamasını çözen konu tanıma ("güvenliği", "programlamayı", "maçın"), aksansız yazım toleransı ("besiktas", "yapay zeka")
+- Elle düzeltilen konulardan kelime öğrenme ve tutarlı kanalların konusunu devralan kanal hafızası
+- Tanıdık olmayan kanal ve konuya küçük, sınırlı keşif payı; model yalnızca geçmişe benzeyeni öne çıkarıp filtre balonu kurmaz
 - Yerel standart, yerel gelişmiş ve isteğe bağlı Groq derin analiz modları
 - Groq GPT-OSS 120B/20B ile Türkçe özet, önemli noktalar, başlık vaadi, değer, risk ve izleme önerisi
 - Aynı video girdisi değişmedikçe yeniden API harcamayan güvenli analiz önbelleği
@@ -125,7 +136,7 @@ Manifest V3 service worker
   ├─ analitik ve tercih skoru
   └─ repository katmanı
        ├─ IndexedDB: videos, sessions, feedback, customTopics,
-       │             keywordRules, diagnostics, weeklyReports
+       │             keywordRules, diagnostics, weeklyReports, impressions
        └─ chrome.storage.local: settings, bulut oturumu, senkron durumu,
                                  kişisel liste ve liste arşivi
 
@@ -157,13 +168,21 @@ Sarılma puanı 0–100 arasında; benzersiz tamamlama, tekrar izleme, geri sarm
 Kanal uyumu, üç videodan önce gösterilmez. Daha sonra:
 
 ```text
-ortalama tamamlama × 0.45
+ortalama tamamlama × 0.35
 + tekrar izleme oranı × 0.20
-+ normalize video başına izleme süresi × 0.20
++ normalize video başına izleme süresi × 0.15
 + erken kapatmama oranı × 0.15
++ ortalama sarılma × 0.15
+− ortalama pişmanlık × 0.20
 ```
 
-Video tercih tahmini; kanal, konu, süre kovası, başlık kelimeleri ve doğrulanmış video formatını kullanır. Adaptif kişisel model bu beş sinyalin ağırlığını geçmiş tahmin hatalarına göre yeniden hesaplar. Yerel video zekâsı ayrıca açıklama, hashtag, içerik amacı, bölüm yapısı, odak yükü, zamana duyarlılık ve erişilebilir altyazıyı yorumlar. En az iki kişisel sinyal yoksa uygunluk puanı üretmez; fakat video yapısının ön analizini düşük güven etiketiyle sunar.
+Sonuç Bayesyen yumuşatmadan geçer: az videolu bir kanal evrensel bir öncüle değil, kullanıcının kendi geçmiş ortalamasına çekilir.
+
+Video tercih tahmini; kanal, konu, süre kovası, başlık kelimeleri ve doğrulanmış video formatını kullanır. Adaptif kişisel model (`adaptive-v5`) bu beş sinyalin ağırlığını sabit bir tablodan okumaz: geçmişi kronolojik yürütüp ortalama mutlak hatayı en aza indiren ağırlık vektörünü koordinat inişiyle arar. Ağırlıklar geçmişin ilk %70'inde öğrenilir, hata dokunulmamış son %30'da ölçülür ve "hep kişisel ortalamayı söyle" diyen taban modelle kıyaslanır; model tabanı yenemiyorsa bu saklanmaz, arayüzde söylenir ve tahmin tabana doğru harmanlanır.
+
+![Akıllı Merkez: model ağırlıkları, taban çizgisi kıyası ve seçim yanlılığı ölçümü](docs/intelligence-hub.png)
+
+Tamamlanma tahmininde kanıtlar bağımsız sayılmaz. Kanal, konu, format ve süre büyük ölçüde aynı videolardan geldiği için her katman bir alttakinin tahminini öncül alır: kişisel taban → süre/format → konu → kanal. Kalibrasyon iki parametrelidir; sabit sapmanın yanında tahmin seviyesine bağlı eğim de ölçülür ve kanıt 90 günlük ölçekle sönümlenir. Yerel video zekâsı ayrıca açıklama, hashtag, içerik amacı, bölüm yapısı, odak yükü, zamana duyarlılık ve erişilebilir altyazıyı yorumlar. En az iki kişisel sinyal yoksa uygunluk puanı üretmez; fakat video yapısının ön analizini düşük güven etiketiyle sunar.
 
 Altyazı zekâsı yalnızca YouTube'un erişilebilir kıldığı altyazıyı kullanır ve altyazı ayarı açıkken seçili yerel/Groq analiz modundan bağımsız çalışır. `document_start` aşamasında çalışan küçük MAIN-world köprüsü, güncel SPA oynatıcısındaki altyazı izlerini izole içerik script'ine güvenli ve sınırlı mesajlarla aktarır. Köprü sonuç vermezse görünür transkript, sayfa script'i ve aynı kökenden video sayfası sırasıyla yedek olarak denenir. İzler geç yayınlanırsa DemirTube gecikmeli olarak yeniden dener; Türkçe ve insan üretimi altyazıyı önceleyip boş sonuçta diğer track'lere geçer. Timedtext içeriği, sayfa CORS kısıtlarından etkilenmemesi için yalnızca doğrulanmış `youtube.com/api/timedtext` adreslerine izin veren service worker üzerinden okunur; yanıt boyutu 4 MB ile sınırlıdır. JSON3 ve XML zamanlı metin yanıtları desteklenir. Ham altyazı kalıcı depoya veya buluta yazılmaz; yalnızca kelime sayısı, anahtar kavramlar, yoğunluk, tekrar, vaat kapsamı ve önemli zaman damgaları saklanır. Altyazı yoksa analiz diğer metadata ve davranış sinyalleriyle devam eder.
 
@@ -181,6 +200,7 @@ Tercih puanı, kullanıcının genel tamamlama tabanına göre kalibre edilir. A
 - Geçmiş, çerez, mikrofon, kamera veya genel site erişimi istenmez.
 - Telemetri, analytics SDK'sı veya uzak JavaScript yoktur.
 - Video ve oturumlar IndexedDB'de, ayarlar `chrome.storage.local` içinde kalır.
+- Keşfette puanlanıp gösterilen kartların kaydı (`impressions`) yalnızca cihazda tutulur, en fazla 120 gün ve 4.000 kayıt saklanır, günde bir budanır ve JSON dışa aktarmaya dâhil edilmez. Bu kayıt olmadan "model iyi öneri yapıyor mu" sorusu ölçülemez, çünkü elde yalnızca zaten açılmış videolar kalır.
 - Bulut kapalıyken hiçbir izleme verisi sunucuya gönderilmez.
 - Groq'a video açılışında otomatik istek gönderilmez. Yalnızca kullanıcı video panelindeki **Groq ile derin analiz** düğmesine bastığında başlık, kanal, açıklama, konu, süre, içerik türü ve altyazıdan türetilmiş kısa analiz gönderilir.
 - Groq API anahtarı yalnızca `chrome.storage.local` içinde tutulur; JSON dışa aktarmaya veya bulut yedeğine (Firebase/Supabase) eklenmez.

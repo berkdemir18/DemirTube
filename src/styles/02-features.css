@@ -1347,6 +1347,18 @@
   transition:border-color .2s, transform .2s
 }
 
+.intelligence-metrics article.metric-good {
+  border-color:color-mix(in srgb,var(--green) 45%,var(--border))
+}
+
+.intelligence-metrics article.metric-warn {
+  border-color:color-mix(in srgb,var(--amber,#FFB02E) 45%,var(--border))
+}
+
+.intelligence-metrics article.metric-warn strong {
+  color:var(--amber,#FFB02E)
+}
+
 .intelligence-metrics article:hover {
   border-color:color-mix(in srgb,var(--accent) 40%,var(--border));
   transform:translateY(-2px)
@@ -1810,6 +1822,13 @@
   color:var(--green)
 }
 
+/* Model taban çizgisini yenemediğinde uyarı: bu bilgi saklanacak değil,
+   gösterilecek bir şey — kullanıcı tahmine ne kadar güveneceğini bilmeli. */
+.model-notice.warn {
+  background:color-mix(in srgb,var(--amber,#FFB02E) 9%,transparent);
+  color:var(--amber,#FFB02E)
+}
+
 @media(max-width:760px) {
   .model-signal-row {
     grid-template-columns:110px 1fr 36px
@@ -1895,4 +1914,80 @@
   background:var(--surface);
   color:var(--text);
   box-shadow:var(--shadow)
+}
+
+/* ── Seçim yanlılığı kartı ────────────────────────────────────────────────── */
+.bias-summary {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  margin-top:14px
+}
+
+.bias-summary>div {
+  padding:13px;
+  border:1px solid var(--border);
+  border-radius:9px;
+  background:var(--surface-2)
+}
+
+.bias-summary small {
+  display:block;
+  color:var(--muted);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.04em
+}
+
+.bias-summary strong {
+  display:block;
+  margin:4px 0;
+  font-size:24px
+}
+
+.bias-summary strong.good { color:var(--green) }
+.bias-summary strong.warn { color:var(--amber,#FFB02E) }
+
+.bias-summary p {
+  margin:0;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.4
+}
+
+.bias-bands {
+  display:grid;
+  gap:7px;
+  margin-top:14px
+}
+
+.bias-band-row {
+  display:grid;
+  grid-template-columns:88px 1fr 44px 68px;
+  align-items:center;
+  gap:10px;
+  font-size:12px
+}
+
+.bias-band-row span { color:var(--muted) }
+.bias-band-row b { text-align:right }
+.bias-band-row small { color:var(--muted); text-align:right }
+
+.bias-band-bar-wrap {
+  height:7px;
+  border-radius:4px;
+  background:var(--surface-2);
+  overflow:hidden
+}
+
+.bias-band-bar {
+  height:100%;
+  border-radius:4px;
+  background:linear-gradient(90deg,var(--accent),var(--amber,#FFB02E))
+}
+
+@media(max-width:760px) {
+  .bias-summary { grid-template-columns:1fr }
+  .bias-band-row { grid-template-columns:72px 1fr 40px }
+  .bias-band-row small { display:none }
 }

@@ -3,28 +3,40 @@ import { durationBucket } from "./duration";
 import { analyzeVideoIntelligence, recordVideoFormat } from "./video-intelligence";
 import { hasMeasurableDuration } from "./completion";
 import { clamp, round } from "../shared/utils";
+import {
+  CURRENT_MODEL_VERSION, NEUTRAL_CALIBRATION, calibrationFromHistory,
+  type BacktestResult, type OutcomeCalibration, type PersonalSignal,
+} from "./model-calibration";
+import { evaluateModel, learnSignalWeights, trainingOrder, type SignalReliability, type SignalWeights } from "./model-training";
 
-export type PersonalSignal = "channel" | "topic" | "duration" | "title" | "format";
+export type { PersonalSignal } from "./model-calibration";
+
 export type PersonalModel = {
-  version: "adaptive-v3";
+  version: typeof CURRENT_MODEL_VERSION;
   sampleCount: number;
   confidence: Confidence;
-  weights: Record<PersonalSignal, number>;
-  reliability: Record<PersonalSignal, number>;
+  weights: SignalWeights;
+  reliability: SignalReliability;
+  /** Ağırlıklar geçmişten aranarak mı bulundu, yoksa öncül mü kullanılıyor? */
+  weightsLearned: boolean;
   /** Gerçek tahmin hatalarından türetilen doğruluk skoru (0–1). Tanımsız = henüz veri yok. */
   outcomeAccuracy?: number;
   /** Kaç tur öğrenmeden geçildi (her 10 yeni snapshot sonrası artar). */
   adaptationGeneration: number;
   /** Model en son ne zaman güncellendi. */
   calibratedAt: string;
-};
-
-const defaults: Record<PersonalSignal, number> = {
-  channel: 0.3,
-  topic: 0.27,
-  duration: 0.16,
-  title: 0.12,
-  format: 0.15,
+  /**
+   * Geçmiş tahminlerin gerçekle karşılaştırılmasından çıkan kalibrasyon:
+   * sistematik sapma, eğim ve isabet oranı. Tahmin bununla düzeltilir; eskiden
+   * doğruluk yalnızca ekranda gösterilen bir sayıydı.
+   */
+  calibration: OutcomeCalibration;
+  /**
+   * Modelin dürüst karnesi: ağırlıkların görmediği dilimde ölçülen hata ve
+   * "hep kişisel ortalamayı söyle" diyen taban modelle kıyas. Model tabanı
+   * yenmiyorsa tahmin tabana doğru harmanlanır ve bu ekranda söylenir.
+   */
+  benchmark: BacktestResult;
 };
 
 /** Grup içi tutarsızlık tabanlı güvenilirlik (fallback, gerçek tahmin verisi yoksa). */
@@ -120,7 +132,7 @@ export function derivePersonalModel(history: VideoRecord[]): PersonalModel {
     return cached;
   };
 
-  const reliability: Record<PersonalSignal, number> = {
+  const reliability: SignalReliability = {
     channel: outcomeReliability(videos, (video) => [video.channelName]),
     topic: outcomeReliability(videos, (video) => video.topics),
     duration: outcomeReliability(videos, (video) => [durationBucket(video.durationSeconds)]),
@@ -132,41 +144,36 @@ export function derivePersonalModel(history: VideoRecord[]): PersonalModel {
     format: outcomeReliability(videos, (video) => [recordVideoFormat(video)]),
   };
 
-  const learned = (Object.keys(defaults) as PersonalSignal[]).map((key) => ({
-    key,
-    raw: defaults[key] * (0.5 + reliability[key]),
-  }));
-  const total = learned.reduce((sum, item) => sum + item.raw, 0);
+  // Ağırlıklar artık aranarak bulunuyor: geçmiş kronolojik yürütülüp ortalama
+  // mutlak hatayı en aza indiren vektör seçiliyor. Eskiden ağırlık yalnızca
+  // varsayılanın güvenilirlikle ölçeklenmiş hâliydi; sıralama hiç değişmediği
+  // için "kanal" her kullanıcıda en güçlü sinyal çıkıyordu.
+  const ordered = trainingOrder(videos);
+  const training = learnSignalWeights(ordered, reliability);
   const weights = Object.fromEntries(
-    learned.map((item) => [item.key, round(item.raw / total, 3)])
-  ) as Record<PersonalSignal, number>;
+    (Object.keys(training.weights) as PersonalSignal[]).map((key) => [key, round(training.weights[key], 3)])
+  ) as SignalWeights;
+  const benchmark = evaluateModel(ordered, weights, reliability, training);
 
-  // Gerçek tahmin doğruluğunu hesapla
-  const snapshotVideos = videos.filter(
-    (video) => video.predictionSnapshot?.estimatedCompletion !== undefined
-  );
-  let outcomeAccuracy: number | undefined;
-  if (snapshotVideos.length >= 3) {
-    const accurate = snapshotVideos.filter(
-      (video) => Math.abs((video.predictionSnapshot!.estimatedCompletion ?? 0) - video.completionRate * 100) <= 20
-    ).length;
-    outcomeAccuracy = round(accurate / snapshotVideos.length, 2);
-  }
-
-  // Adaptasyon nesli: her 10 snapshot'ta bir artar
-  const adaptationGeneration = Math.floor(snapshotVideos.length / 10);
+  // Doğruluk ve sapma tek kaynaktan: kalibrasyon modülü.
+  const calibration = eligible.length ? calibrationFromHistory(eligible) : NEUTRAL_CALIBRATION;
+  const outcomeAccuracy = calibration.sampleCount >= 3 ? calibration.hitRate : undefined;
+  const adaptationGeneration = Math.floor(calibration.sampleCount / 10);
 
   return {
-    version: "adaptive-v3",
+    version: CURRENT_MODEL_VERSION,
     // Kullanıcıya gösterilen sayı gerçek geçmiş büyüklüğüdür; yukarıdaki sınır
     // yalnızca güvenilirlik hesabının örneklemini bağlar.
     sampleCount: eligible.length,
     confidence: eligible.length >= 20 ? "high" : eligible.length >= 8 ? "medium" : "low",
     weights,
     reliability,
+    weightsLearned: training.learned,
     outcomeAccuracy,
     adaptationGeneration,
     calibratedAt: new Date().toISOString(),
+    calibration,
+    benchmark,
   };
 }
 

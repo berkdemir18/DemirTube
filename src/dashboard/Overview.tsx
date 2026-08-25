@@ -17,6 +17,7 @@ import { ChartFrame, Empty, InfoTip, Meter } from "./ui";
 import { analyticsPeriodLabels, periodDateLabel, watchTrend, type AnalyticsPeriod } from "../analytics/period";
 import { selectionReasons } from "../analytics/selection-reasons";
 import { evidenceLevel } from "../analytics/evidence";
+import { unclassifiedShare } from "../analytics/topic-memory";
 import { autonomousInsights } from "../analytics/video-intelligence";
 import { dataLevel } from "../analytics/data-level";
 import { channelDiversity } from "../analytics/diversity";
@@ -75,6 +76,9 @@ export function Overview({
     : 0;
 
   const topics = topicStats(videos);
+  // Konusu çözülememiş video oranı, sınıflandırıcının tek dürüst karnesidir;
+  // "Kategorileri yenile" düğmesinin neyi düzelttiği ancak böyle görünür.
+  const unclassified = unclassifiedShare(videos);
   const dominantTopic = topics.length ? topics[0].topic : "Bilinmiyor";
   const focusScore = focusOf(videos);
 
@@ -186,7 +190,7 @@ export function Overview({
               <small>Veri seviyesi, çeşitlilik, konu performansı ve kişisel örüntüler</small>
             </summary>
             <div className="overview-more-body">
-              <EvidenceBanner evidence={evidence} onReclassify={onReclassify} />
+              <EvidenceBanner evidence={evidence} unclassified={unclassified} onReclassify={onReclassify} />
               <div className="overview-duo">
                 <DataLevelCard count={totalVideoCount ?? videos.length} />
                 <DiversityCard videos={videos} />
@@ -391,9 +395,12 @@ function DiversityCard({ videos }: { videos: VideoRecord[] }) {
 
 function EvidenceBanner({
   evidence,
+  unclassified,
   onReclassify,
 }: {
   evidence: ReturnType<typeof evidenceLevel>;
+  /** Konusu çözülememiş video sayısı ve payı; sınıflandırmanın gerçek karnesi. */
+  unclassified: { count: number; share: number };
   onReclassify?: () => void;
 }) {
   return (
@@ -404,6 +411,9 @@ function EvidenceBanner({
         {evidence.nextThreshold
           ? `${evidence.nextThreshold - evidence.sampleCount} video sonra daha güçlü tahmin`
           : "tahminlerin hazır"}
+        {unclassified.count
+          ? ` · ${unclassified.count} video hâlâ konusuz (%${round(unclassified.share * 100, 0)})`
+          : ""}
       </span>
       {onReclassify ? (
         <button onClick={onReclassify}>Kategorileri yenile</button>

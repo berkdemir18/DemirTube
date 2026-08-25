@@ -1,6 +1,6 @@
 // DemirTube Aurora UI v2 · unified dashboard visual system
 import { useEffect, useRef, useState } from "react";
-import { BellRing, BrainCircuit, Captions, CheckCircle2, Cloud, Database, Download, ExternalLink, FileSpreadsheet, KeyRound, LayoutGrid, LogIn, LogOut, NotebookPen, PauseCircle, PlayCircle, RefreshCw, Stethoscope, Trash2, Upload, UserPlus } from "lucide-react";
+import { BellRing, BrainCircuit, Captions, CheckCircle2, Cloud, Database, Download, ExternalLink, FileSpreadsheet, History, KeyRound, LayoutGrid, LogIn, LogOut, NotebookPen, PauseCircle, PlayCircle, RefreshCw, Stethoscope, Trash2, Upload, UserPlus } from "lucide-react";
 import { sendMessage } from "../shared/messages";
 import type { AppData, CloudConfig, CloudProviderId, CloudStatus, CustomTopicRule, DiagnosticsReport, GroqConfig, GroqStatus, LegacyAppData, Settings as SettingsType } from "../shared/types";
 import { cloudHostPermissions, DEFAULT_CLOUD_PROVIDER } from "../cloud/cloud-service";
@@ -44,6 +44,8 @@ export function Settings({
   const [groqConfig, setGroqConfig] = useState<{ apiKey: string; model: GroqConfig["model"] }>({ apiKey: "", model: "openai/gpt-oss-120b" });
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [importCandidate, setImportCandidate] = useState<AppData | LegacyAppData>();
+  const [historyDays, setHistoryDays] = useState(30);
+  const [historyStatus, setHistoryStatus] = useState("");
   const [importMode, setImportMode] = useState<"merge" | "replace">("merge");
   const [diagnostics, setDiagnostics] = useState<DiagnosticsReport>();
   const [topicDraft, setTopicDraft] = useState({ name: "", keywords: "", channels: "" });
@@ -124,6 +126,21 @@ export function Settings({
       return;
     }
     await onSettings({ ...settings, analysisMode });
+  };
+
+  /**
+   * Tarama kullanıcının kendi sekmesinde, kendi isteğiyle başlar: burada
+   * yalnızca istek bırakılır ve geçmiş sayfası açılır. Eklenti arka planda
+   * kendi kendine geçmişe gitmez.
+   */
+  const requestHistoryImport = async () => {
+    try {
+      await sendMessage({ type: "REQUEST_HISTORY_IMPORT", days: historyDays });
+      setHistoryStatus(`Geçmiş sayfası açılıyor. Sayfa açık kalsın; son ${historyDays} gün okunduğunda sağ üstte özet çıkacak.`);
+      window.open("https://www.youtube.com/feed/history", "_blank", "noopener");
+    } catch {
+      setHistoryStatus("İstek kaydedilemedi. Eklentiyi yenileyip tekrar dene.");
+    }
   };
 
   const exportFile = async () => {
@@ -322,6 +339,27 @@ export function Settings({
       <section className="surface rule-settings">
         <h2>Akıllı izleme pusulası</h2><p>Keşfet rozetleri ve video içi öneriler bu seçime göre karar verir. Hiçbir video otomatik açılmaz veya gizlenmez; yalnızca görünümü yumuşatır.</p>
         <div className="keyword-rule-form"><label>Şu anki amacın<select value={settings.watchIntent} onChange={(event) => void onSettings({ ...settings, watchIntent: event.target.value as SettingsType["watchIntent"] })}><option value="open">Serbest keşfet</option><option value="learn">Bir şey öğrenmek</option><option value="research">Araştırma yapmak</option><option value="focus">Odaklı kısa izleme</option><option value="relax">Rahatlamak</option></select></label><label>Günlük süre bütçesi<select value={settings.dailyWatchBudgetMinutes} onChange={(event) => void onSettings({ ...settings, dailyWatchBudgetMinutes: Number(event.target.value) })}><option value="30">30 dakika</option><option value="60">60 dakika</option><option value="90">90 dakika</option><option value="120">120 dakika</option><option value="180">180 dakika</option></select></label><label>Keşfet filtresi<select value={settings.feedFilterMode} onChange={(event) => void onSettings({ ...settings, feedFilterMode: event.target.value as SettingsType["feedFilterMode"] })}><option value="show_all">Tümünü normal göster</option><option value="soften_low">Düşük uyumu yumuşat</option><option value="hide_risky">Riskli kartları soluklaştır</option></select></label></div>
+      </section>
+      <section className="setting-row">
+        <span className="setting-icon"><History/></span>
+        <div>
+          <h2>YouTube geçmişini oku</h2>
+          <p>
+            Model ilk günlerde tahmin üretemez çünkü henüz geçmişin yok. DemirTube, senin
+            <strong> kendi</strong> YouTube geçmiş sayfanı bu cihazda okuyup son {historyDays} günü modele kanıt
+            olarak ekleyebilir. Küçük resimdeki ilerleme çubuğundan yaklaşık tamamlanma oranı çıkarılır;
+            hiçbir veri dışarı gitmez, izlediğin video sayfasına dokunulmaz. Zaten kayıtlı videoların üzerine yazmaz.
+          </p>
+          {historyStatus ? <p className="setting-note">{historyStatus}</p> : null}
+        </div>
+        <div className="setting-inline-actions">
+          <select aria-label="Kaç günlük geçmiş" value={historyDays} onChange={(event) => setHistoryDays(Number(event.target.value))}>
+            <option value="7">Son 7 gün</option>
+            <option value="30">Son 30 gün</option>
+            <option value="90">Son 90 gün</option>
+          </select>
+          <button className="button" type="button" onClick={() => void requestHistoryImport()}>Geçmiş sayfasını aç</button>
+        </div>
       </section>
       <section className="setting-row">
         <span className="setting-icon"><Download/></span>

@@ -4,6 +4,7 @@ import type {
   CustomTopicRule,
   DiagnosticLog,
   KeywordRules,
+  FeedImpression,
   UserVideoFeedback,
   VideoRecord,
   WatchSession,
@@ -44,6 +45,11 @@ export interface DemirTubeSchema extends DBSchema {
     key: string;
     value: WeeklyReport;
     indexes: { "by-week": string };
+  };
+  impressions: {
+    key: string;
+    value: FeedImpression;
+    indexes: { "by-first-shown": string };
   };
 }
 
@@ -96,6 +102,10 @@ function openDatabase() {
       if (!database.objectStoreNames.contains("weeklyReports")) {
         const reports = database.createObjectStore("weeklyReports", { keyPath: "id" });
         reports.createIndex("by-week", "weekStart");
+      }
+      if (!database.objectStoreNames.contains("impressions")) {
+        const impressions = database.createObjectStore("impressions", { keyPath: "videoId" });
+        impressions.createIndex("by-first-shown", "firstShownAt");
       }
     }
   });

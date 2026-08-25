@@ -384,4 +384,6 @@ tbody tr:hover { background:color-mix(in srgb,var(--accent) 6%,transparent); }
 .channel-card-foot b { color:var(--text); }
 .channel-avatar { border-radius:6px; }
 
+.setting-note { margin-top:8px!important; color:var(--brand-emerald)!important; font-size:12px; }
+
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; } }

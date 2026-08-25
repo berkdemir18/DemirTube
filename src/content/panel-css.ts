@@ -688,6 +688,7 @@ export const panelCss = `
   .dt-summary-stats span { display: grid; gap: 3px; padding: 8px 10px; border: 1px solid var(--dt-border); border-radius: 6px; background: rgba(231,230,227,.04); }
   .dt-summary-stats small { color: var(--dt-muted); font: 500 10px/1.3 var(--dt-mono); letter-spacing: .08em; text-transform: uppercase; }
   .dt-summary-stats b { color: var(--dt-text); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .dt-summary-stats em { color: var(--dt-muted); font-style: normal; font-size: 12px; font-weight: 500; }
 
   .dt-personal-grid {
     display: grid;

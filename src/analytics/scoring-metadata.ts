@@ -2,6 +2,7 @@ import { classifyContentType } from "./content-type";
 import { classifyTopics } from "./topic-classifier";
 import type { VideoMetadata } from "../shared/types";
 import { normalizeChannelName } from "../shared/utils";
+import type { TopicMemory } from "./topic-memory";
 
 /**
  * Keşfet kartı bir video hakkında yalnızca başlığı, kanalı ve süre rozetini
@@ -14,7 +15,7 @@ import { normalizeChannelName } from "../shared/utils";
  * Açıklama/altyazı gibi yalnızca izleme sayfasında olan alanlar puanı değil,
  * panelin içerik analizini besler (bkz. PreferenceResult.contentIntelligence).
  */
-export function toScoringMetadata(metadata: VideoMetadata): VideoMetadata {
+export function toScoringMetadata(metadata: VideoMetadata, memory?: TopicMemory): VideoMetadata {
   const title = metadata.title.trim();
   const channelName = normalizeChannelName(metadata.channelName) || metadata.channelName;
   const durationSeconds = Math.round(metadata.durationSeconds || 0);
@@ -33,7 +34,7 @@ export function toScoringMetadata(metadata: VideoMetadata): VideoMetadata {
     title,
     channelName,
     durationSeconds,
-    topics: classifyTopics(title, channelName),
+    topics: classifyTopics(title, channelName, "", memory),
     contentType: structural ?? classifyContentType({
       path: isShortsUrl ? "/shorts/" : "/watch",
       durationSeconds,

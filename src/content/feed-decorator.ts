@@ -19,6 +19,19 @@ const MAX_RETRY_MS = 30_000;
 /** Bu kadar art arda hatadan sonra iskelet basmayı bırakırız (kart zıplamasın). */
 const FAILURES_BEFORE_QUIET = 3;
 
+/** Tek taramada puanlanan en fazla kart; arka uç isteği de bu sayıyla sınırlı. */
+const MAX_CARDS_PER_SCAN = 20;
+
+/** Boş geçen taramalardan sonra seyrekleşen düzenli tarama aralığı. */
+const PERIODIC_BASE_MS = 5_000;
+const PERIODIC_MAX_MS = 40_000;
+
+/**
+ * Oynatıcı ağacı. İzleme sırasında DOM değişikliklerinin neredeyse tamamı
+ * buradan gelir ve hiçbiri yeni bir video kartı üretmez.
+ */
+const PLAYER_SELECTOR = "#movie_player, ytd-player, .html5-video-player, #player-container, #ytp-caption-window-container";
+
 const CARD_SELECTOR = "ytd-rich-item-renderer, ytd-video-renderer, ytd-grid-video-renderer, ytd-compact-video-renderer, yt-lockup-view-model, ytd-reel-item-renderer";
 
 function closeOpenDetail() {
@@ -30,14 +43,6 @@ function closeOpenDetail() {
 }
 
 // ── DOM Arama ve Filtreleme ──────────────────────────────────────────────────
-
-function isVisible(element: HTMLElement): boolean {
-  if (!element.isConnected) return false;
-  const style = getComputedStyle(element);
-  if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return false;
-  const rect = element.getBoundingClientRect();
-  return rect.width > 0 && rect.height > 0;
-}
 
 function findCardAnchor(card: HTMLElement): HTMLElement | null {
   return (
@@ -166,34 +171,67 @@ export function feedResultTargetIsCurrent(card: HTMLElement, wrapper: HTMLElemen
   return extractMetadataFromCard(card)?.videoId === expectedVideoId;
 }
 
-function candidates(): Candidate[] {
-  const cards = [...document.querySelectorAll<HTMLElement>(CARD_SELECTOR)].filter((card) => !card.parentElement?.closest(CARD_SELECTOR));
-  const list: Candidate[] = [];
+/**
+ * Kartın konumu ve görünürlük sırası, tek bir okuma turunda çıkarılır.
+ *
+ * Önceki hâli tarayıcıyı kare düşürecek kadar zorluyordu ve sebebi iki ayrı
+ * hataydı:
+ *
+ *   1. `sortByVisibility` `getBoundingClientRect()`'i KARŞILAŞTIRICININ İÇİNDE
+ *      çağırıyordu. Sıralama O(n log n) karşılaştırma yapar; yani n kart için
+ *      n değil, yüzlerce konum okuması oluyordu.
+ *   2. `candidates` okuma ile yazmayı birbirine geçiriyordu: her kart için önce
+ *      `getComputedStyle` + `getBoundingClientRect` (okuma), hemen ardından
+ *      `dataset.demirtubePending` (yazma). Bu düzen tarayıcıyı her kartta
+ *      yeniden yerleşim (forced reflow) yapmaya zorlar — "layout thrashing".
+ *
+ * Artık tüm konumlar önce okunur, sonra yazılır; pahalı stil ve DOM sorguları
+ * ise yalnızca gerçekten puanlanacak ilk N kart için çalışır. Eskiden sayfadaki
+ * TÜM kartlar için çalışıp sonucun çoğu atılıyordu.
+ */
+type RankedCard = { card: HTMLElement; top: number; rank: number };
 
-  cards.forEach((card) => {
-    if (!isVisible(card)) return;
-    const mount = findCardAnchor(card);
-    if (!mount) return;
-    const metadata = extractMetadataFromCard(card);
-    if (!metadata || !metadata.title) return;
-    if (!repairFeedCardState(card, metadata.videoId)) return;
-    card.dataset.demirtubePending = "true";
-    list.push({ card, mount, metadata });
-  });
+function rankedCards(): RankedCard[] {
+  const cards = [...document.querySelectorAll<HTMLElement>(CARD_SELECTOR)]
+    .filter((card) => !card.parentElement?.closest(CARD_SELECTOR));
+  const viewportHeight = window.innerHeight;
+  const ranked: RankedCard[] = [];
 
-  return list;
+  // Yalnızca okuma yapılan tur: araya tek bir DOM yazması girmemeli.
+  for (const card of cards) {
+    if (!card.isConnected) continue;
+    const rect = card.getBoundingClientRect();
+    // Genişliği veya yüksekliği olmayan kart görünmüyordur; `display:none`
+    // durumunu da bu yakalar ve `getComputedStyle`'a gerek bırakmaz.
+    if (rect.width <= 0 || rect.height <= 0) continue;
+    const rank = rect.top >= 0 && rect.bottom <= viewportHeight ? 2
+      : rect.bottom > 0 && rect.top < viewportHeight ? 1
+        : 0;
+    ranked.push({ card, top: rect.top, rank });
+  }
+
+  return ranked.toSorted((a, b) => b.rank - a.rank || Math.abs(a.top) - Math.abs(b.top));
 }
 
-function sortByVisibility(items: Candidate[]): Candidate[] {
-  const vh = window.innerHeight;
-  return items.toSorted((a, b) => {
-    const ra = a.card.getBoundingClientRect();
-    const rb = b.card.getBoundingClientRect();
-    const visA = ra.top >= 0 && ra.bottom <= vh ? 2 : ra.bottom > 0 && ra.top < vh ? 1 : 0;
-    const visB = rb.top >= 0 && rb.bottom <= vh ? 2 : rb.bottom > 0 && rb.top < vh ? 1 : 0;
-    if (visA !== visB) return visB - visA;
-    return Math.abs(ra.top) - Math.abs(rb.top);
-  });
+export function candidates(limit: number): Candidate[] {
+  const list: Candidate[] = [];
+
+  for (const { card } of rankedCards()) {
+    if (list.length >= limit) break;
+    // Görünürlüğün pahalı yarısı (`getComputedStyle`) yalnızca burada, yani
+    // en fazla `limit` kart için çalışır.
+    const style = getComputedStyle(card);
+    if (style.visibility === "hidden" || style.opacity === "0") continue;
+    const mount = findCardAnchor(card);
+    if (!mount) continue;
+    const metadata = extractMetadataFromCard(card);
+    if (!metadata || !metadata.title) continue;
+    if (!repairFeedCardState(card, metadata.videoId)) continue;
+    card.dataset.demirtubePending = "true";
+    list.push({ card, mount, metadata });
+  }
+
+  return list;
 }
 
 // ── Stil Enjeksiyonu ─────────────────────────────────────────────────────────
@@ -703,6 +741,12 @@ export async function startFeedDecorator() {
   let scanning = false;
   /** Üst üste kaç taramanın hata verdiği; geri çekilme ve sessiz mod bundan türer. */
   let consecutiveFailures = 0;
+  /**
+   * Üst üste kaç tarama yapacak iş bulamadan döndü. Düzenli taramanın aralığı
+   * buna göre uzar: izleme sayfasında kartlar rozetlendikten sonra her 5
+   * saniyede bir tüm sayfayı taramanın hiçbir karşılığı yok.
+   */
+  let idleScans = 0;
   let lastStatus = "";
   let feedBadgesEnabled = (await sendMessage<Settings>({ type: "GET_SETTINGS" }).catch(() => undefined))?.feedBadgesEnabled !== false;
 
@@ -734,8 +778,9 @@ export async function startFeedDecorator() {
       }
       injectStyles();
 
-      items = sortByVisibility(candidates()).slice(0, 20);
+      items = candidates(MAX_CARDS_PER_SCAN);
       if (!items.length) {
+        idleScans = Math.min(idleScans + 1, 3);
         const existing = document.querySelectorAll(".demirtube-feed-analysis").length;
         report(
           existing ? "active" : "waiting",
@@ -748,6 +793,7 @@ export async function startFeedDecorator() {
       // Arka uç üst üste hata verdiğinde iskeleti hiç basmayız: iskelet karta
       // yükseklik ekler, hata onu geri kaldırır ve kartlar 250 ms'de bir aşağı
       // yukarı zıplar. Analiz tekrar çalışana kadar sayfa sabit kalsın.
+      idleScans = 0;
       wrappers = consecutiveFailures >= FAILURES_BEFORE_QUIET ? [] : items.map((item) => renderSkeleton(item));
 
       const fullResults = await withFeedTimeout(sendMessage<VideoDecision[]>({
@@ -812,23 +858,46 @@ export async function startFeedDecorator() {
     }, delayMs);
   };
 
-  const mutationHasVideoCard = (records: MutationRecord[]) => records.some((record) =>
-    [...record.addedNodes, ...record.removedNodes].some((node) => {
+  const mutationHasVideoCard = (records: MutationRecord[]) => records.some((record) => {
+    // Video oynarken sayfadaki DOM değişikliklerinin ezici çoğunluğu
+    // oynatıcının kendi içinden gelir: ilerleme çubuğu, süre metni, ipuçları,
+    // altyazı satırları. Bunların hiçbiri bir kart eklemez ama her biri için
+    // aşağıdaki `querySelector(CARD_SELECTOR)` çalıştırılıyordu — izleme
+    // sırasındaki takılmanın en büyük kaynağı buydu. Oynatıcı içinden gelen
+    // değişiklikleri en baştan eliyoruz.
+    if (record.target instanceof Element && record.target.closest(PLAYER_SELECTOR)) return false;
+    return [...record.addedNodes, ...record.removedNodes].some((node) => {
       if (!(node instanceof Element)) return false;
       if (node.matches(".demirtube-feed-analysis, .demirtube-feed-badge")) return true;
       if (node.closest(".demirtube-feed-analysis, .dt-feed-mini-summary, #demirtube-panel-host")) return false;
       return node.matches(CARD_SELECTOR)
         || Boolean(node.querySelector(CARD_SELECTOR))
         || Boolean(node.closest(CARD_SELECTOR));
-    })
-  );
+    });
+  });
   const observer = new MutationObserver((records) => {
-    if (mutationHasVideoCard(records)) schedule();
+    if (mutationHasVideoCard(records)) {
+      idleScans = 0;
+      schedule();
+    }
   });
   observer.observe(document.body, { childList: true, subtree: true });
-  const periodic = window.setInterval(() => {
-    if (document.visibilityState !== "hidden") schedule();
-  }, 5_000);
+
+  /**
+   * Düzenli tarama, boş geçtikçe seyrekleşir. Sabit 5 saniye, izleme sayfasında
+   * kartlar çoktan rozetlenmişken bile sonsuza kadar tam tarama yapıyordu;
+   * yeni bir kart geldiğinde MutationObserver zaten sıfırlıyor.
+   */
+  let periodic = 0;
+  const schedulePeriodic = () => {
+    if (disposed) return;
+    const delay = Math.min(PERIODIC_BASE_MS * 2 ** idleScans, PERIODIC_MAX_MS);
+    periodic = window.setTimeout(() => {
+      if (document.visibilityState !== "hidden") schedule();
+      schedulePeriodic();
+    }, delay);
+  };
+  schedulePeriodic();
   const visibilityListener = () => {
     if (document.visibilityState !== "hidden") schedule();
   };
@@ -847,7 +916,7 @@ export async function startFeedDecorator() {
   return () => {
     disposed = true;
     if (timer) clearTimeout(timer);
-    clearInterval(periodic);
+    clearTimeout(periodic);
     document.removeEventListener("visibilitychange", visibilityListener);
     observer.disconnect();
     unsubscribeSettings();
