@@ -9,7 +9,7 @@ import { currentPlaybackIsLive, readVideoMetadata } from "./video-metadata";
 import { YouTubeTracker } from "./youtube-tracker";
 import { getVideoId } from "../shared/utils";
 import type { Settings, TrackingRuntimeStatus, UserVideoFeedback, VideoMetadata, VideoRecord, WatchSession } from "../shared/types";
-import { isExtensionContextInvalidated, sendMessage } from "../shared/messages";
+import { isExtensionContextInvalidated, onStorageChanged, sendMessage } from "../shared/messages";
 import { clearFeedDecorations, startFeedDecorator } from "./feed-decorator";
 import { refreshSearchFilterBar } from "./search-filter-bar";
 import { mountPlayerOverlay, unmountPlayerOverlay } from "./player-overlay";
@@ -243,12 +243,14 @@ const replacementTimer = window.setInterval(() => {
       if (token !== runToken || metadata.videoId !== activeVideoId || metadata.contentType !== "livestream") return;
       await tracker?.refreshMetadata(metadata);
       mountPanel(metadata, token);
-      mountPlayerOverlay(metadata);
+      // HUD yalnızca yoksa kurulur: açık bir analiz kartı varken yeniden
+      // kurmak kartı kullanıcının elinden alıyordu.
+      if (!document.querySelector("#demirtube-player-hud")) mountPlayerOverlay(metadata);
     }).catch(() => undefined);
   }
 }, 5_000);
 
-chrome.storage.onChanged.addListener((changes) => {
+onStorageChanged((changes) => {
   const nextSettings = changes.settings?.newValue as Partial<Settings> | undefined;
   const enabled = nextSettings?.trackingEnabled;
   if (nextSettings?.feedBadgesEnabled === false) {

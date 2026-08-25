@@ -64,18 +64,18 @@ function renderNotice(state: BudgetState) {
   const style = document.createElement("style");
   style.textContent = `
     .card { width:288px; padding:14px 15px; border:1px solid rgba(255,81,72,.35); border-radius:14px;
-      background:rgba(12,18,32,.96); color:#f2f4fa; font:500 12px/1.45 Inter,system-ui,sans-serif;
-      box-shadow:0 22px 48px rgba(4,7,14,.5); backdrop-filter:blur(8px); }
+      background:rgba(23,22,21,.96); color:#E7E6E3; font:500 13px/1.45 Inter,system-ui,sans-serif;
+      box-shadow:0 22px 48px rgba(9,9,9,.5); backdrop-filter:blur(8px); }
     .head { display:flex; align-items:center; gap:8px; }
     .head img { width:20px; height:20px; border-radius:6px; }
     .head strong { flex:1; font-size:12.5px; }
-    .head button { border:0; background:none; color:rgba(242,244,250,.5); font-size:15px; line-height:1; cursor:pointer; }
-    p { margin:9px 0 0; color:rgba(242,244,250,.62); font-size:11.5px; }
+    .head button { border:0; background:none; color:rgba(246,246,246,.5); font-size:16px; line-height:1; cursor:pointer; }
+    p { margin:9px 0 0; color:rgba(246,246,246,.62); font-size:11.5px; }
     .actions { display:flex; gap:7px; margin-top:12px; }
-    .actions button { flex:1; padding:7px 8px; border:1px solid rgba(148,163,184,.24); border-radius:9px;
-      background:rgba(255,255,255,.04); color:#f2f4fa; font:600 11px/1.3 Inter,sans-serif; cursor:pointer; }
-    .actions button.primary { border-color:transparent; background:linear-gradient(120deg,#8b5cf6,#00c9d4); color:#090d16; }
-    .done { margin:12px 0 0; color:#10b981; font-size:11.5px; }
+    .actions button { flex:1; padding:7px 8px; border:1px solid rgba(169,166,163,.24); border-radius:9px;
+      background:rgba(255,255,255,.04); color:#E7E6E3; font:600 12px/1.3 Inter,sans-serif; cursor:pointer; }
+    .actions button.primary { border-color:transparent; background:#C0522F; color:#0c0c0c; }
+    .done { margin:12px 0 0; color:#5FD35A; font-size:11.5px; }
   `;
 
   const card = document.createElement("div");

@@ -1,187 +1,201 @@
-/* DemirTube marka rehberi · ortak son katman */
+/* DemirTube marka rehberi · ortak son katman
+ *
+ * Palet "Oksit": demir → demir oksit. Grafit zemin, mineral turuncu vurgu,
+ * gradyan ve dış parıltı yok. Vurgu yüzeyin küçük bir kısmında kalır; renk
+ * anlam taşır (iyi / uyarı / maliyet), süs değildir.
+ *
+ * NOT: --brand-violet ve --brand-cyan adları eski paletten kalma; altı stil
+ * katmanına yayıldıkları için isimleri henüz değiştirilmedi, yalnızca
+ * değerleri yeni palete çekildi. Adlandırma temizliği ayrı bir iş.
+ */
 :root {
-  --brand-navy:#090d16;
-  --brand-violet:#8b5cf6;
-  --brand-cyan:#00c9d4;
-  --brand-coral:#ff5148;
-  --brand-emerald:#10b981;
-  --brand-amber:#f59e0b;
-  --accent:#8b5cf6;
-  --accent-soft:rgba(139,92,246,.14);
-  --bg:#090d16;
-  --side:#0c1220;
-  --surface:#101a2f;
-  --surface-2:#14213a;
-  --border:rgba(255,255,255,.08);
-  --text:#f2f4fa;
-  --muted:rgba(242,244,250,.55);
-  --cyan:#00c9d4;
-  --violet:#8b5cf6;
-  --green:#10b981;
-  --focus-bg:#090d16;
-  --focus-surface:#101a2f;
-  --focus-surface-2:#14213a;
-  --focus-border:rgba(255,255,255,.08);
-  --focus-text:#f2f4fa;
-  --focus-muted:rgba(242,244,250,.55);
-  --focus-coral:#ff5148;
-  --focus-cyan:#00c9d4;
-  --focus-violet:#8b5cf6;
-  --focus-green:#10b981;
-  --focus-ring:#00c9d4;
+  --brand-navy:#0B0C0D;
+  --brand-violet:#D9542B;   /* oksit · vurgu */
+  --brand-cyan:#FFB02E;     /* kor · ikincil, odak halkası */
+  --brand-coral:#FF5233;    /* maliyet / kritik */
+  --brand-emerald:#5FD35A;  /* yosun · iyi */
+  --brand-amber:#FFB02E;    /* uyarı */
+  --accent:#D9542B;
+  --accent-soft:rgba(217,84,43,.16);
+  --bg:#0B0C0D;
+  --side:#0E0F10;
+  --surface:#161615;
+  --surface-2:#1d1d1c;
+  --border:rgba(231,230,227,.11);
+  --text:#E7E6E3;
+  --muted:rgba(231,230,227,.55);
+  --cyan:#FFB02E;
+  --violet:#D9542B;
+  --green:#5FD35A;
+  --focus-bg:#0B0C0D;
+  --focus-surface:#161615;
+  --focus-surface-2:#1d1d1c;
+  --focus-border:rgba(231,230,227,.11);
+  --focus-text:#E7E6E3;
+  --focus-muted:rgba(231,230,227,.55);
+  --focus-coral:#FF5233;
+  --focus-cyan:#FFB02E;
+  --focus-violet:#D9542B;
+  --focus-green:#5FD35A;
+  --focus-ring:#FFB02E;
 }
 
 :root[data-theme=light] {
-  --bg:#fff;
-  --side:#fff;
-  --surface:#f6f6fb;
-  --surface-2:#eeeef7;
-  --border:rgba(10,15,30,.08);
-  --text:#12141c;
-  --muted:rgba(18,20,28,.55);
-  --focus-bg:#fff;
-  --focus-surface:#f6f6fb;
-  --focus-surface-2:#eeeef7;
-  --focus-border:rgba(10,15,30,.08);
-  --focus-text:#12141c;
-  --focus-muted:rgba(18,20,28,.55);
-  --focus-ring:#7c3aed;
+  --bg:#F3F3F1;
+  --side:#FAFAF9;
+  --surface:#FFFFFF;
+  --surface-2:#F0F0ED;
+  --border:rgba(12,12,12,.13);
+  --text:#181818;
+  --muted:rgba(24,24,24,.58);
+  --brand-violet:#C2451A;
+  --brand-coral:#C2451A;
+  --accent:#C2451A;
+  --accent-soft:rgba(194,69,26,.12);
+  --violet:#C2451A;
+  --cyan:#D98A0F;
+  --green:#2E9E2A;
+  --brand-emerald:#2E9E2A;
+  --focus-bg:#F3F3F1;
+  --focus-surface:#FFFFFF;
+  --focus-surface-2:#F0F0ED;
+  --focus-border:rgba(12,12,12,.13);
+  --focus-text:#181818;
+  --focus-muted:rgba(24,24,24,.58);
+  --focus-coral:#C2451A;
+  --focus-cyan:#D98A0F;
+  --focus-violet:#C2451A;
+  --focus-green:#2E9E2A;
+  --focus-ring:#C2451A;
 }
 
+/* Zeminde renkli parıltı yok: ölçüm aleti kendini aydınlatmaz. */
 body {
   background-color:var(--bg);
-  background-image:
-    radial-gradient(circle at 16% -8%,rgba(0,201,212,.08),transparent 34%),
-    radial-gradient(circle at 92% 4%,rgba(139,92,246,.12),transparent 32%),
-    radial-gradient(circle at 58% 112%,rgba(139,92,246,.055),transparent 42%),
-    linear-gradient(160deg,var(--bg),var(--bg));
+  background-image:none;
 }
-h1,h2,h3,.brand-name,.brand-copy strong,.topbar-context strong,.metric strong,.popup strong { font-family:Sora,Inter,ui-sans-serif,system-ui,sans-serif; }
+
+/* Dekoratif parıltı katmanları kaldırıldı; yerlerini yapı ve tipografi alır. */
+.ambient { display:none !important; }
+
+h1,h2,h3,.brand-name,.brand-copy strong,.topbar-context strong,.metric strong,.popup strong { font-family:Archivo,Inter,ui-sans-serif,system-ui,sans-serif; }
 .brand-name { color:var(--text); font-weight:700; letter-spacing:-.025em; }
-.brand-name>span { background:linear-gradient(120deg,var(--brand-violet),var(--brand-cyan)); background-clip:text; color:transparent; -webkit-background-clip:text; }
+.brand-name>span { color:var(--accent); }
 
 /* Genel arayüz vurgusu violet/cyan'dır; coral yalnızca risk ve tehlikede kalır. */
 .topbar-context small,.page-eyebrow,.keyword-list b,.intelligence-metrics svg { color:var(--brand-violet); }
-.page-eyebrow::before { background:linear-gradient(90deg,var(--brand-violet),var(--brand-cyan)); }
-.maturity-track i,.meter i { background:linear-gradient(90deg,var(--brand-violet),var(--brand-cyan)); box-shadow:0 0 14px rgba(0,201,212,.18); }
-.toggle.active { border-color:transparent; background:linear-gradient(120deg,var(--brand-violet),var(--brand-cyan)); }
-.toggle.active i { box-shadow:0 2px 8px rgba(139,92,246,.28); }
-.setting-row:hover { border-color:rgba(139,92,246,.28); }
-.setting-icon { background:rgba(139,92,246,.13); color:#a78bfa; }
-.channel-card::before { background:rgba(139,92,246,.14); }
-.channel-avatar { border-color:rgba(139,92,246,.55); }
-.channel-card:hover { border-color:rgba(0,201,212,.28); }
-.overview-recommendation a { background:linear-gradient(120deg,var(--brand-violet),var(--brand-cyan)); color:#090d16; box-shadow:0 9px 24px rgba(139,92,246,.2); }
+.page-eyebrow::before { background:var(--accent); }
+.maturity-track i,.meter i { background:var(--accent); box-shadow:none; }
+.toggle.active { border-color:transparent; background:var(--accent); }
+.toggle.active i { box-shadow:none; }
+.setting-row:hover { border-color:color-mix(in srgb,var(--accent) 28%,transparent); }
+.setting-icon { background:var(--accent-soft); color:var(--accent); }
+.channel-card::before { background:color-mix(in srgb,var(--accent) 14%,transparent); }
+.channel-avatar { border-color:color-mix(in srgb,var(--accent) 55%,transparent); }
+.channel-card:hover { border-color:color-mix(in srgb,var(--brand-amber) 28%,transparent); }
+.overview-recommendation a { background:var(--accent); color:#0c0c0c; box-shadow:none; }
 .stats-metric>svg,.channel-detail-metrics svg { color:var(--brand-violet); }
 .stats-metric:hover,.stats-metric.active { border-color:var(--brand-cyan); }
-.calendar-grid button { border-color:rgba(139,92,246,.18); background:color-mix(in srgb,var(--brand-violet) calc(var(--calendar-level) * 88%),var(--surface-2)); }
+.calendar-grid button { border-color:color-mix(in srgb,var(--accent) 18%,transparent); background:color-mix(in srgb,var(--brand-violet) calc(var(--calendar-level) * 88%),var(--surface-2)); }
 .calendar-legend i { background:var(--brand-violet); }
-.pulse-orbit { filter:drop-shadow(0 0 18px rgba(139,92,246,.22)); }
-.pulse-orbit i { background:var(--brand-violet); box-shadow:0 0 14px rgba(139,92,246,.3); }
-.pulse-orbit i:nth-child(2) { background:var(--brand-cyan); box-shadow:0 0 14px rgba(0,201,212,.3); }
-.pulse-orbit b {
-  background:linear-gradient(135deg,var(--brand-violet),var(--brand-cyan));
-  box-shadow:0 0 24px rgba(0,201,212,.22);
-}
+.pulse-orbit { filter:none; }
+.pulse-orbit i { background:var(--accent); box-shadow:none; }
+.pulse-orbit i:nth-child(2) { background:var(--brand-amber); box-shadow:none; }
+.pulse-orbit b { background:var(--accent); box-shadow:none; }
 
 .danger-button,.icon-button.danger,.cloud-error,.channel-decision.warning>svg,.weekly-insight-list .insight-risk svg { color:var(--brand-coral); }
-.button.danger-button { border-color:rgba(255,81,72,.34); background:rgba(255,81,72,.08); }
-.regret-2,.regret-3 { background:rgba(255,81,72,.14); color:#ff8179; }
+.button.danger-button { border-color:color-mix(in srgb,var(--brand-coral) 40%,transparent); background:color-mix(in srgb,var(--brand-coral) 10%,transparent); }
+.regret-2,.regret-3 { background:color-mix(in srgb,var(--brand-coral) 16%,transparent); color:#E08060; }
 .channel-decision.warning { border-left-color:var(--brand-coral); }
 
-.brand>span,.popup header>span { width:34px; height:34px; overflow:hidden; border-radius:9px; background:none; box-shadow:0 10px 28px rgba(139,92,246,.24); }
+.brand>span,.popup header>span { width:34px; height:34px; overflow:hidden; border-radius:4px; background:none; box-shadow:none; }
 .brand>span svg,.popup header>span svg { width:100%; height:100%; }
-.brand-copy strong { font-size:17px; }
+.brand-copy strong { font-size:18px; }
 .brand-copy small { color:var(--muted); letter-spacing:.02em; text-transform:none; }
 
 .sidebar { background:var(--side); }
-.sidebar .nav-primary-button.active { border-color:rgba(139,92,246,.2); background:rgba(139,92,246,.14); color:#c4b5fd; }
-.sidebar .nav-primary-button.active svg { color:#a78bfa; }
-.sidebar .nav-secondary button.active { background:rgba(139,92,246,.09); color:#c4b5fd; }
-.sidebar .nav-secondary button.active i { background:var(--brand-cyan); box-shadow:0 0 8px rgba(0,201,212,.4); }
-:root[data-theme=light] .sidebar .nav-primary-button.active { background:rgba(139,92,246,.1); color:#6d28d9; }
-:root[data-theme=light] .sidebar .nav-primary-button.active svg { color:#7c3aed; }
-:root[data-theme=light] .sidebar .nav-secondary button.active { color:#6d28d9; }
-:root[data-theme=light] .sidebar .nav-primary-button.active { border-color:rgba(139,92,246,.24)!important; }
-:root[data-theme=light] .topbar { border-color:rgba(10,15,30,.08); background:rgba(255,255,255,.96); }
-:root[data-theme=light] .page-heading h1 { background:none; color:#12141c; -webkit-text-fill-color:#12141c; }
-:root[data-theme=light] .page-eyebrow { color:#6d28d9; }
-:root[data-theme=light] .dashboard-pulse { border-color:rgba(139,92,246,.2); background:linear-gradient(115deg,#101a2f,#0c1220 58%,#14213a); color:#f2f4fa; }
-:root[data-theme=light] .dashboard-pulse :is(h2,strong) { color:#f2f4fa; }
-:root[data-theme=light] .dashboard-pulse p { color:rgba(242,244,250,.62); }
-:root[data-theme=light] body {
-  background-image:
-    radial-gradient(circle at 16% -8%,rgba(0,201,212,.065),transparent 34%),
-    radial-gradient(circle at 92% 4%,rgba(139,92,246,.075),transparent 32%),
-    linear-gradient(160deg,#fff,#fff);
-}
+.sidebar .nav-primary-button.active { border-color:color-mix(in srgb,var(--accent) 34%,transparent); background:var(--accent-soft); color:var(--text); }
+.sidebar .nav-primary-button.active svg { color:var(--accent); }
+.sidebar .nav-secondary button.active { background:var(--accent-soft); color:var(--text); }
+.sidebar .nav-secondary button.active i { background:var(--accent); box-shadow:none; }
+:root[data-theme=light] .sidebar .nav-primary-button.active { background:var(--accent-soft); color:var(--text); }
+:root[data-theme=light] .sidebar .nav-primary-button.active svg { color:var(--accent); }
+:root[data-theme=light] .sidebar .nav-secondary button.active { color:var(--text); }
+:root[data-theme=light] .sidebar .nav-primary-button.active { border-color:color-mix(in srgb,var(--accent) 34%,transparent)!important; }
+:root[data-theme=light] .topbar { border-color:var(--border); background:var(--side); }
+:root[data-theme=light] .page-heading h1 { background:none; color:var(--text); -webkit-text-fill-color:var(--text); }
+:root[data-theme=light] .page-eyebrow { color:var(--accent); }
+:root[data-theme=light] .dashboard-pulse { border-color:var(--border); background:var(--surface); color:var(--text); }
+:root[data-theme=light] .dashboard-pulse :is(h2,strong) { color:var(--text); }
+:root[data-theme=light] .dashboard-pulse p { color:var(--muted); }
+:root[data-theme=light] body { background-image:none; }
 
 .surface,.metric,.overview-primary-metrics .metric,.overview-focus-grid .chart-wide,.overview-recommendation,.history-preview,.weekly-discovery,.capsule-report,.comparison-title,.comparison-strip article { border-color:var(--border); background-color:var(--surface); }
 
-.button.primary { border-color:transparent; background:linear-gradient(120deg,var(--brand-violet),var(--brand-cyan)); color:#090d16; box-shadow:0 10px 26px rgba(139,92,246,.2); }
-.button.primary:hover { filter:brightness(1.08); transform:translateY(-1px); }
+.button.primary { border-color:transparent; background:var(--accent); color:#F7F2EF; box-shadow:none; }
+.button.primary:hover { filter:brightness(1.12); transform:none; }
 
-.popup { width:340px; min-height:0; padding:20px; background:#0c1220; }
+.popup { width:352px; min-height:0; padding:20px; background:var(--bg); }
 .popup header { gap:10px; margin-bottom:18px; }
 .popup header>div:nth-child(2) { min-width:0; }
-.popup header div strong { font-size:15px; }
-.popup header div small { color:rgba(242,244,250,.45); font-size:10px; }
-.popup-status { margin-left:auto; padding:3px 8px; border-radius:999px; background:rgba(148,163,184,.1); color:var(--muted); font:600 10px/1.4 Inter,sans-serif!important; }
-.popup-status.active { background:rgba(16,185,129,.12); color:var(--brand-emerald); }
-.popup section { border-radius:12px; background:rgba(255,255,255,.03); }
-.popup>.button { min-height:40px; border-radius:10px; }
+.popup header div strong { font-size:16px; }
+.popup header div small { color:var(--muted); font:400 11px/1.4 "IBM Plex Mono",monospace; }
+.popup-status { margin-left:auto; padding:3px 8px; border-radius:3px; background:var(--surface-2); color:var(--muted); font:500 11px/1.4 "IBM Plex Mono",ui-monospace,monospace!important; letter-spacing:.06em; text-transform:uppercase; }
+.popup-status.active { background:color-mix(in srgb,var(--brand-emerald) 16%,transparent); color:var(--brand-emerald); }
+.popup section { border-radius:6px; border-color:var(--border); background:var(--surface); }
+.popup>.button { min-height:40px; border-radius:6px; }
 
 /* ── Popup · günlük nabız kartı ──────────────────────────────────────────── */
 /* .popup section (01-base) grid düzeni kurar; özgüllük için tür seçicisiyle eziyoruz. */
 .popup section.popup-pulse {
-  display:block; padding:14px; margin-bottom:12px; border:1px solid rgba(139,92,246,.22); border-radius:12px;
-  background:linear-gradient(150deg,rgba(139,92,246,.12),rgba(0,201,212,.06));
+  display:block; padding:16px; margin-bottom:12px; border:1px solid var(--border); border-radius:6px;
+  background:var(--accent-soft);
 }
 .popup-pulse-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
-.popup-pulse-head small { display:block; color:var(--brand-violet); font:700 9px/1.4 Inter,sans-serif; letter-spacing:.14em; }
-.popup-pulse-head strong { display:block; margin-top:3px; font-size:19px; }
-.popup-pulse-delta { display:inline-flex; align-items:center; gap:3px; padding:3px 7px; border-radius:999px; font:600 10px/1.4 Inter,sans-serif; background:rgba(148,163,184,.12); color:var(--muted); }
-.popup-pulse-delta.up { background:rgba(245,158,11,.14); color:var(--brand-amber); }
-.popup-pulse-delta.down { background:rgba(16,185,129,.14); color:var(--brand-emerald); }
+.popup-pulse-head small { display:block; color:var(--accent); font:500 11px/1.4 "IBM Plex Mono",monospace; letter-spacing:.14em; }
+.popup-pulse-head strong { display:block; margin-top:5px; font:600 28px/1.05 Archivo,Inter,sans-serif; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+.popup-pulse-delta { display:inline-flex; align-items:center; gap:3px; padding:3px 0; font:500 12px/1.4 "IBM Plex Mono",ui-monospace,monospace; color:var(--muted); }
+.popup-pulse-delta.up { background:transparent; color:var(--brand-amber); }
+.popup-pulse-delta.down { background:transparent; color:var(--brand-emerald); }
 .popup-pulse-budget { margin-top:12px; }
-.popup-pulse-budget-track { height:5px; border-radius:999px; background:rgba(148,163,184,.16); overflow:hidden; }
-.popup-pulse-budget-track i { display:block; height:100%; border-radius:999px; background:linear-gradient(90deg,var(--brand-violet),var(--brand-cyan)); }
-.popup-pulse-budget-track.near i { background:linear-gradient(90deg,var(--brand-amber),#fbbf24); }
-.popup-pulse-budget-track.over i { background:linear-gradient(90deg,var(--brand-coral),#f97316); }
-.popup-pulse-budget small { display:block; margin-top:5px; color:var(--muted); font-size:10px; }
+.popup-pulse-budget-track { height:5px; border-radius:999px; background:rgba(231,230,227,.16); overflow:hidden; }
+.popup-pulse-budget-track i { display:block; height:100%; border-radius:999px; background:var(--accent); }
+.popup-pulse-budget-track.near i { background:var(--brand-amber); }
+.popup-pulse-budget-track.over i { background:var(--brand-coral); }
+.popup-pulse-budget small { display:block; margin-top:5px; color:var(--muted); font-size:11px; }
 .popup-pulse-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:13px; }
 .popup-pulse-metrics div { padding:7px 8px; border-radius:9px; background:rgba(255,255,255,.04); text-align:center; }
-.popup-pulse-metrics strong { display:block; font-size:14px; }
-.popup-pulse-metrics small { display:block; margin-top:1px; color:var(--muted); font-size:9px; }
+.popup-pulse-metrics strong { display:block; font:600 17px/1.2 Archivo,Inter,sans-serif; font-variant-numeric:tabular-nums; }
+.popup-pulse-metrics small { display:block; margin-top:1px; color:var(--muted); font-size:10px; }
 .popup-pulse-bars { display:grid; grid-template-columns:repeat(7,1fr); align-items:end; gap:5px; height:46px; margin-top:13px; }
 .popup-pulse-bars span { display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:4px; }
-.popup-pulse-bars i { display:block; width:100%; border-radius:4px; background:rgba(139,92,246,.34); }
-.popup-pulse-bars .today i { background:linear-gradient(180deg,var(--brand-cyan),var(--brand-violet)); }
+.popup-pulse-bars i { display:block; width:100%; border-radius:4px; background:color-mix(in srgb,var(--accent) 34%,transparent); }
+.popup-pulse-bars .today i { background:var(--accent); }
 .popup-pulse-bars em { color:var(--muted); font:500 8px/1 Inter,sans-serif; font-style:normal; }
 .popup-pulse-bars .today em { color:var(--brand-cyan); }
 .popup-pulse-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
-.popup-pulse-chip { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:999px; background:rgba(255,255,255,.05); color:var(--muted); font:600 10px/1.5 Inter,sans-serif; }
+.popup-pulse-chip { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:999px; background:rgba(255,255,255,.05); color:var(--muted); font:600 11px/1.5 Inter,sans-serif; }
 .popup-pulse-chip svg { color:var(--brand-amber); }
-.popup-pulse-last { margin:10px 0 0; color:var(--muted); font-size:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.popup-pulse-last strong { color:var(--text); font-size:10px; font-weight:600; }
+.popup-pulse-last { margin:10px 0 0; color:var(--muted); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.popup-pulse-last strong { color:var(--text); font-size:11px; font-weight:600; }
 
 /* ── Komut paleti (Ctrl/Cmd+K) ───────────────────────────────────────────── */
 .palette-button { display:inline-flex; align-items:center; gap:6px; padding:7px 10px; border:1px solid var(--border); border-radius:9px; background:var(--surface); color:var(--muted); cursor:pointer; }
 .palette-button:hover { border-color:var(--brand-violet); color:var(--text); }
-.palette-button kbd { padding:1px 5px; border-radius:5px; background:rgba(148,163,184,.16); font:600 9px/1.6 Inter,sans-serif; }
-.palette-backdrop { position:fixed; inset:0; z-index:80; display:flex; justify-content:center; padding:12vh 16px 16px; background:rgba(4,7,14,.62); backdrop-filter:blur(6px); }
-.palette { display:flex; flex-direction:column; width:min(620px,100%); max-height:64vh; overflow:hidden; border:1px solid var(--border); border-radius:16px; background:var(--surface); box-shadow:0 30px 80px rgba(4,7,14,.55); }
-.palette-input { padding:16px 18px; border:0; border-bottom:1px solid var(--border); background:transparent; color:var(--text); font:500 15px/1.4 Inter,sans-serif; outline:none; }
+.palette-button kbd { padding:1px 5px; border-radius:5px; background:rgba(231,230,227,.16); font:600 10px/1.6 Inter,sans-serif; }
+.palette-backdrop { position:fixed; inset:0; z-index:80; display:flex; justify-content:center; padding:12vh 16px 16px; background:rgba(9,9,9,.62); backdrop-filter:blur(6px); }
+.palette { display:flex; flex-direction:column; width:min(620px,100%); max-height:64vh; overflow:hidden; border:1px solid var(--border); border-radius:16px; background:var(--surface); box-shadow:0 30px 80px rgba(9,9,9,.55); }
+.palette-input { padding:16px 18px; border:0; border-bottom:1px solid var(--border); background:transparent; color:var(--text); font:500 16px/1.4 Inter,sans-serif; outline:none; }
 .palette-input::placeholder { color:var(--muted); }
 .palette-results { overflow-y:auto; padding:8px; }
-.palette-results button { display:flex; align-items:center; gap:10px; width:100%; padding:9px 11px; border:0; border-radius:9px; background:transparent; color:var(--text); font:500 13px/1.4 Inter,sans-serif; text-align:left; cursor:pointer; }
-.palette-results button.active { background:linear-gradient(120deg,rgba(139,92,246,.18),rgba(0,201,212,.12)); }
+.palette-results button { display:flex; align-items:center; gap:10px; width:100%; padding:9px 11px; border:0; border-radius:9px; background:transparent; color:var(--text); font:500 14px/1.4 Inter,sans-serif; text-align:left; cursor:pointer; }
+.palette-results button.active { background:var(--accent-soft); }
 .palette-results button svg { flex:none; color:var(--brand-violet); }
 .palette-label { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.palette-results button small { flex:none; max-width:34%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:10px; }
-.palette-empty { margin:0; padding:22px; color:var(--muted); font-size:12px; text-align:center; }
-.palette-footer { display:flex; gap:14px; padding:9px 16px; border-top:1px solid var(--border); color:var(--muted); font-size:10px; }
-.palette-footer kbd { margin-right:3px; padding:1px 5px; border-radius:5px; background:rgba(148,163,184,.16); font:600 9px/1.6 Inter,sans-serif; }
+.palette-results button small { flex:none; max-width:34%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:11px; }
+.palette-empty { margin:0; padding:22px; color:var(--muted); font-size:13px; text-align:center; }
+.palette-footer { display:flex; gap:14px; padding:9px 16px; border-top:1px solid var(--border); color:var(--muted); font-size:11px; }
+.palette-footer kbd { margin-right:3px; padding:1px 5px; border-radius:5px; background:rgba(231,230,227,.16); font:600 10px/1.6 Inter,sans-serif; }
 /* Dar ekranda Ctrl+K zaten yok ve üst çubuk dönem seçici, tarih gezinmesi ve
    karşılaştırma düğmesiyle dolu; palet düğmesi burada yer kaplamamalı. */
 @media (max-width:820px) { .palette-button { display:none; } .palette-backdrop { padding:8vh 12px 12px; } }
@@ -189,9 +203,9 @@ h1,h2,h3,.brand-name,.brand-copy strong,.topbar-context strong,.metric strong,.p
 /* ── Sayfa hata sınırı ───────────────────────────────────────────────────── */
 .page-error { display:grid; grid-template-columns:auto 1fr; gap:12px 14px; padding:22px; border:1px solid color-mix(in srgb,var(--brand-coral) 40%,var(--border)); border-radius:14px; background:color-mix(in srgb,var(--brand-coral) 7%,var(--surface)); }
 .page-error>span { color:var(--brand-coral); }
-.page-error strong { display:block; font-size:15px; }
-.page-error p { margin:6px 0 0; color:var(--muted); font-size:12px; }
-.page-error code { display:block; margin-top:8px; padding:8px 10px; border-radius:8px; background:rgba(148,163,184,.12); color:var(--muted); font-size:11px; word-break:break-word; }
+.page-error strong { display:block; font-size:16px; }
+.page-error p { margin:6px 0 0; color:var(--muted); font-size:13px; }
+.page-error code { display:block; margin-top:8px; padding:8px 10px; border-radius:8px; background:rgba(231,230,227,.12); color:var(--muted); font-size:12px; word-break:break-word; }
 .page-error-actions { grid-column:2; display:flex; flex-wrap:wrap; gap:8px; }
 
 /* Tablo hücresinde ayrıntıya götüren metin düğmesi (konu/kanal derin bağlantısı). */
@@ -200,25 +214,174 @@ h1,h2,h3,.brand-name,.brand-copy strong,.topbar-context strong,.metric strong,.p
 
 /* ── Zaman maliyeti ekranı ───────────────────────────────────────────────── */
 .cost-hero { display:grid; grid-template-columns:1.4fr 1fr; gap:22px; padding:22px; margin-bottom:18px; }
-.cost-hero-main small { display:flex; align-items:center; gap:6px; color:var(--brand-coral); font:700 10px/1.4 Inter,sans-serif; letter-spacing:.14em; }
+.cost-hero-main small { display:flex; align-items:center; gap:6px; color:var(--brand-coral); font:700 11px/1.4 Inter,sans-serif; letter-spacing:.14em; }
 .cost-hero-main>strong { display:block; margin:8px 0 10px; font-size:34px; line-height:1.1; }
-.cost-hero-main p { margin:0; color:var(--muted); font-size:13px; }
+.cost-hero-main p { margin:0; color:var(--muted); font-size:14px; }
 .cost-hero-side>div { margin-bottom:14px; }
-.cost-hero-side span { display:block; margin-bottom:6px; color:var(--muted); font-size:11px; }
-.cost-hero-side b { display:block; margin-top:6px; font-size:13px; }
-.cost-hero-side ul { margin:0; padding:0; list-style:none; display:grid; gap:6px; color:var(--muted); font-size:12px; }
+.cost-hero-side span { display:block; margin-bottom:6px; color:var(--muted); font-size:12px; }
+.cost-hero-side b { display:block; margin-top:6px; font-size:14px; }
+.cost-hero-side ul { margin:0; padding:0; list-style:none; display:grid; gap:6px; color:var(--muted); font-size:13px; }
 .cost-hero-side li strong { color:var(--text); }
 .cost-videos ul { margin:0; padding:0; list-style:none; display:grid; gap:12px; }
 .cost-videos li { padding:12px 14px; border:1px solid var(--border); border-radius:11px; background:var(--surface-2,rgba(255,255,255,.03)); }
 .cost-video-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
 .cost-video-head a { display:inline-flex; align-items:center; gap:5px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
-.cost-video-head span { flex:none; color:var(--brand-coral); font-size:11px; }
-.cost-videos small { display:block; margin-top:3px; color:var(--muted); font-size:11px; }
-.cost-videos p { margin:7px 0 0; color:var(--muted); font-size:11px; }
+.cost-video-head span { flex:none; color:var(--brand-coral); font-size:12px; }
+.cost-videos small { display:block; margin-top:3px; color:var(--muted); font-size:12px; }
+.cost-videos p { margin:7px 0 0; color:var(--muted); font-size:12px; }
 @media (max-width:900px) { .cost-hero { grid-template-columns:1fr; } }
 
-.popup-shorts-pause { display:flex; align-items:center; gap:7px; margin:0 0 12px; padding:9px 11px; border-radius:10px; background:rgba(16,185,129,.1); color:var(--brand-emerald); font:600 11px/1.4 Inter,sans-serif; }
+.popup-shorts-pause { display:flex; align-items:center; gap:7px; margin:0 0 12px; padding:9px 11px; border-radius:10px; background:rgba(16,185,129,.1); color:var(--brand-emerald); font:600 12px/1.4 Inter,sans-serif; }
 .popup-shorts-pause span { flex:1; }
-.popup-shorts-pause button { padding:3px 9px; border:1px solid rgba(16,185,129,.35); border-radius:999px; background:none; color:inherit; font:600 10px/1.5 Inter,sans-serif; cursor:pointer; }
+.popup-shorts-pause button { padding:3px 9px; border:1px solid rgba(16,185,129,.35); border-radius:999px; background:none; color:inherit; font:600 11px/1.5 Inter,sans-serif; cursor:pointer; }
 
-@media (prefers-reduced-motion:reduce) { .ambient,.button,.metric,.surface { animation:none!important; transition:none!important; } }
+/* ── Sayı tipografisi ────────────────────────────────────────────────────────
+   Ölçüm ürününde rakamın dizilişi tasarımın kendisidir: tüm ölçüler daktilo
+   genişlikli, tabular ve aynı ailede. Böylece sütunlar hizalanır ve değer
+   değişince satır zıplamaz. */
+/* Rakam hizası aileyle değil, tabular figürlerle sağlanır. Daktilo dokusu
+   yalnızca mikro etiketlerde ve tablo başlıklarında kalır; büyük figürleri
+   monoya sokmak onları hantallaştırıyordu. */
+.num { font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1; }
+.mono { font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,monospace; font-variant-numeric:tabular-nums; }
+
+/* ── Dönem künyesi ─────────────────────────────────────────────────────────── */
+.lede { display:flex; flex-direction:column; margin-bottom:26px; border:1px solid var(--border); border-radius:6px; background:var(--surface); }
+.lede-top { padding:18px 22px 16px; border-bottom:1px solid var(--border); }
+.lede-meta { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; margin:0 0 10px; color:var(--muted); font:400 13px/1.4 Inter,sans-serif; }
+.lede-meta>span+span::before { content:"·"; margin-right:10px; opacity:.5; }
+.lede-period { color:var(--accent); font:500 11px/1.4 "IBM Plex Mono",monospace; letter-spacing:.14em; text-transform:uppercase; }
+.lede-meta b { color:var(--text); font-weight:600; }
+.lede-top h1 { margin:0; font:600 23px/1.25 Archivo,Inter,sans-serif; letter-spacing:-.02em; color:var(--text); text-wrap:balance; }
+
+.lede-figures { display:grid; grid-template-columns:minmax(210px,.9fr) 2fr; }
+.lede-lead { padding:20px 22px; border-right:1px solid var(--border); }
+.lede-lead>strong { display:block; margin:8px 0 8px; font:600 46px/1 Archivo,Inter,sans-serif; letter-spacing:-.035em; font-variant-numeric:tabular-nums; color:var(--text); }
+.lede-support { display:grid; grid-template-columns:repeat(3,1fr); }
+.lede-support>div { padding:20px 22px; border-right:1px solid var(--border); }
+.lede-support>div:last-child { border-right:0; }
+.lede-support b { display:block; margin:8px 0 8px; font:600 25px/1 Archivo,Inter,sans-serif; letter-spacing:-.025em; font-variant-numeric:tabular-nums; color:var(--text); }
+.lede-label { display:flex; align-items:center; gap:5px; }
+.lede-label small { color:var(--muted); font:500 11px/1.4 "IBM Plex Mono",monospace; letter-spacing:.08em; text-transform:uppercase; }
+
+/* İmza: ölçü çubuğu bir tarama çubuğudur — playhead işaretiyle. Bu üründe her
+   sayı zaten bir zaman çizgisindeki konum. */
+.lede-budget { display:flex; align-items:center; gap:14px; padding:14px 22px; border-top:1px solid var(--border); }
+.scrub { position:relative; flex:1; height:3px; background:var(--surface-2); border-radius:2px; }
+.scrub i { position:absolute; inset:0 auto 0 0; display:block; background:var(--accent); border-radius:2px; }
+.scrub b { position:absolute; top:-4px; width:2px; height:11px; margin-left:-1px; background:var(--text); }
+.lede-budget p { display:flex; align-items:baseline; gap:5px; margin:0; color:var(--muted); font-size:12px; }
+.lede-budget b { color:var(--text); font-size:13px; font-weight:600; }
+
+/* Delta rozetleri yön taşır: iyi haber yosun, kötü haber oksit. Nötr sessiz. */
+.metric-delta { background:transparent!important; padding:2px 0!important; }
+.metric-delta-good { color:var(--brand-emerald)!important; }
+.metric-delta-bad { color:var(--brand-coral)!important; }
+
+@media (max-width:1080px) {
+  .lede-figures { grid-template-columns:1fr; }
+  .lede-lead { border-right:0; border-bottom:1px solid var(--border); }
+}
+@media (max-width:720px) {
+  .lede-support { grid-template-columns:1fr; }
+  .lede-support>div { border-right:0; border-bottom:1px solid var(--border); }
+  .lede-support>div:last-child { border-bottom:0; }
+}
+
+.chart-note { margin:0; align-self:center; color:var(--muted); font-size:12px; }
+.chart-note b { color:var(--text); font-weight:600; }
+
+/* ── Ortak sayfa künyesi ─────────────────────────────────────────────────────
+   Her ekranın tepesinde 38px'lik dergi başlığı ve gradyanlı metin vardı; dashboard
+   okunan değil taranan bir yüzeydir. Künye artık Genel Bakış'takiyle aynı dili
+   konuşuyor: mono etiket, ölçülü başlık, tek satır bağlam. */
+.page-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:18px; padding-bottom:16px; margin-bottom:22px; border-bottom:1px solid var(--border); }
+.page-heading h1 { margin:0 0 6px; font:600 24px/1.2 Archivo,Inter,sans-serif!important; letter-spacing:-.02em!important; background:none!important; color:var(--text)!important; -webkit-text-fill-color:var(--text)!important; }
+.page-heading p { margin:0; max-width:70ch; color:var(--muted); font-size:14px; }
+.page-eyebrow { display:inline-flex; align-items:center; gap:7px; margin-bottom:9px; color:var(--accent); font:500 11px/1 "IBM Plex Mono",monospace; letter-spacing:.14em; }
+.page-eyebrow::before { width:14px; height:1px; }
+
+/* Yüzeyler: kart yığını yerine düz panel. Gölge yok, yarıçap küçük, ayırıcı çizgi. */
+.surface,.metric,.chart-wide,.table-wrap,.history-preview,.weekly-discovery,.capsule-report { border-radius:6px!important; box-shadow:none!important; backdrop-filter:none!important; }
+.surface:hover,.metric:hover { transform:none!important; box-shadow:none!important; }
+.section-head h2 { font:600 16px/1.3 Archivo,Inter,sans-serif; letter-spacing:-.01em; }
+.section-head p { color:var(--muted); font-size:13px; }
+
+/* Tablolar ölçüm cetveli gibi: hizalı rakam, sakin başlık, ince ayırıcı. */
+table { font-variant-numeric:tabular-nums; }
+th { font:500 11px/1.4 "IBM Plex Mono",monospace!important; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+td { font-size:14px; font-variant-numeric:tabular-nums; }
+
+/* Sidebar: dolu hap yerine kenar çubuğu. Aktif olan, boyanan değil işaretlenendir. */
+.sidebar .nav-primary-button.active { position:relative; background:transparent!important; border-color:transparent!important; }
+.sidebar .nav-primary-button.active::before { content:""; position:absolute; left:-10px; top:6px; bottom:6px; width:2px; background:var(--accent); }
+.sidebar .nav-secondary button.active { background:transparent!important; color:var(--text)!important; font-weight:600; }
+.sidebar .nav-primary-button { font:600 14px/1.3 Archivo,Inter,sans-serif; }
+.sidebar .nav-secondary button { font-size:13px; }
+
+/* Üst çubuk: dönem seçici bir ölçek, dolu bir hap değil. */
+.period-selector button { font:500 12px/1 "IBM Plex Mono",monospace; letter-spacing:.04em; }
+.topbar-context small { font:500 11px/1 "IBM Plex Mono",monospace; letter-spacing:.14em; }
+.topbar-context strong { font:600 15px/1.2 Archivo,Inter,sans-serif; }
+
+/* Izgara çocukları varsayılan olarak min-width:auto alır; içindeki geniş tablo
+   kolonu taşırıyor ve tüm sayfayı yana kaydırıyordu. Taşan içerik kendi
+   kabında kayar, gövde asla yana kaymaz. */
+.time-grid>*,.overview-duo>*,.overview-focus-grid>*,.premium-grid>* { min-width:0; }
+.table-wrap { overflow-x:auto; }
+
+/* ── Hareket ─────────────────────────────────────────────────────────────────
+   Ekran dümdüz duruyordu. Hareket süs değil, okuma sırası: sayfa açılırken
+   bloklar yukarıdan aşağıya sırayla yerleşir, ölçü çubukları sıfırdan dolar,
+   etkileşimli olan her şey dokunulduğunu belli eder. Tek bir yumuşama eğrisi
+   ve kısa süreler; hiçbir şey iki kez zıplamaz. */
+@keyframes dt-rise { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+@keyframes dt-fill { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+@keyframes dt-tick { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+
+.page>* { animation:dt-rise .42s cubic-bezier(.22,.61,.36,1) both; }
+.page>*:nth-child(2) { animation-delay:.05s; }
+.page>*:nth-child(3) { animation-delay:.1s; }
+.page>*:nth-child(4) { animation-delay:.15s; }
+.page>*:nth-child(5) { animation-delay:.2s; }
+.page>*:nth-child(n+6) { animation-delay:.24s; }
+
+.lede-lead>strong,.lede-support>div { animation:dt-rise .5s cubic-bezier(.22,.61,.36,1) both; }
+.lede-support>div:nth-child(2) { animation-delay:.06s; }
+.lede-support>div:nth-child(3) { animation-delay:.12s; }
+
+/* Ölçü çubukları sıfırdan dolar: değerin bir ölçek üzerindeki yeri olduğunu gösterir. */
+.scrub i,.meter i,.maturity-track i,.popup-pulse-budget-track i {
+  transform-origin:left center;
+  animation:dt-fill .62s cubic-bezier(.22,.61,.36,1) both;
+}
+.scrub b { animation:dt-tick .5s .3s cubic-bezier(.22,.61,.36,1) both; }
+.popup-pulse-bars i { transform-origin:bottom center; animation:dt-fill .5s cubic-bezier(.22,.61,.36,1) both; }
+
+/* Etkileşim: dokunulan yüzey sessizce karşılık verir. */
+.surface,.metric,.button,.channel-row,.palette-results button,tbody tr,.nav-secondary button,.nav-primary-button {
+  transition:background-color .16s ease,border-color .16s ease,color .16s ease,opacity .16s ease;
+}
+tbody tr:hover { background:color-mix(in srgb,var(--accent) 6%,transparent); }
+.channel-row .channel-avatar { transition:border-color .16s ease; }
+.channel-row:hover .channel-avatar { border-color:var(--accent); }
+.button:active { transform:translateY(1px); }
+
+/* Aktif bölüm işareti yerine kayarak oturur. */
+.sidebar .nav-primary-button.active::before { animation:dt-fill .3s cubic-bezier(.22,.61,.36,1) both; transform-origin:center top; }
+
+/* Dar ekranda ızgara çocukları yine min-width:auto ile taşıyordu; ayar satırı,
+   rapor ve maliyet tabloları kendi kabında kalır. */
+.setting-row>*,.cost-hero>*,.weekly-grid>*,.report-grid>*,.overview-more-body>* { min-width:0; }
+.setting-row p,.setting-row h2 { overflow-wrap:anywhere; }
+
+/* Kanal kartları: büyük profil görünümü korunuyor, yalnızca tipografi ve
+   yüzey dili yeni sisteme çekildi. */
+.channel-card h2 { font:600 17px/1.25 Archivo,Inter,sans-serif; letter-spacing:-.015em; }
+.channel-card small { font:500 11px/1.4 "IBM Plex Mono",monospace; letter-spacing:.1em; color:var(--muted); }
+.channel-card p { font-size:13px; color:var(--muted); }
+.channel-card .num { color:var(--text); font-weight:600; }
+.channel-card-foot b { color:var(--text); }
+.channel-avatar { border-radius:6px; }
+
+@media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; } }

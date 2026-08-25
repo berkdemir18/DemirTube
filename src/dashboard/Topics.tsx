@@ -1,5 +1,6 @@
 // DemirTube Aurora UI v2 · unified dashboard visual system
 import { ArrowLeft } from "lucide-react";
+import { chartAccent, chartAxis, chartGrid } from "./chart-theme";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { VideoRecord } from "../shared/types";
 import { formatDuration } from "../shared/utils";
@@ -35,11 +36,11 @@ export function Topics({
             <section className="surface chart-block neon-chart" aria-hidden="true">
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={rows} layout="vertical">
-                  <CartesianGrid stroke="#1f3442" horizontal={false} />
-                  <XAxis type="number" domain={[0, 100]} stroke="#728797" />
-                  <YAxis type="category" dataKey="topic" width={120} stroke="#9aabb7" />
+                  <CartesianGrid stroke={chartGrid} horizontal={false} />
+                  <XAxis type="number" domain={[0, 100]} stroke={chartAxis} />
+                  <YAxis type="category" dataKey="topic" width={120} stroke={chartAxis} />
                   <Tooltip />
-                  <Bar dataKey="preferenceScore" fill="#8b5cf6" radius={[0, 6, 6, 0]} />
+                  <Bar dataKey="preferenceScore" fill={chartAccent} radius={[0, 6, 6, 0]} isAnimationActive={false} />
                 </BarChart>
               </ResponsiveContainer>
             </section>

@@ -1,5 +1,6 @@
 // DemirTube Aurora UI v2 · unified dashboard visual system
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { chartAccent, chartAxis, chartGrid } from "./chart-theme";
 import type { ContentType, VideoRecord } from "../shared/types";
 import { round } from "../shared/utils";
 import { durationStats } from "./analytics";
@@ -41,11 +42,11 @@ export function Durations({ videos }: { videos: VideoRecord[] }) {
         <section className="surface chart-block neon-chart" aria-hidden="true">
           <ResponsiveContainer width="100%" height={320}>
             <BarChart data={rows}>
-              <CartesianGrid stroke="#1f3442" vertical={false} />
-              <XAxis dataKey="bucket" stroke="#8396a4" />
-              <YAxis domain={[0, 100]} stroke="#8396a4" />
+              <CartesianGrid stroke={chartGrid} vertical={false} />
+              <XAxis dataKey="bucket" stroke={chartAxis} />
+              <YAxis domain={[0, 100]} stroke={chartAxis} />
               <Tooltip />
-              <Bar dataKey="completion" name="Tamamlama %" fill="#8b5cf6" radius={[7, 7, 0, 0]} />
+              <Bar dataKey="completion" name="Tamamlama %" fill={chartAccent} radius={[7, 7, 0, 0]}  isAnimationActive={false}/>
             </BarChart>
           </ResponsiveContainer>
         </section>

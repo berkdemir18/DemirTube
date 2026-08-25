@@ -1,5 +1,6 @@
 // DemirTube Aurora UI v2 · unified dashboard visual system
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { chartAxis, chartGrid, chartSeries } from "./chart-theme";
 import type { VideoRecord, WatchSession } from "../shared/types";
 import { formatDuration } from "../shared/utils";
 import {
@@ -24,7 +25,7 @@ export function TimeAnalytics({ videos, sessions }: { videos: VideoRecord[]; ses
     <div className="time-insights">{buildTimeInsights(dayParts).map((insight) => <article className="surface" key={insight}>{insight}</article>)}</div>
     <section className="surface chart-block neon-chart"><div className="section-head"><div><h2>Saatlere göre aktif izleme</h2><p>24 saatlik dağılım, dakika</p></div></div>
       <ChartFrame summary={`Saatlere göre aktif izleme: ${hourly.filter((row) => row.totalWatchSeconds > 0).map((row) => `${row.label} ${Math.round(row.totalWatchSeconds / 60)} dakika`).join(", ") || "kayıt yok"}.`}>
-      <ResponsiveContainer width="100%" height={250}><BarChart data={hourly.map((row) => ({ ...row, minutes: Math.round(row.totalWatchSeconds / 60) }))}><CartesianGrid stroke="#1f3442" vertical={false}/><XAxis dataKey="label" stroke="#728797"/><YAxis stroke="#728797"/><Tooltip/><Bar dataKey="minutes" name="Dakika" fill="#00c9d4" radius={[5,5,0,0]}/></BarChart></ResponsiveContainer>
+      <ResponsiveContainer width="100%" height={250}><BarChart data={hourly.map((row) => ({ ...row, minutes: Math.round(row.totalWatchSeconds / 60) }))}><CartesianGrid stroke={chartGrid} vertical={false}/><XAxis dataKey="label" stroke={chartAxis}/><YAxis stroke={chartAxis}/><Tooltip/><Bar dataKey="minutes" name="Dakika" fill={chartSeries[1]} radius={[5,5,0,0]} isAnimationActive={false}/></BarChart></ResponsiveContainer>
       </ChartFrame>
     </section>
     <div className="time-grid">

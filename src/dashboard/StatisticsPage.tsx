@@ -1,4 +1,5 @@
 import { Activity, CalendarRange, Clock3, Layers3, Repeat2, TimerReset } from "lucide-react";
+import { chartSeries } from "./chart-theme";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { VideoRecord, WatchSession } from "../shared/types";
 import { formatDuration, round } from "../shared/utils";
@@ -34,7 +35,7 @@ export function StatisticsPage({ videos, sessions }: { videos: VideoRecord[]; se
           <div className="section-head"><div><h2>Günün ritmi</h2><p>Gerçek aktif sürenin dört saatlik dağılımı · zirve {stats.peakHourLabel}</p></div></div>
           <ChartFrame summary={`Günün ritmi: ${stats.hourly.map((row) => `${row.label} ${formatDuration(row.seconds)}`).join(", ")}.`}>
           <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={stats.hourly}><CartesianGrid strokeDasharray="3 3" vertical={false}/><XAxis dataKey="label"/><YAxis tickFormatter={(value) => `${round(Number(value) / 60)} dk`}/><Tooltip formatter={(value) => formatDuration(Number(value))}/><Bar dataKey="seconds" name="Aktif izleme" fill="#00c9d4" radius={[7,7,0,0]}/></BarChart>
+            <BarChart data={stats.hourly}><CartesianGrid strokeDasharray="3 3" vertical={false}/><XAxis dataKey="label"/><YAxis tickFormatter={(value) => `${round(Number(value) / 60)} dk`}/><Tooltip formatter={(value) => formatDuration(Number(value))}/><Bar dataKey="seconds" name="Aktif izleme" fill={chartSeries[1]} radius={[7,7,0,0]} isAnimationActive={false}/></BarChart>
           </ResponsiveContainer>
           </ChartFrame>
         </section>
