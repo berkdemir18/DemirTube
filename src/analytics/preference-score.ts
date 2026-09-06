@@ -1,3 +1,4 @@
+import { buildCompletionFeatures, completionEvidence } from "./completion-features";
 import { durationBucket } from "./duration";
 import { hasMeasurableDuration } from "./completion";
 import { calculateChannelAffinity, rawChannelAffinity } from "./channel-score";
@@ -8,7 +9,7 @@ import { analyzeVideoIntelligence, evaluateWatchOutcome, recordVideoFormat, type
 import { derivePersonalModel, type PersonalModel } from "./personal-model";
 import { hasWatchPageDetail, toScoringMetadata } from "./scoring-metadata";
 import { buildTopicMemory, type TopicMemory } from "./topic-memory";
-import { SIGNAL_TIERS, evidenceWeight, predictCompletionDetailed } from "./model-calibration";
+import { NEUTRAL_CALIBRATION, evidenceWeight, predictCompletionDetailed } from "./model-calibration";
 
 /**
  * Tahmin motoru kalibrasyon modülünde yaşıyor: geriye dönük sınama da aynı
@@ -22,6 +23,7 @@ export type PreferenceResult = {
   enoughData: boolean;
   score?: number;
   estimatedCompletion?: number;
+  rawEstimatedCompletion?: number;
   /** Tahminin ± payı (puan); ölçülen ortalama hatadan gelir. Veri yoksa tanımsız. */
   estimatedCompletionMargin?: number;
   explanation: string[];
@@ -164,26 +166,6 @@ function weightedCompletion(videos: VideoRecord[], anchor = Date.now()): number 
 }
 
 /**
- * Yalnızca tamamlanma ölçeğinde ağırlıklı ortalama: pişmanlık cezası yok.
- * `weightedCompletion` tercih sinyali üretir ve pişmanlığı düşer; tamamlanma
- * TAHMİNİ ise "bu videonun yüzde kaçını izlersin" sorusunun cevabıdır ve
- * içine başka eksen karıştırılmamalıdır.
- */
-function completionRateOf(videos: VideoRecord[], anchor: number): number | undefined {
-  const usable = videos.filter((video) => video.contentType !== "livestream");
-  if (!usable.length) return undefined;
-  let weightedSum = 0;
-  let totalWeight = 0;
-  for (const video of usable) {
-    const ageDays = (anchor - new Date(video.lastSeenAt).getTime()) / (1000 * 60 * 60 * 24);
-    const weight = Math.exp(-Math.max(0, ageDays) / 45);
-    weightedSum += clamp(video.completionRate * 100, 0, 100) * weight;
-    totalWeight += weight;
-  }
-  return totalWeight > 0 ? weightedSum / totalWeight : undefined;
-}
-
-/**
  * Mutlak tamamlanma yüzdesini kullanıcının kendi genel izleme tabanına göre
  * ayırır. Az örnekli gruplar nötre yakın kalır; tekrarlanan güçlü/zayıf
  * davranışlar ise 50 çevresindeki sıkışmadan çıkar.
@@ -220,7 +202,7 @@ export function calculatePreference(
   const current = history.find((video) => video.videoId === metadata.videoId);
   // Süresi okunamamış kayıtların tamamlanma oranı zorunlu olarak 0'dır; tercih
   // istatistiklerine girerlerse tüm sinyalleri aşağı çekerler.
-  const eligible = history.filter((video) => video.videoId !== metadata.videoId && hasMeasurableDuration(video));
+  const eligible = history.filter((video) => video.videoId !== metadata.videoId && !video.excludedFromAnalytics && !video.isCurrentlyWatching && hasMeasurableDuration(video));
   const intelligence = analyzeVideoIntelligence(metadata, eligible);
   const contentIntelligence = hasWatchPageDetail(fullMetadata)
     ? analyzeVideoIntelligence(fullMetadata, eligible)
@@ -318,48 +300,18 @@ export function calculatePreference(
     : 1 + (baseSpread - 1) * (0.4 + 0.6 * Math.min(1, measuredSkill / 0.4));
   const score = round(clamp(50 + (rawScore - 50) * spread + explorationBonus, 5, 99));
 
-  // Tamamlanma tahmini yalnızca tamamlanma ölçeğindeki kanıtlardan kurulur.
-  // Başlık benzerliği ve kanal bağlılığı farklı eksenler olduğu için tahmine
-  // girmez; onlar uygunluk PUANINI besler.
   const calibration = model.calibration;
-  /**
-   * Tahminin öncülü, TERCİH tabanı değil tamamlanma tabanıdır. `weightedCompletion`
-   * canlı yayınları "izlenen dakika / 18" gibi ayrı bir ölçekle sayıp pişmanlığı
-   * da düşüyor; oysa kanıtların hepsi `completionRateOf`'tan, yani canlı yayın
-   * içermeyen saf tamamlanma ölçeğinden geliyordu. İki farklı popülasyonun
-   * ortası, shrinkage'ı yanlış merkeze çekiyordu.
-   */
-  const completionBaseline = completionRateOf(eligible, anchor) ?? personalBaseline;
+  const features = buildCompletionFeatures(fullMetadata, eligible);
   const prediction = isLivestream ? undefined : predictCompletionDetailed(
-    [
-      { observed: completionRateOf(channelVideos, anchor), sampleCount: channelVideos.length, weight: model.weights.channel, reliability: model.reliability.channel, tier: SIGNAL_TIERS.channel },
-      { observed: completionRateOf(topicVideos, anchor), sampleCount: topicVideos.length, weight: model.weights.topic, reliability: model.reliability.topic, tier: SIGNAL_TIERS.topic },
-      { observed: completionRateOf(durationVideos, anchor), sampleCount: durationVideos.length, weight: model.weights.duration, reliability: model.reliability.duration, tier: SIGNAL_TIERS.duration },
-      { observed: completionRateOf(formatVideos, anchor), sampleCount: formatVideos.length, weight: model.weights.format + model.weights.title, reliability: model.reliability.format, tier: SIGNAL_TIERS.format },
-    ],
-    completionBaseline,
-    calibration
+    completionEvidence(features, model.weights, model.reliability), features.baseline, calibration
   );
-  /**
-   * Model dürüst sınamada tabanı yenemiyorsa tahmini olduğu gibi sunmak
-   * kullanıcıyı yanıltır. Susmak yerine tabana doğru harmanlıyoruz: becerisi
-   * ölçülemeyen model, hiç değilse kişisel ortalamadan daha kötü olamaz.
-   */
+  // Keep the displayed estimator identical to the one evaluated in backtests.
   const hasSkill = model.benchmark.sampleCount < 5 || model.benchmark.skill > 0;
   const estimatedCompletion = prediction === undefined
     ? undefined
-    : hasSkill ? prediction.value : round(clamp(prediction.value * .5 + completionBaseline * .5, 0, 100));
-  /**
-   * Belirsizlik payı artık tahmine özel: aynı ± payını 3 videoluk kanala da
-   * 40 videoluk kanala da vermek dürüst değildi. Ölçülen ortalama hata,
-   * o tahminin arkasındaki kanıt zayıfsa genişletiliyor.
-   */
-  const measuredError = calibration.sampleCount >= 3
-    ? calibration.meanAbsoluteError
-    : model.benchmark.sampleCount >= 5 ? model.benchmark.meanAbsoluteError : undefined;
-  const estimatedCompletionMargin = prediction && measuredError !== undefined
-    ? Math.max(5, Math.round(measuredError * (1 + .8 * (1 - prediction.evidenceStrength))))
-    : undefined;
+    : prediction.value;
+  // Empirical held-out error quantile, not a confidence guarantee.
+  const estimatedCompletionMargin = prediction ? model.benchmark.interval80Radius : undefined;
 
   const explanations: string[] = [];
   if (channel !== undefined) {
@@ -380,7 +332,7 @@ export function calculatePreference(
     explanations.push(`Bu kanal ve konu senin için yeni; ${explorationBonus} puanlık keşif payı eklendi.`);
   }
   if (!hasSkill) {
-    explanations.push("Model şu an geçmiş ortalamandan daha iyi tahmin edemiyor; tahmin tabana yaklaştırıldı.");
+    explanations.push("Model şu an geçmiş ortalamandan daha iyi tahmin edemiyor; bu tahmini temkinli değerlendir.");
   }
   if (!explanations.length) {
     explanations.push(isLivestream
@@ -392,6 +344,9 @@ export function calculatePreference(
     enoughData: true,
     score,
     estimatedCompletion,
+    rawEstimatedCompletion: prediction ? predictCompletionDetailed(
+      completionEvidence(features, model.weights, model.reliability), features.baseline, NEUTRAL_CALIBRATION
+    ).value : undefined,
     estimatedCompletionMargin,
     explanation: explanations,
     intelligence,

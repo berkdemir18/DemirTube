@@ -2,6 +2,7 @@ import type { UserVideoFeedback, VideoRecord, WatchSession, WeeklyReport } from 
 import { formatDuration, round } from "../shared/utils";
 import { durationStats, topicStats, channelStats } from "../dashboard/analytics";
 import { buildTimeInsights, timeOfDayAnalytics } from "./time-analytics";
+import { hasProspectivePrediction } from "./model-calibration";
 
 export function generateWeeklyReport(videos: VideoRecord[], sessions: WatchSession[], now = new Date(), feedback: UserVideoFeedback[] = []): WeeklyReport {
   const end = new Date(now);
@@ -63,9 +64,7 @@ export function generateWeeklyReport(videos: VideoRecord[], sessions: WatchSessi
     const previousTopicValue = previousTopicSeconds.get(topic) ?? 0;
     return { topic, currentSeconds, previousSeconds: previousTopicValue, changePercent: previousTopicValue ? round((currentSeconds - previousTopicValue) / previousTopicValue * 100) : undefined };
   }).toSorted((a, b) => Math.abs(b.changePercent ?? 0) - Math.abs(a.changePercent ?? 0)).slice(0, 5);
-  const predictionVideos = currentVideos.filter((video) =>
-    video.predictionSnapshot?.estimatedCompletion !== undefined && !video.isCurrentlyWatching
-  );
+  const predictionVideos = currentVideos.filter(hasProspectivePrediction);
   const predictionErrors = predictionVideos.map((video) =>
     Math.abs((video.predictionSnapshot?.estimatedCompletion ?? 0) - video.completionRate * 100)
   );

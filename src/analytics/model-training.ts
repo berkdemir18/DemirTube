@@ -12,17 +12,14 @@
 //      diyen taban modelle kıyaslanır. Model tabanı yenmiyorsa bunu saklamak
 //      yerine söylemek gerekir.
 //
-// Tüm sayaçlar artımlıdır: geçmiş tek geçişte yürünür (O(n)), böylece ağırlık
-// araması tarayıcıda yüzlerce kez çalıştırılabilir.
+// Kanıtlar kronolojik öneklerden bir kez hazırlanır; ağırlık araması bunları tekrar kullanır.
 import type { VideoRecord } from "../shared/types";
-import { channelKey, clamp, round } from "../shared/utils";
-import { hasMeasurableDuration } from "./completion";
-import { durationBucket } from "./duration";
-import { recordVideoFormat } from "./video-intelligence";
+import { clamp, round } from "../shared/utils";
+import { createCompletionFeatureBuilder, completionEligible, completionEvidence, type CompletionFeatures } from "./completion-features";
 import {
-  DEFAULT_SIGNAL_WEIGHTS, EMPTY_BACKTEST, NEUTRAL_CALIBRATION, SIGNAL_TIERS,
+  DEFAULT_SIGNAL_WEIGHTS, EMPTY_BACKTEST, calibrationFromHistory, errorRadius80,
   predictCompletionDetailed, shrinkToPrior, summarizeBacktest,
-  type BacktestResult, type CompletionEvidence, type PersonalSignal,
+  type BacktestResult, type OutcomeCalibration, type PersonalSignal,
 } from "./model-calibration";
 
 export type SignalWeights = Record<PersonalSignal, number>;
@@ -39,140 +36,95 @@ const MIN_PRIOR_HISTORY = 5;
 /** Eğitim/sınama ayrımı: geçmişin ilk bu kadarı öğrenmeye ayrılır. */
 const TRAIN_SHARE = 0.7;
 
-type Aggregate = { sum: number; count: number };
-
-type RunningGroups = {
-  overall: Aggregate;
-  channel: Map<string, Aggregate>;
-  topic: Map<string, Aggregate>;
-  duration: Map<string, Aggregate>;
-  format: Map<string, Aggregate>;
-};
-
-const emptyGroups = (): RunningGroups => ({
-  overall: { sum: 0, count: 0 },
-  channel: new Map(),
-  topic: new Map(),
-  duration: new Map(),
-  format: new Map(),
-});
-
-function accumulate(map: Map<string, Aggregate>, key: string, value: number) {
-  const current = map.get(key) ?? { sum: 0, count: 0 };
-  current.sum += value;
-  current.count += 1;
-  map.set(key, current);
-}
-
-const observationOf = (aggregate: Aggregate | undefined) =>
-  aggregate && aggregate.count > 0 ? aggregate.sum / aggregate.count : undefined;
-
-/**
- * Bir videonun ait olduğu grup anahtarları. Konu çok değerlidir; kanıt olarak
- * en çok geçmişi olan konu seçilir. Tüm eşleşen konuların toplamını almak,
- * iki konuyu paylaşan videoyu iki kez saymak olurdu.
- */
-function topicKeyWithMostEvidence(video: VideoRecord, groups: RunningGroups): string | undefined {
-  let best: { key: string; count: number } | undefined;
-  for (const topic of video.topics) {
-    const count = groups.topic.get(topic)?.count ?? 0;
-    if (count > 0 && (!best || count > best.count)) best = { key: topic, count };
-  }
-  return best?.key;
-}
-
-/** Kayıt tahmin edilebilir mi: ölçülebilir süre, canlı yayın değil, dışlanmamış. */
-export const trainable = (video: VideoRecord) =>
-  !video.excludedFromAnalytics
-  && !video.isCurrentlyWatching
-  && hasMeasurableDuration(video)
-  && video.contentType !== "livestream";
-
-/** Kronolojik sıraya konmuş, eğitilebilir geçmiş. */
+export const trainable = completionEligible;
 export function trainingOrder(history: VideoRecord[]): VideoRecord[] {
-  return history.filter(trainable).toSorted((a, b) => a.firstSeenAt.localeCompare(b.firstSeenAt));
+  return history.filter(trainable).toSorted((a, b) =>
+    a.firstSeenAt.localeCompare(b.firstSeenAt) || a.videoId.localeCompare(b.videoId));
 }
 
-function evidenceFor(
-  video: VideoRecord,
-  groups: RunningGroups,
-  weights: SignalWeights,
-  reliability: SignalReliability
-): CompletionEvidence[] {
-  const channel = groups.channel.get(channelKey(video.channelName));
-  const topicKey = topicKeyWithMostEvidence(video, groups);
-  const topic = topicKey ? groups.topic.get(topicKey) : undefined;
-  const duration = groups.duration.get(durationBucket(video.durationSeconds));
-  const format = groups.format.get(recordVideoFormat(video));
-  return [
-    {
-      observed: observationOf(channel), sampleCount: channel?.count ?? 0,
-      weight: weights.channel, reliability: reliability.channel, tier: SIGNAL_TIERS.channel,
-    },
-    {
-      observed: observationOf(topic), sampleCount: topic?.count ?? 0,
-      weight: weights.topic, reliability: reliability.topic, tier: SIGNAL_TIERS.topic,
-    },
-    {
-      observed: observationOf(duration), sampleCount: duration?.count ?? 0,
-      weight: weights.duration, reliability: reliability.duration, tier: SIGNAL_TIERS.duration,
-    },
-    {
-      // Başlık sinyali tamamlanma ölçeğinde bir gözlem üretmez (benzerlik ayrı
-      // bir eksendir); ağırlığı formatla birlikte biçimsel kanıta yazılır.
-      observed: observationOf(format), sampleCount: format?.count ?? 0,
-      weight: weights.format + weights.title, reliability: reliability.format, tier: SIGNAL_TIERS.format,
-    },
-  ];
-}
+type PreparedExample = {
+  features: CompletionFeatures; reliability: SignalReliability;
+  calibration: OutcomeCalibration; actual: number; index: number;
+};
+const preparedCache = new WeakMap<VideoRecord[], { examples: PreparedExample[]; reliability: SignalReliability }>();
 
-function learn(groups: RunningGroups, video: VideoRecord) {
-  const actual = clamp(video.completionRate * 100, 0, 100);
-  groups.overall.sum += actual;
-  groups.overall.count += 1;
-  accumulate(groups.channel, channelKey(video.channelName), actual);
-  for (const topic of video.topics) accumulate(groups.topic, topic, actual);
-  accumulate(groups.duration, durationBucket(video.durationSeconds), actual);
-  accumulate(groups.format, recordVideoFormat(video), actual);
+/** Prepare features once, outside coordinate search. All losses use available prefix outcomes. */
+function prepare(ordered: VideoRecord[]) {
+  const cached = preparedCache.get(ordered);
+  if (cached) return cached;
+  const examples: PreparedExample[] = [];
+  const buildCompletionFeatures = createCompletionFeatureBuilder();
+  const reliabilityOf = (before?: string): SignalReliability =>
+    Object.fromEntries(SIGNAL_KEYS.map((key) => {
+      let error = 0;
+      let baselineError = 0;
+      let count = 0;
+      for (const example of examples) {
+        if (before && ordered[example.index].lastSeenAt > before) continue;
+        const part = example.features.observations[key];
+        if (part.observed === undefined || part.sampleCount < 1) continue;
+        error += Math.abs(example.actual - part.observed);
+        baselineError += Math.abs(example.actual - example.features.baseline);
+        count += 1;
+      }
+      // 0.5 now has a measurable meaning: no improvement over the personal baseline.
+      const skill = baselineError > 0 ? clamp(1 - error / baselineError, -1, 1) : 0;
+      return [key, clamp((0.75 * 4 + (0.5 + 0.45 * skill) * count) / (4 + count), 0.2, 0.95)];
+    })) as SignalReliability;
+  for (let index = 0; index < ordered.length; index += 1) {
+    const video = ordered[index];
+    const prior = ordered.slice(0, index).filter((item) => item.lastSeenAt <= video.firstSeenAt);
+    if (prior.length < MIN_PRIOR_HISTORY) continue;
+    examples.push({ features: buildCompletionFeatures(video, prior), reliability: reliabilityOf(video.firstSeenAt),
+      calibration: calibrationFromHistory(prior), actual: clamp(video.completionRate * 100, 0, 100), index });
+  }
+  const result = { examples, reliability: reliabilityOf() };
+  preparedCache.set(ordered, result);
+  return result;
 }
+export const chronologicalReliability = (ordered: VideoRecord[]) => prepare(ordered).reliability;
 
-/**
- * Artımlı geriye dönük sınama. Geçmiş tek geçişte yürünür; her video önce
- * tahmin edilir, sonra sayaçlara işlenir — yani hiçbir kayıt kendi tahminini
- * göremez. `from`/`to` yalnızca hangi kayıtların PUANLANACAĞINI belirler;
- * sayaçlar aralığın dışında da güncellenir ki geçmiş kesintiye uğramasın.
- *
- * Kalibrasyon bilerek uygulanmaz: burada ölçülen, düzeltme öncesi ham modeldir.
- */
+/** Caller-supplied full-history reliability must never leak into historical predictions. */
 export function incrementalBacktest(
-  ordered: VideoRecord[],
-  weights: SignalWeights,
-  reliability: SignalReliability,
-  range: { from?: number; to?: number } = {}
+  ordered: VideoRecord[], weights: SignalWeights, _reliability: SignalReliability,
+  range: { from?: number; to?: number; outcomeBefore?: string; diagnostics?: boolean } = {}
 ): BacktestResult {
-  const from = range.from ?? 0;
-  const to = range.to ?? ordered.length;
-  const groups = emptyGroups();
   const errors: number[] = [];
   const signed: number[] = [];
   const baselineErrors: number[] = [];
-
-  for (let index = 0; index < ordered.length; index += 1) {
-    const video = ordered[index];
-    if (index >= from && index < to && groups.overall.count >= MIN_PRIOR_HISTORY) {
-      const baseline = groups.overall.sum / groups.overall.count;
-      const predicted = predictCompletionDetailed(
-        evidenceFor(video, groups, weights, reliability), baseline, NEUTRAL_CALIBRATION
-      ).value;
-      const actual = clamp(video.completionRate * 100, 0, 100);
-      errors.push(Math.abs(actual - predicted));
-      signed.push(actual - predicted);
-      baselineErrors.push(Math.abs(actual - baseline));
-    }
-    learn(groups, video);
+  const priorErrors: number[] = [];
+  const errorIndices: number[] = [];
+  const bins = Array.from({ length: 10 }, () => ({ signed: 0, count: 0 }));
+  let covered = 0;
+  let intervalCount = 0;
+  for (const example of prepare(ordered).examples) {
+    if (example.index >= (range.to ?? ordered.length)) continue;
+    if (range.outcomeBefore && ordered[example.index].lastSeenAt > range.outcomeBefore) continue;
+    const predicted = predictCompletionDetailed(completionEvidence(example.features, weights, example.reliability),
+      example.features.baseline, example.calibration).value;
+    const error = Math.abs(example.actual - predicted);
+    // Only finalized earlier errors can set an interval at this origin.
+    const availableErrors = range.diagnostics === false ? [] : priorErrors.filter((_, index) =>
+      ordered[errorIndices[index]].lastSeenAt <= ordered[example.index].firstSeenAt);
+    const radius = errorRadius80(availableErrors);
+    priorErrors.push(error);
+    errorIndices.push(example.index);
+    if (example.index < (range.from ?? 0)) continue;
+    if (radius !== undefined) { intervalCount += 1; covered += Number(error <= radius); }
+    const bin = bins[Math.min(9, Math.floor(predicted / 10))];
+    bin.signed += example.actual - predicted;
+    bin.count += 1;
+    errors.push(error);
+    signed.push(example.actual - predicted);
+    baselineErrors.push(Math.abs(example.actual - example.features.baseline));
   }
-
-  return summarizeBacktest(errors, signed, baselineErrors);
+  return { ...summarizeBacktest(errors, signed, baselineErrors),
+    hitRate10: errors.length ? round(errors.filter((error) => error <= 10).length / errors.length, 3) : undefined,
+    calibrationError: errors.length ? round(bins.reduce((sum, bin) => sum + Math.abs(bin.signed), 0) / errors.length, 2) : undefined,
+    interval80Radius: errorRadius80(errors),
+    interval80Coverage: intervalCount ? round(covered / intervalCount, 3) : undefined,
+    intervalSampleCount: intervalCount,
+  };
 }
 
 const normalizeWeights = (weights: SignalWeights): SignalWeights => {
@@ -203,15 +155,15 @@ export type WeightTraining = {
  * Bulunan ağırlıklar varsayılana çekilir: 30 videoluk bir geçmiş, "başlık
  * biçimi kanaldan önemli" gibi büyük bir iddiayı taşıyamaz.
  */
-export function learnSignalWeights(ordered: VideoRecord[], reliability: SignalReliability): WeightTraining {
-  const trainEnd = Math.floor(ordered.length * TRAIN_SHARE);
+export function learnSignalWeights(ordered: VideoRecord[], reliability: SignalReliability, end?: number): WeightTraining {
+  const trainEnd = end ?? Math.floor(ordered.length * TRAIN_SHARE);
   const fallback: WeightTraining = {
     weights: { ...DEFAULT_SIGNAL_WEIGHTS }, learned: false, trainedOn: 0, trainEnd,
   };
   if (ordered.length < MIN_TRAINING_SAMPLES) return fallback;
 
   const objective = (candidate: SignalWeights) =>
-    incrementalBacktest(ordered, candidate, reliability, { to: trainEnd });
+    incrementalBacktest(ordered, candidate, reliability, { to: trainEnd, outcomeBefore: ordered[trainEnd]?.firstSeenAt, diagnostics: false });
 
   let best = { ...DEFAULT_SIGNAL_WEIGHTS };
   let bestResult = objective(best);
@@ -246,11 +198,7 @@ export function learnSignalWeights(ordered: VideoRecord[], reliability: SignalRe
   };
 }
 
-/**
- * Modelin dürüst karnesi: ağırlıkların görmediği son dilimde ölçülen hata ve
- * taban modelle kıyas. Sınama dilimi anlamlı bir örnek taşımıyorsa tüm geçmiş
- * kullanılır — bu durumda ağırlıklar zaten öğrenilmemiş, varsayılandadır.
- */
+/** Öğrenilmiş ağırlıklar yalnızca ayrılmış son dilimde ölçülür; az örnekte eğitim verisine dönülmez. */
 export function evaluateModel(
   ordered: VideoRecord[],
   weights: SignalWeights,
@@ -260,9 +208,7 @@ export function evaluateModel(
   if (!ordered.length) return EMPTY_BACKTEST;
   if (!training.learned) return incrementalBacktest(ordered, weights, reliability);
   const holdout = incrementalBacktest(ordered, weights, reliability, { from: training.trainEnd });
-  return holdout.sampleCount >= MIN_PRIOR_HISTORY
-    ? holdout
-    : incrementalBacktest(ordered, weights, reliability);
+  return holdout;
 }
 
 /** Beceriyi kullanıcıya gösterilecek yüzdeye çevirir. */

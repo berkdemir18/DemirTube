@@ -25,17 +25,8 @@ import { hasMeasurableDuration } from "./completion";
  */
 export const SHRINK_STRENGTH = 4;
 
-/**
- * Yürürlükteki model sürümü. v5, hiyerarşik kanıt birleştirme + öğrenilmiş
- * ağırlık + iki parametreli kalibrasyonla geldi.
- *
- * Eski sürümle üretilmiş tahminler artık tamamen atılmıyor: sürüm değişince
- * aylarca birikmiş sonucun çöpe gitmesi düzeltmeyi her seferinde sıfırdan
- * başlatıyordu. Bunun yerine düşük ağırlıkla sayılıyorlar
- * (`LEGACY_VERSION_WEIGHT`); yeni sürümün kendi sonuçları biriktikçe eskinin
- * etkisi kendiliğinden erir.
- */
-export const CURRENT_MODEL_VERSION = "adaptive-v5";
+/** v6: ortak kanıt hesabı, kronolojik güvenilirlik ve doğrulanabilir tahmin kökeni. */
+export const CURRENT_MODEL_VERSION = "adaptive-v6";
 
 /** Başka sürümle üretilmiş tahminin kalibrasyondaki ağırlığı. */
 export const LEGACY_VERSION_WEIGHT = 0.3;
@@ -143,16 +134,26 @@ const CORRECTION_STRENGTH = 8;
 /** Eğim düzeltmesinin sınırı; kalibrasyon tahmini tersine çeviremez. */
 const MAX_SLOPE = 0.6;
 
-type CalibrationPair = { predicted: number; actual: number; weight: number };
+type CalibrationPair = { predicted: number; delivered: number; actual: number; weight: number };
+
+/** Reject reconstructed or undated predictions; keep auditable legacy pre-watch snapshots. */
+export function hasProspectivePrediction(video: VideoRecord): boolean {
+  const snapshot = video.predictionSnapshot;
+  if (!snapshot || !Number.isFinite(snapshot.estimatedCompletion)) return false;
+  const predictedAt = Date.parse(snapshot.predictedAt);
+  const firstSeen = Date.parse(video.firstSeenAt);
+  const lastSeen = Date.parse(video.lastSeenAt);
+  return !video.isCurrentlyWatching && !video.excludedFromAnalytics
+    && video.contentType !== "livestream" && hasMeasurableDuration(video)
+    && Number.isFinite(video.completionRate) && Number.isFinite(predictedAt)
+    && Number.isFinite(firstSeen) && Number.isFinite(lastSeen)
+    && predictedAt <= lastSeen
+    && predictedAt <= firstSeen + (snapshot.provenance === "first-watch" ? 15_000 : 0);
+}
 
 /** Tahmin–sonuç çifti taşıyan, ölçülebilir ve tamamlanmış kayıtlar. */
 function comparablePairs(videos: VideoRecord[]): CalibrationPair[] {
-  const usable = videos.filter((video) =>
-    !video.isCurrentlyWatching
-    && !video.excludedFromAnalytics
-    && hasMeasurableDuration(video)
-    && video.contentType !== "livestream"
-    && video.predictionSnapshot?.estimatedCompletion !== undefined);
+  const usable = videos.filter(hasProspectivePrediction);
 
   // Tazelik ölçüsü duvar saatine değil geçmişin kendi son kaydına bağlanır;
   // aynı geçmiş bir hafta sonra farklı kalibrasyon üretmesin.
@@ -168,7 +169,8 @@ function comparablePairs(videos: VideoRecord[]): CalibrationPair[] {
     const ageDays = Number.isFinite(seen) ? Math.max(0, (anchor - seen) / 86_400_000) : 0;
     const versionWeight = snapshot.modelVersion === CURRENT_MODEL_VERSION ? 1 : LEGACY_VERSION_WEIGHT;
     return {
-      predicted: clamp(snapshot.estimatedCompletion!, 0, 100),
+      predicted: clamp(Number.isFinite(snapshot.rawEstimatedCompletion) ? snapshot.rawEstimatedCompletion! : snapshot.estimatedCompletion!, 0, 100),
+      delivered: clamp(snapshot.estimatedCompletion!, 0, 100),
       actual: clamp(video.completionRate * 100, 0, 100),
       weight: versionWeight * Math.exp(-ageDays / CALIBRATION_DECAY_DAYS),
     };
@@ -196,10 +198,10 @@ export function calibrationFromHistory(videos: VideoRecord[]): OutcomeCalibratio
   const rawIntercept = weightedMedian(residual.map((value, index) => value - rawSlope * centered[index]), weights);
 
   const meanAbsoluteError = round(
-    pairs.reduce((sum, pair) => sum + Math.abs(pair.actual - pair.predicted) * pair.weight, 0) / totalWeight, 1
+    pairs.reduce((sum, pair) => sum + Math.abs(pair.actual - pair.delivered) * pair.weight, 0) / totalWeight, 1
   );
   const hitRate = round(
-    pairs.reduce((sum, pair) => sum + (Math.abs(pair.actual - pair.predicted) <= 20 ? pair.weight : 0), 0) / totalWeight, 2
+    pairs.reduce((sum, pair) => sum + (Math.abs(pair.actual - pair.delivered) <= 20 ? pair.weight : 0), 0) / totalWeight, 2
   );
 
   // Etkin örnek arttıkça düzeltme güçlenir; üç kayıtla model kendini yeniden yazmaz.
@@ -242,7 +244,7 @@ export type CompletionEvidence = {
 };
 
 /**
- * Güvenilirliği kanıt gücüne çevirir. 0.5 "peer'lar birbirini hiç tutmuyor"
+ * Güvenilirliği kanıt gücüne çevirir. 0.5 "sinyal kişisel ortalamadan daha iyi tahmin etmiyor"
  * demektir ve o sinyal tahmine hiç girmemelidir; bilgi taşımayan sinyalleri
  * eşit ağırlıkla saymak tahmini kişisel ortalamaya sürüklüyordu.
  */
@@ -321,6 +323,11 @@ export function predictCompletion(
 }
 
 export type BacktestResult = {
+  hitRate10?: number;
+  calibrationError?: number;
+  interval80Radius?: number;
+  interval80Coverage?: number;
+  intervalSampleCount?: number;
   /** Tahmin üretilebilen kayıt sayısı. */
   sampleCount: number;
   meanAbsoluteError: number;
@@ -337,6 +344,13 @@ export type BacktestResult = {
    */
   skill: number;
 };
+
+/** Empirical 80% absolute-error quantile; no interval before ten outcomes. */
+export function errorRadius80(errors: number[]): number | undefined {
+  if (errors.length < 10) return undefined;
+  const sorted = errors.toSorted((a, b) => a - b);
+  return Math.ceil(sorted[Math.min(sorted.length - 1, Math.ceil((sorted.length + 1) * 0.8) - 1)]);
+}
 
 export const EMPTY_BACKTEST: BacktestResult = {
   sampleCount: 0, meanAbsoluteError: 0, medianAbsoluteError: 0,

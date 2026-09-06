@@ -178,17 +178,27 @@ ortalama tamamlama × 0.35
 
 Sonuç Bayesyen yumuşatmadan geçer: az videolu bir kanal evrensel bir öncüle değil, kullanıcının kendi geçmiş ortalamasına çekilir.
 
-Video tercih tahmini; kanal, konu, süre kovası, başlık kelimeleri ve doğrulanmış video formatını kullanır. Adaptif kişisel model (`adaptive-v5`) bu beş sinyalin ağırlığını sabit bir tablodan okumaz: geçmişi kronolojik yürütüp ortalama mutlak hatayı en aza indiren ağırlık vektörünü koordinat inişiyle arar. Ağırlıklar geçmişin ilk %70'inde öğrenilir, hata dokunulmamış son %30'da ölçülür ve "hep kişisel ortalamayı söyle" diyen taban modelle kıyaslanır; model tabanı yenemiyorsa bu saklanmaz, arayüzde söylenir ve tahmin tabana doğru harmanlanır.
+Video tercih tahmini; kanal, konu, süre kovası, başlık kelimeleri ve doğrulanmış video formatını kullanır. Adaptif kişisel model (`adaptive-v6`) bu beş sinyalin ağırlığını sabit bir tablodan okumaz: geçmişi kronolojik yürütüp ortalama mutlak hatayı en aza indiren ağırlık vektörünü koordinat inişiyle arar. Ağırlıklar geçmişin ilk %70'inde öğrenilir, hata dokunulmamış son %30'da ölçülür ve "hep kişisel ortalamayı söyle" diyen taban modelle kıyaslanır; model tabanı yenemiyorsa bu saklanmaz, arayüzde söylenir ve ölçülen tahmin sonradan başka bir formülle değiştirilmez.
 
 ![Akıllı Merkez: model ağırlıkları, taban çizgisi kıyası ve seçim yanlılığı ölçümü](docs/intelligence-hub.png)
 
-Tamamlanma tahmininde kanıtlar bağımsız sayılmaz. Kanal, konu, format ve süre büyük ölçüde aynı videolardan geldiği için her katman bir alttakinin tahminini öncül alır: kişisel taban → süre/format → konu → kanal. Kalibrasyon iki parametrelidir; sabit sapmanın yanında tahmin seviyesine bağlı eğim de ölçülür ve kanıt 90 günlük ölçekle sönümlenir. Yerel video zekâsı ayrıca açıklama, hashtag, içerik amacı, bölüm yapısı, odak yükü, zamana duyarlılık ve erişilebilir altyazıyı yorumlar. En az iki kişisel sinyal yoksa uygunluk puanı üretmez; fakat video yapısının ön analizini düşük güven etiketiyle sunar.
+Tamamlanma tahmininde kanıtlar bağımsız sayılmaz. Kanal, konu, format ve süre büyük ölçüde aynı videolardan geldiği için her katman bir alttakinin tahminini öncül alır: kişisel taban → süre/format → konu/başlık → kanal. Kalibrasyon iki parametrelidir; sabit sapmanın yanında tahmin seviyesine bağlı eğim de ölçülür ve kanıt 90 günlük ölçekle sönümlenir. Yerel video zekâsı ayrıca açıklama, hashtag, içerik amacı, bölüm yapısı, odak yükü, zamana duyarlılık ve erişilebilir altyazıyı yorumlar. Beş önceki ölçülebilir kayıt yoksa uygunluk puanı üretmez; video yapısının ön analizi yine sunulur.
 
 Altyazı zekâsı yalnızca YouTube'un erişilebilir kıldığı altyazıyı kullanır ve altyazı ayarı açıkken seçili yerel/Groq analiz modundan bağımsız çalışır. `document_start` aşamasında çalışan küçük MAIN-world köprüsü, güncel SPA oynatıcısındaki altyazı izlerini izole içerik script'ine güvenli ve sınırlı mesajlarla aktarır. Köprü sonuç vermezse görünür transkript, sayfa script'i ve aynı kökenden video sayfası sırasıyla yedek olarak denenir. İzler geç yayınlanırsa DemirTube gecikmeli olarak yeniden dener; Türkçe ve insan üretimi altyazıyı önceleyip boş sonuçta diğer track'lere geçer. Timedtext içeriği, sayfa CORS kısıtlarından etkilenmemesi için yalnızca doğrulanmış `youtube.com/api/timedtext` adreslerine izin veren service worker üzerinden okunur; yanıt boyutu 4 MB ile sınırlıdır. JSON3 ve XML zamanlı metin yanıtları desteklenir. Ham altyazı kalıcı depoya veya buluta yazılmaz; yalnızca kelime sayısı, anahtar kavramlar, yoğunluk, tekrar, vaat kapsamı ve önemli zaman damgaları saklanır. Altyazı yoksa analiz diğer metadata ve davranış sinyalleriyle devam eder.
 
 Video formatı sınıflandırması; ders, kurs bölümü, canlı kodlama, ekran demosu, vaka analizi, derin analiz, liste, soru-cevap, tartışma, panel, video deneme, hikâye, kutu açılımı, ilk bakış, walkthrough, derleme, kamera arkası, webinar, ASMR/ortam ve canlı performans gibi ayrıntılı biçimleri de ayırır. Kullanıcı tahmini panelden düzelttiğinde doğrulanan format sonraki kişisel tahminlere katılır.
 
 Tercih puanı, kullanıcının genel tamamlama tabanına göre kalibre edilir. Az örnekli sinyaller nötre yakın tutulurken tekrar eden güçlü ve zayıf eşleşmeler daha geniş puan aralığına yayılır; seçili izleme amacı kişisel dağılımı ezmeden sınırlı bir düzeltme uygular.
+
+## Tahmin motorunu ölçme
+
+`npm run eval:model`; süre örüntüsü, gürültü ve alışkanlık değişimi senaryolarını üç ayrı kronolojik test diliminde çalıştırır. Sonuç `test-results/model-evaluation.json` dosyasına yazılır. Kendi dışa aktarımını yerel olarak ölçmek için:
+
+```powershell
+npm run eval:model -- --input "C:\veriler\demirtube-export.json" --output "test-results/kisisel-model.json"
+```
+
+Rapor eğitim/test MAE, kişisel ortalama tabanı, beceri, ±10/±20 isabet, 10 puanlık tahmin gruplarında kalibrasyon hatası ve geçmiş hatalardan hesaplanan %80 hedefli aralığın kapsamasını içerir. Sentetik sonuçlar kişisel başarı oranı değildir. Ayrıntılar: [v6 model notları](docs/prediction-engine-v6.md).
 
 ## Gizlilik
 

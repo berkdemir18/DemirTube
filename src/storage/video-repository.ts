@@ -63,6 +63,18 @@ export const videoRepository = {
   async rebuild(metadata: VideoMetadata, sessions: WatchSession[], feedback?: UserVideoFeedback): Promise<VideoRecord> {
     const existing = await this.get(metadata.videoId);
     const resolved = resolveVideoMetadata(metadata, existing);
+    // Imported/legacy summaries have no sessions from which to reconstruct outcomes.
+    if (existing && !sessions.length) {
+      const preserved: VideoRecord = {
+        ...existing, ...resolved,
+        topics: feedback?.manualTopics?.length ? feedback.manualTopics : resolved.topics,
+        contentType: feedback?.manualContentType ?? resolved.contentType,
+        videoFormat: feedback?.manualVideoFormat ?? existing.videoFormat,
+        excludedFromAnalytics: feedback?.excludedFromAnalytics ?? existing.excludedFromAnalytics,
+      };
+      await withDatabase((database) => database.put("videos", preserved));
+      return preserved;
+    }
     const playback = calculatePlaybackMetrics(sessions, resolved.durationSeconds);
     const latest = sessions.toSorted((a, b) => (b.updatedAt ?? b.startedAt).localeCompare(a.updatedAt ?? a.startedAt))[0];
     const isCurrentlyWatching = sessions.some((session) => session.active);
@@ -98,14 +110,21 @@ export const videoRepository = {
       totalActiveWatchSeconds: playback.totalActiveWatchSeconds
     });
     let prediction = existing?.predictionSnapshot;
-    if (!prediction) {
-      const preference = calculatePreference(resolved, await this.all());
+    const firstSession = sessions.toSorted((a, b) => a.startedAt.localeCompare(b.startedAt))[0];
+    const predictionTime = new Date().toISOString();
+    const openingAge = Date.parse(predictionTime) - Date.parse(firstSession?.startedAt ?? "");
+    if (!existing && !prediction && sessions.length === 1 && firstSession?.active
+      && openingAge >= 0 && openingAge <= 15_000 && playback.totalActiveWatchSeconds <= 15) {
+      const prior = (await this.all()).filter((video) => video.lastSeenAt <= firstSession.startedAt);
+      const preference = calculatePreference(resolved, prior);
       prediction = {
         score: preference.score,
         estimatedCompletion: preference.estimatedCompletion,
+        rawEstimatedCompletion: preference.rawEstimatedCompletion,
+        provenance: "first-watch",
         confidence: preference.model.confidence,
         modelVersion: preference.model.version,
-        predictedAt: new Date().toISOString(),
+        predictedAt: predictionTime,
         signals: [
           ...preference.explanation.slice(0, 2),
           ...preference.intelligence.signals.slice(0, 2).map((signal) => signal.label)
@@ -137,7 +156,8 @@ export const videoRepository = {
       isCurrentlyWatching,
       excludedFromAnalytics: feedback?.excludedFromAnalytics ?? false,
       predictionSnapshot: prediction,
-      cloudAnalysis: existing?.cloudAnalysis
+      cloudAnalysis: existing?.cloudAnalysis,
+      source: "tracked"
     };
     await withDatabase((database) => database.put("videos", record));
     return record;

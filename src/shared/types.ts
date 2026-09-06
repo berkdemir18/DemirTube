@@ -112,6 +112,8 @@ export type TranscriptAnalysis = {
 export type PredictionSnapshot = {
   score?: number;
   estimatedCompletion?: number;
+  rawEstimatedCompletion?: number;
+  provenance?: "first-watch";
   confidence: Confidence;
   modelVersion: string;
   predictedAt: string;
