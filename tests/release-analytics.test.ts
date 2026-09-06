@@ -474,7 +474,7 @@ describe("0.6 akıllı yardımcı", () => {
         estimatedCompletion: 72 + index,
         confidence: "medium" as const,
         modelVersion: "adaptive-v1",
-        predictedAt: "",
+        predictedAt: video.firstSeenAt,
         signals: ["konu"]
       }
     }));

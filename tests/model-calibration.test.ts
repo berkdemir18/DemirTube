@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   NEUTRAL_CALIBRATION, applyCalibration, backtestCompletion, calibrationFromHistory,
   evidenceWeight, median, shrinkToPrior, weightedMedian,
+  hasProspectivePrediction, errorRadius80,
 } from "../src/analytics/model-calibration";
 import { calculatePreference, predictCompletion } from "../src/analytics/preference-score";
 import { derivePersonalModel } from "../src/analytics/personal-model";
@@ -91,12 +92,41 @@ describe("kalibrasyon yardımcıları", () => {
   });
 });
 
+describe("v6 tahmin kökeni", () => {
+  it("sonradan üretilmiş, geçersiz ve aktif tahminleri dışlar", () => {
+    const legitimate = watched("safe", .8, { predictionSnapshot: {
+      estimatedCompletion: 70, confidence: "medium", modelVersion: "adaptive-v6",
+      predictedAt: new Date(BASE).toISOString(), signals: [],
+    } });
+    expect(hasProspectivePrediction(legitimate)).toBe(true);
+    for (const predictedAt of ["invalid", new Date(BASE + DAY).toISOString()]) {
+      expect(hasProspectivePrediction({ ...legitimate, predictionSnapshot: { ...legitimate.predictionSnapshot!, predictedAt } })).toBe(false);
+    }
+    expect(calibrationFromHistory([{ ...legitimate, isCurrentlyWatching: true }]).sampleCount).toBe(0);
+  });
+
+  it("kalibrasyon ham tahmini düzeltirken doğruluğu gösterilen tahminle ölçer", () => {
+    const history = Array.from({ length: 12 }, (_, index) => watched(`raw${index}`, .7, {
+      predictionSnapshot: { estimatedCompletion: 70, rawEstimatedCompletion: 50, confidence: "medium",
+        modelVersion: "adaptive-v6", predictedAt: new Date(BASE).toISOString(), signals: [] },
+    }));
+    const calibration = calibrationFromHistory(history);
+    expect(calibration.meanAbsoluteError).toBe(0);
+    expect(calibration.correction).toBeGreaterThan(0);
+  });
+
+  it("belirsizliği az örnekte uydurmaz, ampirik yüzde 80 hata sınırını kullanır", () => {
+    expect(errorRadius80([1, 2, 3])).toBeUndefined();
+    expect(errorRadius80([1, 2, 3, 4, 5, 6, 7, 8, 9, 100])).toBe(9);
+  });
+});
+
 describe("sonuç kalibrasyonu", () => {
   const withSnapshot = (videoId: string, predicted: number, actual: number) =>
     watched(videoId, actual / 100, {
       predictionSnapshot: {
         estimatedCompletion: predicted, confidence: "medium",
-        modelVersion: "adaptive-v5", predictedAt: new Date(BASE).toISOString(), signals: [],
+        modelVersion: "adaptive-v6", predictedAt: new Date(BASE).toISOString(), signals: [],
       },
     });
 
@@ -239,7 +269,7 @@ describe("tahmin motorunun tutarlılığı", () => {
 
   it("modeli kalibrasyonuyla birlikte raporlar", () => {
     const model = derivePersonalModel(history);
-    expect(model.version).toBe("adaptive-v5");
+    expect(model.version).toBe("adaptive-v6");
     expect(model.calibration).toBeDefined();
     expect(Object.values(model.weights).reduce((sum, value) => sum + value, 0)).toBeCloseTo(1, 2);
   });

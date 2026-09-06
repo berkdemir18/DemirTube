@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build && node scripts/build-extension.mjs",
     "typecheck": "tsc -b",
-    "test": "vitest run --exclude tests/browser/**",
+    "test": "vitest run --exclude tests/browser/** --exclude **/.claude/**",
+    "eval:model": "node scripts/evaluate-model.mjs",
     "test:watch": "vitest",
     "test:browser": "playwright test"
   },

@@ -1,6 +1,6 @@
 import type { Confidence, UserVideoFeedback, VideoRecord, WatchSession } from "../shared/types";
 import { derivePersonalModel, strongestModelSignal } from "./personal-model";
-import { calibrationFromHistory, type BacktestResult } from "./model-calibration";
+import { hasProspectivePrediction, calibrationFromHistory, type BacktestResult } from "./model-calibration";
 import { skillPercent } from "./model-training";
 import { analyzeVideoIntelligence } from "./video-intelligence";
 import { evidenceLevel } from "./evidence";
@@ -187,9 +187,7 @@ export function revisitRecommendations(videos: VideoRecord[], now = new Date()):
 }
 
 export function predictionAccuracy(videos: VideoRecord[]): PredictionAccuracy {
-  const samples = videos.filter((video) =>
-    !video.isCurrentlyWatching && video.predictionSnapshot?.estimatedCompletion !== undefined
-  );
+  const samples = videos.filter(hasProspectivePrediction).toSorted((a, b) => a.lastSeenAt.localeCompare(b.lastSeenAt));
   const errors = samples.map((video) =>
     Math.abs((video.predictionSnapshot?.estimatedCompletion ?? 0) - video.completionRate * 100)
   );

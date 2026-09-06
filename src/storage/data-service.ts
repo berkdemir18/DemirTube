@@ -176,7 +176,7 @@ async function migrateLegacySummaries() {
   const videos = await videoRepository.all();
   if (videos.some((video) =>
     video.totalActiveWatchSeconds === undefined || !video.contentType
-    || video.engagementScore === undefined || video.predictionSnapshot === undefined
+    || video.engagementScore === undefined
   )) {
     await rebuildAllVideoSummaries();
   }

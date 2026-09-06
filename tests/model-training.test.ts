@@ -7,6 +7,10 @@ import {
   type SignalReliability,
 } from "../src/analytics/model-training";
 import { derivePersonalModel } from "../src/analytics/personal-model";
+import { buildCompletionFeatures, completionEvidence } from "../src/analytics/completion-features";
+import { calculatePreference } from "../src/analytics/preference-score";
+import { calibrationFromHistory, predictCompletionDetailed } from "../src/analytics/model-calibration";
+import { chronologicalReliability } from "../src/analytics/model-training";
 import type { VideoRecord } from "../src/shared/types";
 
 const DAY = 86_400_000;
@@ -145,5 +149,44 @@ describe("maliyet", () => {
     expect(model.weightsLearned).toBe(true);
     expect(elapsed).toBeLessThan(4_000);
     // Ölçüm (geliştirme makinesinde): ~270 ms; sınır CI için geniş bırakıldı.
+  });
+});
+
+describe("v6 kronolojik güvenlik", () => {
+  it("sonraki sonuçlar eğitim ağırlıklarını veya önceki ölçümü değiştirmez", () => {
+    const original = trainingOrder(durationDriven);
+    const changed = original.map((video, index) => index >= 42
+      ? { ...video, completionRate: 1 - video.completionRate, topics: ["Oyun"] as VideoRecord["topics"] } : video);
+    expect(learnSignalWeights(changed, reliability).weights).toEqual(learnSignalWeights(original, reliability).weights);
+    expect(incrementalBacktest(changed, DEFAULT_SIGNAL_WEIGHTS, reliability, { to: 42 }))
+      .toEqual(incrementalBacktest(original, DEFAULT_SIGNAL_WEIGHTS, reliability, { to: 42 }));
+  });
+
+  it("gelecekte yeniden izlenmiş kayıtları önceki tahminin kanıtına katmaz", () => {
+    const history = durationDriven.slice(0, 10).map((video) => ({ ...video, lastSeenAt: new Date(BASE + 100 * DAY).toISOString() }));
+    expect(incrementalBacktest(trainingOrder(history), DEFAULT_SIGNAL_WEIGHTS, reliability).sampleCount).toBe(0);
+  });
+
+  it("canlı tahmin ve tek adımlık backtest aynı sonucu üretir", () => {
+    const ordered = trainingOrder(durationDriven.slice(0, 20));
+    const prior = ordered.slice(0, -1);
+    const candidate = ordered.at(-1)!;
+    const model = { ...derivePersonalModel(prior), weights: DEFAULT_SIGNAL_WEIGHTS,
+      reliability: chronologicalReliability(prior), calibration: calibrationFromHistory(prior) };
+    const live = calculatePreference(candidate, prior, model).estimatedCompletion!;
+    const tested = incrementalBacktest(ordered, DEFAULT_SIGNAL_WEIGHTS, reliability, { from: 19 });
+    expect(tested.meanAbsoluteError).toBeCloseTo(Math.abs(candidate.completionRate * 100 - live), 1);
+  });
+
+  it("başlık ayrı tamamlanma kanıtı üretir ve format ağırlığını değiştirmez", () => {
+    const prior = Array.from({ length: 20 }, (_, index) => record(index, index % 2 ? 0.1 : 0.9,
+      { title: index % 2 ? "rastgele sohbet" : "kuantum fiziği", channelName: `Kanal ${index}` }));
+    const features = buildCompletionFeatures(record(21, 0, { title: "kuantum fiziği" }), prior);
+    expect(features.observations.title.observed).toBeCloseTo(90);
+    const a = completionEvidence(features, DEFAULT_SIGNAL_WEIGHTS, reliability);
+    const b = completionEvidence(features, { ...DEFAULT_SIGNAL_WEIGHTS, title: 0.8 }, reliability);
+    expect(a[3]).toEqual(b[3]);
+    expect(predictCompletionDetailed(b, features.baseline, calibrationFromHistory([])).value)
+      .toBeGreaterThan(predictCompletionDetailed(a, features.baseline, calibrationFromHistory([])).value);
   });
 });

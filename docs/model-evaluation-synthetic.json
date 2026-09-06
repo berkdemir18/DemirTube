@@ -1,0 +1,397 @@
+{
+  "modelVersion": "adaptive-v6",
+  "dataset": "synthetic",
+  "note": "Conditional completion only. Synthetic results do not establish real-user accuracy. Intervals target 80%; coverage is measured separately.",
+  "results": {
+    "duration": {
+      "inputCount": 120,
+      "evaluatedCount": 120,
+      "elapsedMs": 1321,
+      "folds": [
+        {
+          "from": 48,
+          "to": 72,
+          "weights": {
+            "channel": 0.12678078523253375,
+            "topic": 0.10557683405117953,
+            "duration": 0.355900525978998,
+            "title": 0.05144505487459016,
+            "format": 0.36029679986269847
+          },
+          "learned": true,
+          "train": {
+            "sampleCount": 43,
+            "meanAbsoluteError": 17.8,
+            "medianAbsoluteError": 16.5,
+            "hitRate": 0.72,
+            "meanSignedError": -1.3,
+            "baselineMeanAbsoluteError": 38.8,
+            "skill": 0.542,
+            "hitRate10": 0,
+            "calibrationError": 17.78,
+            "interval80Radius": 23,
+            "interval80Coverage": 1,
+            "intervalSampleCount": 33
+          },
+          "holdout": {
+            "sampleCount": 24,
+            "meanAbsoluteError": 10.5,
+            "medianAbsoluteError": 10.4,
+            "hitRate": 1,
+            "meanSignedError": 0,
+            "baselineMeanAbsoluteError": 38.1,
+            "skill": 0.724,
+            "hitRate10": 0.333,
+            "calibrationError": 10.49,
+            "interval80Radius": 12,
+            "interval80Coverage": 1,
+            "intervalSampleCount": 24
+          },
+          "generalizationGap": -7.3
+        },
+        {
+          "from": 72,
+          "to": 96,
+          "weights": {
+            "channel": 0.1023186767530889,
+            "topic": 0.08076003913526349,
+            "duration": 0.400512935953761,
+            "title": 0.040927470701235556,
+            "format": 0.3754808774566511
+          },
+          "learned": true,
+          "train": {
+            "sampleCount": 67,
+            "meanAbsoluteError": 14.1,
+            "medianAbsoluteError": 12.2,
+            "hitRate": 0.87,
+            "meanSignedError": -0.8,
+            "baselineMeanAbsoluteError": 38.5,
+            "skill": 0.634,
+            "hitRate10": 0.269,
+            "calibrationError": 14.11,
+            "interval80Radius": 19,
+            "interval80Coverage": 1,
+            "intervalSampleCount": 57
+          },
+          "holdout": {
+            "sampleCount": 24,
+            "meanAbsoluteError": 8.1,
+            "medianAbsoluteError": 8.1,
+            "hitRate": 1,
+            "meanSignedError": 0,
+            "baselineMeanAbsoluteError": 38,
+            "skill": 0.786,
+            "hitRate10": 1,
+            "calibrationError": 8.12,
+            "interval80Radius": 9,
+            "interval80Coverage": 1,
+            "intervalSampleCount": 24
+          },
+          "generalizationGap": -6
+        },
+        {
+          "from": 96,
+          "to": 120,
+          "weights": {
+            "channel": 0.0998868087071626,
+            "topic": 0.06996142564893587,
+            "duration": 0.4078436346637608,
+            "title": 0.03995472348286504,
+            "format": 0.3823534074972758
+          },
+          "learned": true,
+          "train": {
+            "sampleCount": 91,
+            "meanAbsoluteError": 12.2,
+            "medianAbsoluteError": 10,
+            "hitRate": 0.9,
+            "meanSignedError": -0.6,
+            "baselineMeanAbsoluteError": 38.4,
+            "skill": 0.682,
+            "hitRate10": 0.505,
+            "calibrationError": 12.21,
+            "interval80Radius": 17,
+            "interval80Coverage": 1,
+            "intervalSampleCount": 81
+          },
+          "holdout": {
+            "sampleCount": 24,
+            "meanAbsoluteError": 7.1,
+            "medianAbsoluteError": 7.1,
+            "hitRate": 1,
+            "meanSignedError": 0,
+            "baselineMeanAbsoluteError": 38,
+            "skill": 0.812,
+            "hitRate10": 1,
+            "calibrationError": 7.14,
+            "interval80Radius": 8,
+            "interval80Coverage": 1,
+            "intervalSampleCount": 24
+          },
+          "generalizationGap": -5.1
+        }
+      ]
+    },
+    "noise": {
+      "inputCount": 120,
+      "evaluatedCount": 120,
+      "elapsedMs": 223,
+      "folds": [
+        {
+          "from": 48,
+          "to": 72,
+          "weights": {
+            "channel": 0.3,
+            "topic": 0.27,
+            "duration": 0.15999999999999998,
+            "title": 0.12,
+            "format": 0.15
+          },
+          "learned": true,
+          "train": {
+            "sampleCount": 43,
+            "meanAbsoluteError": 27.1,
+            "medianAbsoluteError": 27.1,
+            "hitRate": 0.33,
+            "meanSignedError": 10.7,
+            "baselineMeanAbsoluteError": 26.9,
+            "skill": -0.008,
+            "hitRate10": 0.093,
+            "calibrationError": 13.13,
+            "interval80Radius": 41,
+            "interval80Coverage": 0.333,
+            "intervalSampleCount": 33
+          },
+          "holdout": {
+            "sampleCount": 24,
+            "meanAbsoluteError": 28.9,
+            "medianAbsoluteError": 30.8,
+            "hitRate": 0.29,
+            "meanSignedError": 9.7,
+            "baselineMeanAbsoluteError": 28.9,
+            "skill": 0,
+            "hitRate10": 0.125,
+            "calibrationError": 12.28,
+            "interval80Radius": 42,
+            "interval80Coverage": 0.708,
+            "intervalSampleCount": 24
+          },
+          "generalizationGap": 1.8
+        },
+        {
+          "from": 72,
+          "to": 96,
+          "weights": {
+            "channel": 0.26119136155606404,
+            "topic": 0.36443435354691084,
+            "duration": 0.13930205949656752,
+            "title": 0.10447654462242563,
+            "format": 0.13059568077803202
+          },
+          "learned": true,
+          "train": {
+            "sampleCount": 67,
+            "meanAbsoluteError": 27.7,
+            "medianAbsoluteError": 28.2,
+            "hitRate": 0.31,
+            "meanSignedError": 10.3,
+            "baselineMeanAbsoluteError": 27.6,
+            "skill": -0.005,
+            "hitRate10": 0.104,
+            "calibrationError": 12.82,
+            "interval80Radius": 42,
+            "interval80Coverage": 0.491,
+            "intervalSampleCount": 57
+          },
+          "holdout": {
+            "sampleCount": 24,
+            "meanAbsoluteError": 18,
+            "medianAbsoluteError": 18.2,
+            "hitRate": 0.54,
+            "meanSignedError": 4,
+            "baselineMeanAbsoluteError": 18,
+            "skill": 0.001,
+            "hitRate10": 0.25,
+            "calibrationError": 3.97,
+            "interval80Radius": 30,
+            "interval80Coverage": 1,
+            "intervalSampleCount": 24
+          },
+          "generalizationGap": -9.7
+        },
+        {
+          "from": 96,
+          "to": 120,
+          "weights": {
+            "channel": 0.3,
+            "topic": 0.27,
+            "duration": 0.16000000000000003,
+            "title": 0.12,
+            "format": 0.15
+          },
+          "learned": true,
+          "train": {
+            "sampleCount": 91,
+            "meanAbsoluteError": 25.2,
+            "medianAbsoluteError": 25.5,
+            "hitRate": 0.37,
+            "meanSignedError": 8.7,
+            "baselineMeanAbsoluteError": 25.1,
+            "skill": -0.004,
+            "hitRate10": 0.143,
+            "calibrationError": 9.01,
+            "interval80Radius": 39,
+            "interval80Coverage": 0.642,
+            "intervalSampleCount": 81
+          },
+          "holdout": {
+            "sampleCount": 24,
+            "meanAbsoluteError": 25.2,
+            "medianAbsoluteError": 24.9,
+            "hitRate": 0.46,
+            "meanSignedError": -9.4,
+            "baselineMeanAbsoluteError": 25.2,
+            "skill": -0.001,
+            "hitRate10": 0.292,
+            "calibrationError": 9.35,
+            "interval80Radius": 43,
+            "interval80Coverage": 0.75,
+            "intervalSampleCount": 24
+          },
+          "generalizationGap": 0
+        }
+      ]
+    },
+    "drift": {
+      "inputCount": 120,
+      "evaluatedCount": 120,
+      "elapsedMs": 233,
+      "folds": [
+        {
+          "from": 48,
+          "to": 72,
+          "weights": {
+            "channel": 0.11733715374647566,
+            "topic": 0.10524340045168354,
+            "duration": 0.3664842866110939,
+            "title": 0.05045370050020851,
+            "format": 0.36048145869053844
+          },
+          "learned": true,
+          "train": {
+            "sampleCount": 43,
+            "meanAbsoluteError": 16.5,
+            "medianAbsoluteError": 15.3,
+            "hitRate": 0.81,
+            "meanSignedError": -1.2,
+            "baselineMeanAbsoluteError": 36.2,
+            "skill": 0.545,
+            "hitRate10": 0,
+            "calibrationError": 16.49,
+            "interval80Radius": 21,
+            "interval80Coverage": 1,
+            "intervalSampleCount": 33
+          },
+          "holdout": {
+            "sampleCount": 24,
+            "meanAbsoluteError": 31.9,
+            "medianAbsoluteError": 29,
+            "hitRate": 0.5,
+            "meanSignedError": 0.1,
+            "baselineMeanAbsoluteError": 35.5,
+            "skill": 0.101,
+            "hitRate10": 0.167,
+            "calibrationError": 21.68,
+            "interval80Radius": 55,
+            "interval80Coverage": 0.5,
+            "intervalSampleCount": 24
+          },
+          "generalizationGap": 15.4
+        },
+        {
+          "from": 72,
+          "to": 96,
+          "weights": {
+            "channel": 0.09540389196512722,
+            "topic": 0.08180297306446695,
+            "duration": 0.4001172839281648,
+            "title": 0.04756589735958662,
+            "format": 0.37510995368265443
+          },
+          "learned": true,
+          "train": {
+            "sampleCount": 67,
+            "meanAbsoluteError": 21.4,
+            "medianAbsoluteError": 14.1,
+            "hitRate": 0.72,
+            "meanSignedError": -0.7,
+            "baselineMeanAbsoluteError": 36,
+            "skill": 0.405,
+            "hitRate10": 0.179,
+            "calibrationError": 4.11,
+            "interval80Radius": 34,
+            "interval80Coverage": 0.789,
+            "intervalSampleCount": 57
+          },
+          "holdout": {
+            "sampleCount": 24,
+            "meanAbsoluteError": 36.9,
+            "medianAbsoluteError": 36.3,
+            "hitRate": 0,
+            "meanSignedError": 0.1,
+            "baselineMeanAbsoluteError": 35.5,
+            "skill": -0.041,
+            "hitRate10": 0,
+            "calibrationError": 11.68,
+            "interval80Radius": 42,
+            "interval80Coverage": 0.958,
+            "intervalSampleCount": 24
+          },
+          "generalizationGap": 15.5
+        },
+        {
+          "from": 96,
+          "to": 120,
+          "weights": {
+            "channel": 0.08459709380654686,
+            "topic": 0.0703043724185117,
+            "duration": 0.37683880902594935,
+            "title": 0.045199689710005736,
+            "format": 0.4230600350389864
+          },
+          "learned": true,
+          "train": {
+            "sampleCount": 91,
+            "meanAbsoluteError": 25.3,
+            "medianAbsoluteError": 18.1,
+            "hitRate": 0.54,
+            "meanSignedError": -0.5,
+            "baselineMeanAbsoluteError": 35.8,
+            "skill": 0.295,
+            "hitRate10": 0.176,
+            "calibrationError": 3.78,
+            "interval80Radius": 42,
+            "interval80Coverage": 0.84,
+            "intervalSampleCount": 81
+          },
+          "holdout": {
+            "sampleCount": 24,
+            "meanAbsoluteError": 24.8,
+            "medianAbsoluteError": 24.6,
+            "hitRate": 0,
+            "meanSignedError": 0.1,
+            "baselineMeanAbsoluteError": 35.4,
+            "skill": 0.3,
+            "hitRate10": 0,
+            "calibrationError": 24.8,
+            "interval80Radius": 28,
+            "interval80Coverage": 1,
+            "intervalSampleCount": 24
+          },
+          "generalizationGap": -0.5
+        }
+      ]
+    }
+  }
+}
