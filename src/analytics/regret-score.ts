@@ -28,6 +28,11 @@ export function analyzeRegret(input: RegretInput): RegretResult {
   if (input.totalActiveWatchSeconds < 10 && feedback?.clickbait !== true) {
     return result(0, ["10 saniyenin altındaki açılış puanlanmadı."], "low", false);
   }
+  const reason = input.leaveReason ?? feedback?.reason;
+  if (feedback?.clickbait !== true && reason !== "misleading_title") {
+    if (reason === "answer_found") return result(0, ["Kullanıcı aradığı cevabı buldu."], "high", true);
+    if (reason === "already_knew" || reason === "no_time") return result(0, [reason === "already_knew" ? "İçerik zaten biliniyordu; memnuniyet çıkarılamaz." : "Zaman kısıtı nedeniyle çıkıldı; memnuniyet çıkarılamaz."], "low", false);
+  }
   if (input.contentType === "livestream") return analyzeLivestreamRegret(input);
 
   let score = 0;
@@ -45,7 +50,7 @@ export function analyzeRegret(input: RegretInput): RegretResult {
   if (input.completionRate >= .5) { score -= 22; factors.push("Videonun önemli bölümü izlendi."); }
   if (input.reopened && input.totalActiveWatchSeconds >= 120) { score -= 18; factors.push("Video yeniden açılıp anlamlı süre izlendi."); }
 
-  const confidence = feedback?.clickbait !== undefined || input.leaveReason ? "high" : input.totalActiveWatchSeconds >= 30 ? "medium" : "low";
+  const confidence = feedback?.clickbait !== undefined || input.leaveReason === "misleading_title" ? "high" : input.totalActiveWatchSeconds >= 30 ? "medium" : "low";
   return result(round(clamp(score)), factors, confidence, factors.length >= 2);
 }
 
@@ -70,7 +75,7 @@ function analyzeLivestreamRegret(input: RegretInput): RegretResult {
   if (input.leaveReason === "watch_later") { score -= 30; factors.push("Daha sonra izlenecek olarak işaretlendi."); }
   if (input.reopened && input.totalActiveWatchSeconds >= 180) { score -= 16; factors.push("Canlı yayın yeniden açılıp anlamlı süre izlendi."); }
   if (input.totalActiveWatchSeconds >= 900) { score -= 20; factors.push("Canlı yayın en az 15 dakika izlendi."); }
-  const confidence = feedback?.clickbait !== undefined || input.leaveReason
+  const confidence = feedback?.clickbait !== undefined || input.leaveReason === "misleading_title"
     ? "high"
     : input.totalActiveWatchSeconds >= 60 ? "medium" : "low";
   return result(round(clamp(score)), factors, confidence, factors.length >= 2);

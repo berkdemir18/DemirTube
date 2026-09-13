@@ -38,6 +38,8 @@ export type ExtensionMessage =
   | { type: "GET_SELECTION_BIAS" }
   | { type: "FETCH_YOUTUBE_CAPTIONS"; url: string }
   | { type: "WATCHLIST_GET" }
+  | { type: "WATCHLIST_PRESENTATION" }
+  | { type: "WATCHLIST_UPDATE"; videoId: string; patch: Pick<WatchlistItem, "note" | "noteSeconds" | "intent" | "learningStage" | "reviewOn" | "useful"> }
   | { type: "WATCHLIST_TOGGLE"; item: WatchlistItem }
   | { type: "WATCHLIST_REMOVE"; videoId: string }
   | { type: "WATCHLIST_ARCHIVE_GET" }

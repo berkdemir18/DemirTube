@@ -15,6 +15,7 @@ import { derivePersonalModel, strongestModelSignal, type PersonalModel } from ".
 import { analyzeSelectionBias, discriminationLabel, type SelectionBiasReport } from "../analytics/selection-bias";
 import { sendMessage } from "../shared/messages";
 import { PageHeading } from "./ui";
+import { KnowledgeGraph } from "./KnowledgeGraph";
 
 export function IntelligenceHub({
   videos,
@@ -192,28 +193,7 @@ export function IntelligenceHub({
               <p>Konuların derinliği ve birbiriyle bağlantısı.</p>
             </div>
           </div>
-          <div className="knowledge-nodes">
-            {knowledge.nodes.slice(0, 12).map((node) => (
-              <article
-                key={node.topic}
-                style={{ "--node-size": `${Math.max(78, Math.min(145, 70 + node.videoCount * 10))}px` } as CSSProperties}
-              >
-                <strong>{node.topic}</strong>
-                <span>{node.videoCount} video</span>
-                <small>Derinlik {node.depth}/100</small>
-              </article>
-            ))}
-          </div>
-          {knowledge.edges.length ? (
-            <div className="knowledge-edges">
-              {knowledge.edges.slice(0, 7).map((edge) => (
-                <span key={`${edge.source}-${edge.target}`}>
-                  {edge.source} ↔ {edge.target}
-                  <b>{edge.strength} ortak video</b>
-                </span>
-              ))}
-            </div>
-          ) : null}
+          <KnowledgeGraph map={knowledge} />
         </section>
 
         <section className="surface revisit-list">

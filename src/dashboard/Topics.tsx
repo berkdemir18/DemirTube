@@ -1,3 +1,4 @@
+import { AnalysisGuide } from "./AnalysisGuide";
 // DemirTube Aurora UI v2 · unified dashboard visual system
 import { ArrowLeft } from "lucide-react";
 import { chartAccent, chartAxis, chartGrid } from "./chart-theme";
@@ -28,10 +29,13 @@ export function Topics({
   return (
     <>
       <PageHeading eyebrow="İÇERİK DNA’SI" title="Konular" copy="Tıklama sayısından çok, ne kadar süre kaldığını ölçer." />
+      <AnalysisGuide takeaway="Aynı konudaki videoları birlikte değerlendirerek hangi konulara zaman ayırdığını gösterir." definitions={[["İzlenen bölüm","%60, videoların ortalama %60’ını izlediğin anlamına gelir. Aynı bölümü tekrar izlemek oranı artırmaz."],["İlgi puanı","0–100 arasında davranıştan hesaplanan bir tahmin. Konuyu sevdiğinin kesin kanıtı değildir."],["Erken ayrılma","Kısa izleyip çıktığın videoların oranı. Cevabı bulup çıkmış da olabilirsin."]]} hint="Bir konuya tıklayarak bu sonuca hangi videoların katkıda bulunduğunu görebilirsin. Bir video birden fazla konuda sayılabilir." />
       <DataMaturity count={videos.length} />
 
       {rows.length ? (
         <>
+          <section className="topic-overview-grid" aria-label="Konu özetleri">{rows.map(row => <button className="topic-overview-card" key={row.topic} onClick={() => onSelect(row.topic)}><span>{row.videoCount} video</span><h2>{row.topic}</h2><strong>{formatDuration(row.watchSeconds)}</strong><small>bu konuya ayırdığın süre</small><div><span>Ortalama izlenen bölüm</span><b>%{row.averageCompletion}</b></div><Meter value={row.averageCompletion} /><em>Videoları ve ayrıntıları gör →</em></button>)}</section>
+          <details className="analysis-detail"><summary>Tüm konuları tablo ve grafikle karşılaştır</summary>
           {videos.length >= 3 ? (
             <section className="surface chart-block neon-chart" aria-hidden="true">
               <ResponsiveContainer width="100%" height={280}>
@@ -53,9 +57,9 @@ export function Topics({
                   <th>Konu</th>
                   <th>Video</th>
                   <th>Toplam Süre</th>
-                  <th>Ort. Tamamlama</th>
+                  <th>İzlenen bölüm (%)</th>
                   <th>Erken Çıkış</th>
-                  <th>Tercih</th>
+                  <th>İlgi puanı /100</th>
                 </tr>
               </thead>
               <tbody>
@@ -89,6 +93,7 @@ export function Topics({
               </tbody>
             </table>
           </section>
+          </details>
         </>
       ) : (
         <Empty />
@@ -112,13 +117,14 @@ function TopicDetail({ topic, videos, onBack }: { topic: string; videos: VideoRe
           ? `${row.videoCount} video · ${formatDuration(row.watchSeconds)} · ortalama tamamlama %${row.averageCompletion}`
           : "Bu konunun seçili dönemde kaydı yok."}
       />
+      <AnalysisGuide takeaway="Aynı konudaki videoları birlikte değerlendirerek hangi konulara zaman ayırdığını gösterir." definitions={[["İzlenen bölüm","%60, videoların ortalama %60’ını izlediğin anlamına gelir. Aynı bölümü tekrar izlemek oranı artırmaz."],["İlgi puanı","0–100 arasında davranıştan hesaplanan bir tahmin. Konuyu sevdiğinin kesin kanıtı değildir."],["Erken ayrılma","Kısa izleyip çıktığın videoların oranı. Cevabı bulup çıkmış da olabilirsin."]]} hint="Bir konuya tıklayarak bu sonuca hangi videoların katkıda bulunduğunu görebilirsin. Bir video birden fazla konuda sayılabilir." />
 
       {videos.length ? (
         <>
           <section className="surface table-wrap">
             <h2>Bu konuyu en çok izlediğin kanallar</h2>
             <table>
-              <thead><tr><th>Kanal</th><th>Video</th><th>Süre</th><th>Ort. Tamamlama</th></tr></thead>
+              <thead><tr><th>Kanal</th><th>Video</th><th>Süre</th><th>İzlenen bölüm (%)</th></tr></thead>
               <tbody>
                 {channels.map((channel) => (
                   <tr key={channel.channelName}>

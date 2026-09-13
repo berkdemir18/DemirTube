@@ -85,6 +85,7 @@ export function Dashboard() {
   const content = pages[page]({
     data,
     watchlist: app.watchlist,
+    updateWatchlist: app.updateWatchlist,
     period,
     anchor,
     videos: filteredVideos,

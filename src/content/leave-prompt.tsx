@@ -3,6 +3,9 @@ import { sendMessage } from "../shared/messages";
 import type { LeaveReason } from "../shared/types";
 
 const reasons: Array<[LeaveReason, string]> = [
+  ["answer_found", "Aradığım cevabı buldum"],
+  ["already_knew", "Zaten biliyordum"],
+  ["no_time", "Vaktim kalmadı"],
   ["misleading_title", "Başlık yanıltıcıydı"],
   ["too_long", "Video çok uzundu"],
   ["repetitive", "İçerik kendini tekrarladı"],

@@ -1,3 +1,4 @@
+import { AnalysisGuide } from "./AnalysisGuide";
 // DemirTube · Zaman Maliyeti
 //
 // Tek soruya cevap verir: bu dönemde ne kadar süre pişman olduğun içeriğe gitti
@@ -22,11 +23,11 @@ function BucketTable({
   if (!buckets.length) return null;
   return (
     <section className="surface table-wrap">
-      <h2>{title}</h2>
+      <h2>{title}</h2><p className="analysis-unit">Dar ekranda tüm sütunlar için tabloyu yana kaydırabilirsin.</p>
       {buckets.length ? (
         <table>
           <thead>
-            <tr><th>Ad</th><th>Maliyet</th><th>Pay</th><th>Video</th><th>Yüksek pişmanlık</th></tr>
+            <tr><th>Ad</th><th>Tahmini süre</th><th>Pay</th><th>Video</th><th>Yüksek pişmanlık</th></tr>
           </thead>
           <tbody>
             {buckets.map((bucket) => (
@@ -65,9 +66,10 @@ export function CostPage({
     <>
       <PageHeading
         eyebrow="ZAMAN MALİYETİ"
-        title="Bu dönem ne kadarı boşa gitti?"
-        copy="Her videonun aktif izleme süresi kendi pişmanlık puanıyla ağırlıklandırılır. Eşik yok: 20 puanlık video maliyetin beşte birini, 90 puanlık video neredeyse tamamını taşır."
+        title="Zaman Maliyeti"
+        copy="İzleme sürenin hangi bölümünü yeniden değerlendirmek isteyebilirsin?"
       />
+      <AnalysisGuide takeaway="Erken çıkış gibi sinyallerden hareketle, yeniden değerlendirmek isteyebileceğin izleme süresini tahmin eder." definitions={[["Tahmini süre","Örnek: 10 dakika izlenen ve pişmanlık puanı 40 olan bir video bu hesaba 4 dakika ekler."],["Pay","Bu kanalın veya konunun, hesaplanan toplam tahmini süre içindeki yüzdesi."],["Belirsizlik","Bu değer gerçekten boşa giden zamanı ölçmez. Davranış ve geri bildirimlerden türetilir."]]} hint="Yanlış yorumlanan videoları Geri Bildirim ekranından düzelterek sonucu iyileştirebilirsin." />
       <DataMaturity count={report.measuredVideoCount} />
 
       {report.measuredVideoCount ? (
@@ -82,7 +84,7 @@ export function CostPage({
                 </InfoTip>
               </small>
               <strong>{formatDuration(report.costSeconds)}</strong>
-              <p>{report.verdict}</p>
+              <p>İzleme süresi ve pişmanlık sinyallerinden hesaplanan tahmin: {formatDuration(report.costSeconds)}. Bu, gerçekten boşa giden sürenin ölçümü değildir.</p>
             </div>
             <div className="cost-hero-side">
               <div>
@@ -99,13 +101,13 @@ export function CostPage({
           </section>
 
           <BucketTable
-            title="En pahalı kanallar"
+            title="Tahmini sürenin kanallara dağılımı"
             buckets={report.channels}
             onOpen={onOpenChannel}
             emptyCopy="Kanal bazında ölçülebilir maliyet yok."
           />
           <BucketTable
-            title="En pahalı konular"
+            title="Tahmini sürenin konulara dağılımı"
             buckets={report.topics}
             onOpen={onOpenTopic}
             emptyCopy="Konu bazında ölçülebilir maliyet yok."

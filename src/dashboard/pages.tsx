@@ -9,6 +9,7 @@ import type { AppData, LegacyAppData, Settings, UserVideoFeedback, VideoRecord, 
 import type { AnalyticsPeriod } from "../analytics/period";
 import type { PageId } from "./navigation";
 
+const AnalysisHome = lazy(async () => ({ default: (await import("./AnalysisHome")).AnalysisHome }));
 const Overview = lazy(async () => ({ default: (await import("./Overview")).Overview }));
 const Topics = lazy(async () => ({ default: (await import("./Topics")).Topics }));
 const Channels = lazy(async () => ({ default: (await import("./Channels")).Channels }));
@@ -54,6 +55,7 @@ export type PageContext = {
   exportData(): Promise<AppData>;
   generateReport(): Promise<WeeklyReport>;
   removeFromWatchlist(videoId: string): void;
+  updateWatchlist(): Promise<void>;
   /** Kanallar ekranında açık profil ve seçiciyi değiştiren kabuk fonksiyonu. */
   channel?: string;
   setChannel(channelName?: string): void;
@@ -64,21 +66,22 @@ export type PageContext = {
 };
 
 export const pages: Record<PageId, (context: PageContext) => ReactNode> = {
+  analysis: (c) => <AnalysisHome videos={c.videos} />,
   overview: (c) => <Overview videos={c.videos} sessions={c.sessions} period={c.period} anchor={c.anchor} settings={c.data.settings} totalVideoCount={c.data.videos.length} previousVideos={c.previousVideos} previousSessions={c.previousSessions} onReclassify={c.extensionAvailable ? c.reclassifyTopics : undefined} />,
   intelligence: (c) => <IntelligenceHub videos={c.data.videos} sessions={c.data.sessions} feedback={c.data.feedback} />,
   journey: (c) => <JourneyPage videos={c.videos} sessions={c.sessions} allVideos={c.data.videos} allSessions={c.data.sessions} />,
   goals: (c) => <GoalsPage videos={c.currentWeekVideos} sessions={c.currentWeekSessions} settings={c.data.settings} onSettings={c.setSettings} />,
-  topics: (c) => <Topics videos={c.videos} selected={c.topic} onSelect={c.setTopic} />,
+  topics: (c) => <div className="analysis-readable"><Topics videos={c.videos} selected={c.topic} onSelect={c.setTopic} /></div>,
   channels: (c) => <Channels videos={c.videos} sessions={c.sessions} selected={c.channel} onSelect={c.setChannel} />,
-  statistics: (c) => <StatisticsPage videos={c.videos} sessions={c.sessions} />,
-  cost: (c) => <CostPage videos={c.videos} feedback={c.data.feedback} onOpenChannel={c.setChannel} onOpenTopic={c.setTopic} />,
-  durations: (c) => <Durations videos={c.videos} />,
-  time: (c) => <TimeAnalytics videos={c.videos} sessions={c.sessions} />,
-  titles: (c) => <TitleAnalysis videos={c.videos} feedback={c.data.feedback} rules={c.data.keywordRules} />,
-  shorts: (c) => <ShortsAnalytics videos={c.videos} sessions={c.sessions} />,
+  statistics: (c) => <div className="analysis-readable"><StatisticsPage videos={c.videos} sessions={c.sessions} /></div>,
+  cost: (c) => <div className="analysis-readable"><CostPage videos={c.videos} feedback={c.data.feedback} onOpenChannel={c.setChannel} onOpenTopic={c.setTopic} /></div>,
+  durations: (c) => <div className="analysis-readable"><Durations videos={c.videos} /></div>,
+  time: (c) => <div className="analysis-readable"><TimeAnalytics videos={c.videos} sessions={c.sessions} /></div>,
+  titles: (c) => <div className="analysis-readable"><TitleAnalysis videos={c.videos} feedback={c.data.feedback} rules={c.data.keywordRules} /></div>,
+  shorts: (c) => <div className="analysis-readable"><ShortsAnalytics videos={c.videos} sessions={c.sessions} /></div>,
   calendar: (c) => <CalendarPage videos={c.data.videos} sessions={c.data.sessions} />,
   compare: (c) => <ComparePage videos={c.data.videos} />,
-  watchlist: (c) => <Watchlist items={c.watchlist} onRemove={c.removeFromWatchlist} />,
+  watchlist: (c) => <Watchlist items={c.watchlist} onRemove={c.removeFromWatchlist} onUpdated={c.updateWatchlist} />,
   feedback: (c) => <FeedbackCenter videos={c.data.videos} feedback={c.data.feedback} onSave={c.saveFeedback} onReset={c.resetFeedback} />,
   history: (c) => <WatchHistory videos={c.videos} sessions={c.sessions} feedback={c.data.feedback} onDelete={c.deleteVideo} onFeedback={c.saveFeedback} onResetFeedback={c.resetFeedback} />,
   report: (c) => <WeeklyReportPage videos={c.data.videos} sessions={c.data.sessions} stored={c.data.weeklyReports} onGenerate={c.generateReport} />,

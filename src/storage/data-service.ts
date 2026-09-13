@@ -294,7 +294,7 @@ export async function importData(input: AppData | LegacyAppData, mode: "merge" |
     const currentWatchlist = (storedLists.watchlistItems ?? []) as WatchlistItem[];
     const currentArchive = (storedLists.watchlistArchive ?? []) as ArchivedWatchlistItem[];
     await chrome.storage.local.set({
-      watchlistItems: mergeByMostRecent(currentWatchlist, input.watchlist ?? [], (item) => item.addedAt),
+      watchlistItems: mergeByMostRecent(currentWatchlist, input.watchlist ?? [], (item) => item.updatedAt ?? item.addedAt),
       watchlistArchive: mergeByMostRecent(currentArchive, input.watchlistArchive ?? [], (item) => item.removedAt)
     });
   }

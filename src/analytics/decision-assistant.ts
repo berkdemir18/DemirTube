@@ -125,8 +125,7 @@ export function makeVideoDecision(
     });
     // Katkıların 50 puanlık nötr başlangıçtan nihai skora tam olarak ulaşmasını sağla.
     const residual = score - 50 - scoreContributions.reduce((sum, item) => sum + item.points, 0);
-    const dominant = scoreContributions.toSorted((a, b) => Math.abs(b.points) - Math.abs(a.points))[0];
-    if (dominant) dominant.points += residual;
+    if (residual) scoreContributions.push({ key: "calibration", label: "Kalibrasyon düzeltmesi", points: residual, evidence: "Kişisel taban, kalibrasyon ve yuvarlama sonrası kalan düzeltme; tek bir sinyale atfedilmez." });
   }
 
   // Bug 1 düzeltmesi: timeFit artık save/skip kararını tetiklemiyor
