@@ -23,6 +23,14 @@ const tooltipStyle: CSSProperties = {
   boxShadow: "0 12px 30px rgba(0,0,0,.35)",
 };
 
+// Recharts satır rengini serinin dolgusundan alır; dolgu gradyan (url(#…))
+// olunca metin koyu kalıp koyu zeminde okunmuyordu. Renk sabitlenir.
+const tooltipProps = {
+  contentStyle: tooltipStyle,
+  itemStyle: { color: "var(--text)" },
+  labelStyle: { color: "var(--muted)", marginBottom: 4 },
+};
+
 /** Sayıyı sıfırdan hedef değere yumuşakça sayar. */
 export function CountUp({ value, format, duration = 1100 }: { value: number; format: (value: number) => string; duration?: number }) {
   const [shown, setShown] = useState(() => (reducedMotion() ? value : 0));
@@ -99,7 +107,7 @@ export function ActivityTrend({ sessions }: { sessions: WatchSession[] }) {
           <CartesianGrid strokeDasharray="3 6" vertical={false} stroke={chartGrid} />
           <XAxis dataKey="label" tick={{ fill: chartAxis, fontSize: 11 }} tickLine={false} axisLine={false} interval={4} />
           <YAxis tick={{ fill: chartAxis, fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(value) => `${value} dk`} />
-          <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(255,255,255,.04)" }} formatter={(value, name) => [formatDuration(Number(value) * 60), name]} />
+          <Tooltip {...tooltipProps} cursor={{ fill: "rgba(255,255,255,.04)" }} formatter={(value, name) => [formatDuration(Number(value) * 60), name]} />
           <Bar dataKey="minutes" name="O gün izleme" radius={[5, 5, 1, 1]} animationDuration={1100}>
             {data.map((row) => <Cell key={row.key} fill={row.key === best.key ? chartSeries[1] : "url(#trend-bar)"} />)}
           </Bar>
@@ -136,7 +144,7 @@ export function HourClock({ sessions }: { sessions: WatchSession[] }) {
         <CartesianGrid strokeDasharray="3 6" vertical={false} stroke={chartGrid} />
         <XAxis dataKey="label" tick={{ fill: chartAxis, fontSize: 10 }} tickLine={false} axisLine={false} interval={2} />
         <YAxis tick={{ fill: chartAxis, fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(value) => `${value} dk`} />
-        <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(255,255,255,.04)" }} labelFormatter={(label) => `${label}:00 – ${label}:59`} formatter={(value) => [formatDuration(Number(value) * 60), "Aktif izleme"]} />
+        <Tooltip {...tooltipProps} cursor={{ fill: "rgba(255,255,255,.04)" }} labelFormatter={(label) => `${label}:00 – ${label}:59`} formatter={(value) => [formatDuration(Number(value) * 60), "Aktif izleme"]} />
         <Bar dataKey="minutes" radius={[6, 6, 2, 2]} animationDuration={1100}>
           {data.map((row) => <Cell key={row.label} fill={row.minutes === peak && peak > 0 ? chartSeries[0] : "url(#hour-bar)"} />)}
         </Bar>
