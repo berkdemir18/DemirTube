@@ -154,7 +154,7 @@ export async function rebuildAllVideoSummaries() {
 }
 
 export async function reclassifyTopics() {
-  const [videos, feedback] = await Promise.all([videoRepository.all(), feedbackRepository.all()]);
+  const [videos, feedback, customTopics] = await Promise.all([videoRepository.all(), feedbackRepository.all(), auxiliaryRepository.customTopics()]);
   const feedbackByVideo = new Map(feedback.map((item) => [item.videoId, item]));
   const database = await getDatabase(); let updated = 0;
   // Hafıza yeniden sınıflamadan ÖNCE bir kez kurulur: elle düzeltilen konular
@@ -162,14 +162,28 @@ export async function reclassifyTopics() {
   const memory = buildTopicMemory(videos);
   for (const video of videos) {
     if (feedbackByVideo.get(video.videoId)?.manualTopics?.length) continue;
-    const topics = classifyTopics(
-      video.title, video.channelName,
-      `${video.description ?? ""} ${(video.hashtags ?? []).join(" ")}`,
-      memory
-    );
-    await database.put("videos", { ...video, topics, inferredTopics: topics }); updated += 1;
+    const context = `${video.description ?? ""} ${(video.hashtags ?? []).join(" ")}`;
+    const inferred = classifyTopics(video.title, video.channelName, context, memory);
+    // Kullanıcının kendi konu kuralları da yeniden uygulanır; önceden yeniden
+    // sınıflama bunları siliyor, bir sonraki izlemede geri geliyorlardı.
+    const custom = matchCustomTopics(video.title, video.channelName, customTopics, context);
+    const topics = custom.length ? [...new Set([...custom, ...inferred.filter((topic) => topic !== "Diğer")])] : inferred;
+    await database.put("videos", { ...video, topics, inferredTopics: inferred }); updated += 1;
   }
   return updated;
+}
+
+/**
+ * Konu kuralları değiştiğinde kayıtlı videolar eski etiketlerle kalır. Sürüm
+ * artınca bir kez, kullanıcı hiçbir şeye basmadan yeniden sınıflanır.
+ */
+const TOPIC_RULES_VERSION = 2;
+
+async function migrateTopicRules() {
+  const { topicRulesVersion } = await chrome.storage.local.get("topicRulesVersion");
+  if (Number(topicRulesVersion ?? 0) >= TOPIC_RULES_VERSION) return;
+  await reclassifyTopics();
+  await chrome.storage.local.set({ topicRulesVersion: TOPIC_RULES_VERSION });
 }
 
 async function migrateLegacySummaries() {
@@ -195,6 +209,7 @@ export function checksumPayload(value: unknown) {
 export async function exportData(): Promise<AppData> {
   await finalizeStaleSessions();
   await migrateLegacySummaries();
+  await migrateTopicRules();
   const [videos, sessions, feedback, customTopics, keywordRules, weeklyReports, diagnostics, settings, storedWatchlist] = await Promise.all([
     videoRepository.all(),
     sessionRepository.all(),

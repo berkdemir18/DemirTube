@@ -5,7 +5,7 @@ import { formatDuration, round } from "../shared/utils";
 import { advancedStatistics } from "../analytics/statistics";
 import { ChartFrame, Empty, Meter, PageHeading } from "./ui";
 import { useState, type CSSProperties } from "react";
-import { ActivityTrend, CompletionRings, CountUp, FormatDonut, HourClock, WeekHeatmap } from "./StatsCharts";
+import { ActivityTrend, CompletionRings, CountUp, FormatDonut, HourClock, WeekHeatmap, peakHourLabel } from "./StatsCharts";
 
 export function StatisticsPage({ videos, sessions }: { videos: VideoRecord[]; sessions: WatchSession[] }) {
   const [evidenceMetric, setEvidenceMetric] = useState<string>();
@@ -34,12 +34,12 @@ export function StatisticsPage({ videos, sessions }: { videos: VideoRecord[]; se
       </section>
       {evidenceMetric ? <MetricEvidence metric={evidenceMetric} videos={videos} sessions={sessions} onClose={() => setEvidenceMetric(undefined)}/> : null}
       <section className="surface chart-block stats-trend stats-reveal">
-        <div className="section-head"><div><h2>İzleme nabzı</h2><p>Son 30 günün aktif izleme süresi ve 7 günlük hareketli ortalaması</p></div></div>
+        <div className="section-head"><div><h2>İzleme nabzı</h2><p>Son 30 günde her gün ne kadar izlediğin ve gidişatın artıyor mu azalıyor mu</p></div></div>
         <ActivityTrend sessions={sessions} />
       </section>
       <div className="stats-analysis-grid">
         <section className="surface chart-block stats-reveal">
-          <div className="section-head"><div><h2>Günün ritmi</h2><p>24 saatlik aktif süre dağılımı · zirve {stats.peakHourLabel}</p></div></div>
+          <div className="section-head"><div><h2>Günün ritmi</h2><p>Tüm kayıtlarda her saatte toplam ne kadar izledin · en yoğun saat {peakHourLabel(sessions)}</p></div></div>
           <ChartFrame summary={`Günün ritmi: ${stats.hourly.map((row) => `${row.label} ${formatDuration(row.seconds)}`).join(", ")}.`}>
             <HourClock sessions={sessions} />
           </ChartFrame>
@@ -51,7 +51,7 @@ export function StatisticsPage({ videos, sessions }: { videos: VideoRecord[]; se
         </section>
       </div>
       <section className="surface stats-reveal">
-        <div className="section-head"><div><h2>Haftalık ısı haritası</h2><p>Hangi gün, hangi saatte izliyorsun — koyu hücre daha çok süre</p></div></div>
+        <div className="section-head"><div><h2>Haftanın izleme haritası</h2><p>Her kutu: o gün, o saat aralığında haftada ortalama ne kadar izlediğin. Parlak kutu = çok izleme</p></div></div>
         <WeekHeatmap sessions={sessions} />
       </section>
       <section className="surface stats-formats stats-reveal">

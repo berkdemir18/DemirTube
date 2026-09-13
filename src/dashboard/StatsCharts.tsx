@@ -5,7 +5,7 @@
 // prefers-reduced-motion açıkken kapanır.
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
-  Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, Pie, PieChart,
+  Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, Pie, PieChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import type { WatchSession } from "../shared/types";
@@ -78,29 +78,43 @@ export function ActivityTrend({ sessions }: { sessions: WatchSession[] }) {
   return (
     <>
       <div className="trend-chips">
-        <span><small>30 gün</small><b>{formatDuration(total * 60)}</b></span>
+        <span><small>30 günde toplam</small><b>{formatDuration(total * 60)}</b></span>
         <span><small>Günlük ortalama</small><b>{formatDuration(total / 30 * 60)}</b></span>
-        <span className={change > 0 ? "up" : change < 0 ? "down" : ""}><small>Son 15 gün</small><b>{change > 0 ? "▲" : change < 0 ? "▼" : "•"} %{Math.abs(change)}</b></span>
+        <span className={change > 0 ? "up" : change < 0 ? "down" : ""}><small>Son 15 gün, önceki 15 güne göre</small><b>{change > 0 ? "▲ %" + Math.abs(change) + " fazla" : change < 0 ? "▼ %" + Math.abs(change) + " az" : "• aynı"}</b></span>
         <span><small>En yoğun gün</small><b>{best.label}</b></span>
+      </div>
+      <div className="chart-legend">
+        <span><i className="lg-bar" /> Sütun: o gün kaç dakika izledin</span>
+        <span><i className="lg-line" /> Çizgi: son 7 günün günlük ortalaması (gidişat)</span>
+        <span><i className="lg-zero" /> Sütun yoksa o gün kayıt yok</span>
       </div>
       <ResponsiveContainer width="100%" height={260}>
         <ComposedChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
           <defs>
-            <linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={chartSeries[0]} stopOpacity={0.55} />
-              <stop offset="100%" stopColor={chartSeries[0]} stopOpacity={0} />
+            <linearGradient id="trend-bar" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={chartSeries[0]} stopOpacity={0.95} />
+              <stop offset="100%" stopColor={chartSeries[0]} stopOpacity={0.35} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 6" vertical={false} stroke={chartGrid} />
           <XAxis dataKey="label" tick={{ fill: chartAxis, fontSize: 11 }} tickLine={false} axisLine={false} interval={4} />
           <YAxis tick={{ fill: chartAxis, fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(value) => `${value} dk`} />
-          <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: chartSeries[1], strokeDasharray: "4 4" }} formatter={(value, name) => [formatDuration(Number(value) * 60), name]} />
-          <Area type="monotone" dataKey="minutes" name="Aktif izleme" stroke={chartSeries[0]} strokeWidth={2.5} fill="url(#trend-fill)" animationDuration={1400} activeDot={{ r: 5, strokeWidth: 0 }} />
-          <Line type="monotone" dataKey="average" name="7 gün ort." stroke={chartSeries[1]} strokeWidth={2} strokeDasharray="6 5" dot={false} animationDuration={1800} />
+          <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(255,255,255,.04)" }} formatter={(value, name) => [formatDuration(Number(value) * 60), name]} />
+          <Bar dataKey="minutes" name="O gün izleme" radius={[5, 5, 1, 1]} animationDuration={1100}>
+            {data.map((row) => <Cell key={row.key} fill={row.key === best.key ? chartSeries[1] : "url(#trend-bar)"} />)}
+          </Bar>
+          <Line type="monotone" dataKey="average" name="7 gün ortalaması" stroke="#F4C27A" strokeWidth={2.5} dot={false} animationDuration={1600} />
         </ComposedChart>
       </ResponsiveContainer>
     </>
   );
+}
+
+export function peakHourLabel(sessions: WatchSession[]) {
+  const hours = Array<number>(24).fill(0);
+  sessions.forEach((session) => { hours[new Date(session.startedAt).getHours()] += session.watchSeconds; });
+  const peak = hours.indexOf(Math.max(...hours));
+  return hours[peak] ? `${String(peak).padStart(2, "0")}:00–${String(peak).padStart(2, "0")}:59` : "—";
 }
 
 export function HourClock({ sessions }: { sessions: WatchSession[] }) {
@@ -131,38 +145,90 @@ export function HourClock({ sessions }: { sessions: WatchSession[] }) {
   );
 }
 
-const weekdays = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
+const dayNames = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"];
+const slots = [
+  { label: "Gece", range: "00–06", from: 0, to: 6 },
+  { label: "Sabah", range: "06–10", from: 6, to: 10 },
+  { label: "Öğle", range: "10–14", from: 10, to: 14 },
+  { label: "Öğleden sonra", range: "14–18", from: 14, to: 18 },
+  { label: "Akşam", range: "18–21", from: 18, to: 21 },
+  { label: "Gece geç", range: "21–24", from: 21, to: 24 },
+];
 
+const shortDuration = (seconds: number) => {
+  const minutes = Math.round(seconds / 60);
+  if (!minutes) return "";
+  return minutes >= 60 ? `${Math.floor(minutes / 60)} sa${minutes % 60 ? ` ${minutes % 60}` : ""}` : `${minutes} dk`;
+};
+
+/**
+ * Hangi gün, günün hangi bölümünde izlendiğini gösterir. Değer, o gün-dilimde
+ * kaydedilen TOPLAM süre değil HAFTA BAŞINA ORTALAMA süredir: kaç hafta veri
+ * varsa ona bölünür, böylece tek bir uzun pazartesi tüm tabloyu çarpıtmaz.
+ */
 export function WeekHeatmap({ sessions }: { sessions: WatchSession[] }) {
-  const { grid, max } = useMemo(() => {
-    const cells = Array.from({ length: 7 }, () => Array<number>(24).fill(0));
+  const { grid, max, weeks, rowTotals, colTotals, peak } = useMemo(() => {
+    const cells = Array.from({ length: 7 }, () => Array<number>(slots.length).fill(0));
+    let first = Infinity;
+    let last = 0;
     sessions.forEach((session) => {
       const date = new Date(session.startedAt);
-      cells[(date.getDay() + 6) % 7][date.getHours()] += session.watchSeconds;
+      first = Math.min(first, date.getTime());
+      last = Math.max(last, date.getTime());
+      const hour = date.getHours();
+      const slot = slots.findIndex((item) => hour >= item.from && hour < item.to);
+      cells[(date.getDay() + 6) % 7][slot] += session.watchSeconds;
     });
-    return { grid: cells, max: Math.max(1, ...cells.flat()) };
+    const weekCount = sessions.length ? Math.max(1, Math.ceil((last - first + 1) / (7 * 86_400_000))) : 1;
+    const averaged = cells.map((row) => row.map((seconds) => seconds / weekCount));
+    let best = { day: 0, slot: 0, seconds: 0 };
+    averaged.forEach((row, day) => row.forEach((seconds, slot) => { if (seconds > best.seconds) best = { day, slot, seconds }; }));
+    return {
+      grid: averaged,
+      max: Math.max(1, ...averaged.flat()),
+      weeks: weekCount,
+      rowTotals: averaged.map((row) => row.reduce((sum, value) => sum + value, 0)),
+      colTotals: slots.map((_, slot) => averaged.reduce((sum, row) => sum + row[slot], 0)),
+      peak: best,
+    };
   }, [sessions]);
+  const maxRow = Math.max(1, ...rowTotals);
+  const busiestSlot = colTotals.indexOf(Math.max(...colTotals));
   return (
-    <div className="week-heatmap" role="img" aria-label="Gün ve saate göre izleme yoğunluğu">
-      <div className="wh-hours"><span />{Array.from({ length: 24 }, (_, hour) => <small key={hour}>{hour % 3 ? "" : String(hour).padStart(2, "0")}</small>)}</div>
-      {grid.map((row, day) => (
-        <div className="wh-row" key={weekdays[day]}>
-          <span>{weekdays[day]}</span>
-          {row.map((seconds, hour) => {
-            const level = seconds / max;
-            return (
-              <i
-                key={hour}
-                title={`${weekdays[day]} ${String(hour).padStart(2, "0")}:00 · ${formatDuration(seconds)}`}
-                style={{ "--level": level ? 0.12 + Math.sqrt(level) * 0.88 : 0, "--d": `${(day * 24 + hour) * 6}ms` } as CSSProperties}
-                className={level ? "" : "empty"}
-              />
-            );
-          })}
+    <>
+      <p className="wh-summary">
+        Son <b>{weeks} haftanın</b> ortalaması. En çok <b>{dayNames[peak.day]} {slots[peak.slot].label.toLowerCase()}</b> ({slots[peak.slot].range}) izliyorsun,
+        haftada ortalama <b>{formatDuration(peak.seconds)}</b>. Genel olarak en yoğun dilimin <b>{slots[busiestSlot].label.toLowerCase()}</b>.
+      </p>
+      <div className="week-heatmap" role="table" aria-label="Gün ve gün dilimine göre haftalık ortalama izleme">
+        <div className="wh-row wh-head" role="row">
+          <span />
+          {slots.map((slot) => <small key={slot.label}><b>{slot.label}</b>{slot.range}</small>)}
+          <small><b>Gün toplamı</b>haftalık ort.</small>
         </div>
-      ))}
-      <div className="wh-scale"><small>Az</small>{[0.15, 0.35, 0.55, 0.75, 1].map((level) => <i key={level} style={{ "--level": level } as CSSProperties} />)}<small>Çok</small></div>
-    </div>
+        {grid.map((row, day) => (
+          <div className="wh-row" role="row" key={dayNames[day]}>
+            <span>{dayNames[day]}</span>
+            {row.map((seconds, slot) => {
+              const level = seconds / max;
+              return (
+                <i
+                  key={slot}
+                  role="cell"
+                  title={`${dayNames[day]} ${slots[slot].range} · haftada ort. ${formatDuration(seconds)}`}
+                  style={{ "--level": level ? 0.15 + level * 0.85 : 0, "--d": `${(day * 6 + slot) * 18}ms` } as CSSProperties}
+                  className={`${level ? "" : "empty"} ${level > 0.55 ? "hot" : ""}`}
+                >
+                  {shortDuration(seconds) || "—"}
+                </i>
+              );
+            })}
+            <em><i style={{ width: `${(rowTotals[day] / maxRow) * 100}%` }} /><b>{shortDuration(rowTotals[day]) || "—"}</b></em>
+          </div>
+        ))}
+      </div>
+      <div className="wh-scale"><small>Az izleme</small>{[0.15, 0.35, 0.55, 0.75, 1].map((level) => <i key={level} style={{ "--level": level } as CSSProperties} />)}<small>Çok izleme</small></div>
+    </>
   );
 }
 

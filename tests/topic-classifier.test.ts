@@ -157,3 +157,28 @@ describe("konu hafızası", () => {
     expect(unclassifiedShare([])).toEqual({ count: 0, share: 0 });
   });
 });
+
+describe("gerçek veride yanlış etiketlenen başlıklar (2026-09)", () => {
+  it("genel kelimeler ve açıklamadaki indirim kodu konu uydurmaz", () => {
+    expect(classifyTopics("RRaenee | FBI TARİHİNİN EN BÜYÜK OPERASYONU | Tepki | @bentropi", "Craftest")).not.toContain("Tarih");
+    expect(classifyTopics("BÖYLE PARTİ OLMAZ, HAVUZA ATTILAR! RRAENEE, ENİS KİRAZOĞLU", "Elraenn", "İndirim kodu: ELRAENN")).not.toContain("Programlama");
+    expect(classifyTopics("\"Tanrı Hamlesi\" Yapay Zekaya Karşı Savaşta Son Zaferimiz Miydi?", "Sapien")).toEqual(["Yapay zekâ"]);
+    expect(classifyTopics("Dünyanın En Gizli Yahudi Topluluğu: Hasidikler", "Ruhi Çenet Belgeselleri")).not.toContain("Tarih");
+  });
+
+  it("gerçek konu hâlâ bulunur", () => {
+    expect(classifyTopics("Osmanlı İmparatorluğu nasıl çöktü", "")).toContain("Tarih");
+    expect(classifyTopics("Python ile kodlama dersi", "")).toContain("Programlama");
+  });
+});
+
+describe("kullanıcı konu kuralları", () => {
+  const rule = { id: "ybs", name: "Yönetim Bilişim Sistemleri", keywords: ["ybs", "sistem"], channels: [], priority: 1, enabled: true, createdAt: "", updatedAt: "" } as never;
+  it("kelimeyi başka kelimenin içinde veya açıklamada aramaz", async () => {
+    const { matchCustomTopics } = await import("../src/analytics/custom-topics");
+    expect(matchCustomTopics("Steam Oyunuma Yeni Özellik Ekledim: Claude Code", "Uğur Keşkekçi", [rule], "indirim kodu #ybs")).toEqual([]);
+    expect(matchCustomTopics("Bilgisayar sistemleri", "", [rule])).toEqual(["Yönetim Bilişim Sistemleri"]);
+    expect(matchCustomTopics("Ekosistem nasıl çalışır", "", [rule])).toEqual([]);
+    expect(matchCustomTopics("YBS vs Yazılım Mühendisliği", "Uğur Keşkekçi", [rule])).toEqual(["Yönetim Bilişim Sistemleri"]);
+  });
+});
