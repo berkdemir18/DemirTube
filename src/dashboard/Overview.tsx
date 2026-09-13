@@ -177,13 +177,14 @@ export function Overview({
           sessions={sessions}
         />
       ) : null}
+      <section className="surface watch-planner"><h2>Sıradaki adımın</h2><p>Ayırabileceğin süreye göre kişisel listenden bir izleme planı oluştur.</p><a className="button primary" href="#/watchlist">İzleme planı yap</a></section>
       {videos.length ? (
         <>
           <div className="overview-focus-grid">
             <WatchTrendChart trend={trend} trendTitle={trendTitle} chartUnit={chartUnit} />
             <TodayRecommendation latest={latest} reasons={reasons} />
           </div>
-          <RecentHistoryTable videos={videos} />
+          <details className="overview-more"><summary>Son izlemeleri göster</summary><RecentHistoryTable videos={videos} /></details>
           <details className="overview-more">
             <summary>
               <span>Derin içgörüleri aç</span>

@@ -111,6 +111,8 @@ export function useAppData() {
     void sendMessage<WatchlistItem[]>({ type: "WATCHLIST_REMOVE", videoId }).then(setWatchlist);
   }, []);
 
+  const updateWatchlist = useCallback(async () => { await load(); }, [load]);
+
   const reclassifyTopics = useCallback(() => {
     void sendMessage({ type: "RECLASSIFY_TOPICS" }).then(load);
   }, [load]);
@@ -118,6 +120,6 @@ export function useAppData() {
   return {
     data, watchlist, dataLoss, loadError, extensionAvailable, load,
     setSettings, deleteVideo, saveFeedback, resetFeedback, clear, dismissDataLoss,
-    importData, exportData, generateReport, removeFromWatchlist, reclassifyTopics,
+    importData, exportData, generateReport, removeFromWatchlist, updateWatchlist, reclassifyTopics,
   };
 }

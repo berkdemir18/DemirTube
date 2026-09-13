@@ -74,6 +74,16 @@ function backup(overrides: Partial<Omit<AppData, "checksum">> = {}): AppData {
   return { ...base, checksum: checksumPayload(base) };
 }
 
+it("keeps learning notes through export, replace and merging an older backup", async () => {
+  const learned = watchlistItem({ note: "Uygulamayı dene", noteSeconds: 120, intent: "learn", learningStage: "practiced", useful: true, reviewOn: "2026-09-10", updatedAt: "2026-09-08T12:00:00Z" });
+  storage.watchlistItems = [learned];
+  const exported = await exportData();
+  await importData(exported, "replace");
+  expect(storage.watchlistItems).toEqual([learned]);
+  await importData(backup({ watchlist: [watchlistItem()] }), "merge");
+  expect(storage.watchlistItems).toEqual([learned]);
+});
+
 describe("kişisel liste yedeği", () => {
   it("aktif ve arşiv listelerini dışa aktarır", async () => {
     storage.watchlistItems = [watchlistItem()];

@@ -116,6 +116,7 @@ function extractMetadataFromCard(card: HTMLElement): VideoMetadata | null {
     durationSeconds,
     url: url.pathname.startsWith("/shorts/") ? `https://www.youtube.com/shorts/${videoId}` : `https://www.youtube.com/watch?v=${videoId}`,
     thumbnailUrl,
+    channelAvatarUrl: card.querySelector<HTMLImageElement>("#avatar img, yt-avatar-shape img, .yt-spec-avatar-shape__image, #channel-thumbnail img")?.src,
     contentType: classifyContentType({ path: url.pathname, durationSeconds, title, channelName, isLive }),
     // Boş bırakılırsa konu sinyali feed skorlarında tamamen devre dışı kalıyor.
     topics: classifyTopics(title, channelName),
@@ -670,6 +671,9 @@ function renderBadge(
       type: "WATCHLIST_TOGGLE",
       item: {
         videoId: candidate.metadata.videoId,
+        thumbnailUrl: candidate.metadata.thumbnailUrl,
+        channelAvatarUrl: candidate.metadata.channelAvatarUrl,
+        channelId: candidate.metadata.channelId,
         title: candidate.metadata.title,
         channelName: candidate.metadata.channelName,
         durationSeconds: candidate.metadata.durationSeconds,

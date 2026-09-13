@@ -31,3 +31,6 @@
 @import "./04-aurora.css";
 @import "./05-focus.css";
 @import "./06-brand.css";
+@import "./08-motion.css";
+
+.watch-planner{padding:20px;margin:16px 0}.learning-card{margin-top:12px;min-width:0}.learning-card label{display:grid;gap:5px;margin:10px 0}.learning-card input,.learning-card select,.learning-card textarea,.watch-planner input,.watch-planner select{max-width:100%;padding:8px;border:1px solid var(--border, #8886);border-radius:8px;background:var(--surface, transparent);color:inherit}.learning-card textarea{width:100%;min-height:80px}.learning-card summary{cursor:pointer}.watch-planner a{overflow-wrap:anywhere}

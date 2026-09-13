@@ -20,7 +20,7 @@ export type VideoFormat =
   | "general";
 export type LeaveReason =
   | "misleading_title" | "too_long" | "repetitive" | "not_interesting"
-  | "presentation" | "accidental" | "watch_later" | "other";
+  | "presentation" | "accidental" | "watch_later" | "answer_found" | "already_knew" | "no_time" | "other";
 export type Confidence = "low" | "medium" | "high";
 export type AnalysisMode = "local_standard" | "local_advanced" | "groq_cloud";
 export type WatchIntent = "open" | "learn" | "focus" | "relax" | "research";
@@ -356,6 +356,9 @@ export type UserGoals = {
 };
 
 export type WatchlistItem = {
+  thumbnailUrl?: string;
+  channelAvatarUrl?: string;
+  channelId?: string;
   videoId: string;
   title: string;
   channelName: string;
@@ -364,6 +367,12 @@ export type WatchlistItem = {
   durationSeconds: number;
   addedAt: string;
   note?: string;
+  updatedAt?: string;
+  intent?: WatchIntent;
+  learningStage?: "saved" | "watched" | "practiced" | "mastered";
+  noteSeconds?: number;
+  reviewOn?: string;
+  useful?: boolean;
 };
 
 /** Listeden kaldırılan ancak geçmişte görüntülenebilen kişisel liste kaydı. */
@@ -382,7 +391,7 @@ export type VideoDecision = {
   novelty: { score?: number; label: string; evidence: string; sampleCount: number };
   /** Nihai puanın açıklanabilir, puan cinsinden katkıları. */
   scoreContributions: Array<{
-    key: "channel" | "topic" | "duration" | "title" | "format" | "intent";
+    key: "channel" | "topic" | "duration" | "title" | "format" | "intent" | "calibration";
     label: string;
     points: number;
     evidence: string;

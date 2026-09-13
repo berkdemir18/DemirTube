@@ -4,7 +4,7 @@
 
 DemirTube, YouTube izleme davranışını yalnızca cihazında kaydeden ve zamanla hangi konu, kanal, başlık ve video sürelerini gerçekten sevdiğini açıklanabilir kurallarla analiz eden bir Chrome eklentisidir.
 
-Sürüm 0.11.0; kendi tahmin hatasını ölçüp ağırlıklarını geçmişten öğrenen kişisel modeli, önerilerin tutup tutmadığını gösteren seçim yanlılığı ölçümünü, yerel akıllı yardımcıyı, isteğe bağlı Groq derin analizini ve keşfet kartlarındaki ön analiz rozetlerini birlikte sunar. DemirTube YouTube sayfasında görünen video metadata'sını analiz eder; oynatma davranışını yalnızca geçerli watch ve Shorts sayfalarında kaydeder. Kullanıcı Groq'u açıkça bağlarsa yalnızca video metadata'sı ve altyazıdan çıkarılmış kısa sinyaller ikinci bir yapay zekâ değerlendirmesine gider; ham altyazı ve izleme geçmişi gönderilmez. Yerel analiz, kişisel kalibrasyon ve isteğe bağlı bulut yedeği (Firebase veya Supabase) birbirinden bağımsız çalışır.
+Sürüm 0.11.2; kendi tahmin hatasını ölçüp ağırlıklarını geçmişten öğrenen kişisel modeli, önerilerin tutup tutmadığını gösteren seçim yanlılığı ölçümünü, yerel akıllı yardımcıyı, isteğe bağlı Groq derin analizini ve keşfet kartlarındaki ön analiz rozetlerini birlikte sunar. DemirTube YouTube sayfasında görünen video metadata'sını analiz eder; oynatma davranışını yalnızca geçerli watch ve Shorts sayfalarında kaydeder. Kullanıcı Groq'u açıkça bağlarsa yalnızca video metadata'sı ve altyazıdan çıkarılmış kısa sinyaller ikinci bir yapay zekâ değerlendirmesine gider; ham altyazı ve izleme geçmişi gönderilmez. Yerel analiz, kişisel kalibrasyon ve isteğe bağlı bulut yedeği (Firebase veya Supabase) birbirinden bağımsız çalışır.
 
 ![DemirTube dashboard genel bakış ekranı](docs/dashboard.png)
 
@@ -120,6 +120,7 @@ Build çıktısı `dist/` klasörüne yazılır.
 
 Kaynak kod değişince `npm run build` çalıştırıp uzantılar sayfasındaki yenile düğmesine bas.
 Yenilemeden önce açık olan YouTube sekmeleri eski içerik script'ini taşır; eklentiyi yeniledikten sonra bu sekmeleri de bir kez yenile.
+Sürüm 0.11.2, uzantı yeniden başladığında açık YouTube sekmelerini bir kez denetleyip yetim kalan eski arayüzü temizler ve güncel içerik script'ini yeniden bağlar. Chrome sekmeyi yine de askıda bırakırsa sayfayı bir kez yenilemek güvenli yedektir.
 Chrome'un **Hatalar** ekranı geçmiş kayıtları kendiliğinden kaldırmaz. Yeni sürümü yükledikten sonra **Tümünü temizle** deyip YouTube sekmelerini yenileyerek yalnızca yeni hataları kontrol et.
 
 ## Mimari
@@ -315,3 +316,11 @@ Her `main` push'unda ve pull request'te GitHub Actions aynı üçlüyü (`typech
 YouTube DOM seçicileri platform güncellemelerinde değişebilir; metadata okuyucusu birden fazla güvenli seçici ve fallback kullanır. Başlık/kanal metadata’sı bulunamadığında kayıt korunur ve sonraki dashboard açılışında oEmbed onarımı denenir.
 
 İçerik türü tespiti güvenli sezgiseldir ve kullanıcı tarafından düzeltilebilir. Haftalık bildirim açılırsa Chrome yalnızca o anda isteğe bağlı `notifications` iznini sorar; izin verilmezse rapor dashboard’dan elle üretilebilir. Bu sürüm hiçbir tahmini yapay zekâ kesinliği gibi sunmaz.
+
+## Kişisel izleme planı ve öğrenme
+
+Kişisel Listem ekranı, seçilen süreyi aşmayan en fazla üç videoluk bir plan oluşturur. Amaç filtresi elle işaretlenen amaçları kullanır; aynı amaç ve kanalda en az üç açık fayda yanıtı varsa sıralamaya katılır. Bu profil tamamlanma modelinden ayrıdır. Bilinmeyen süreli ve denendi/yapabiliyorum aşamasındaki videolar plana alınmaz.
+
+Her liste videosunda bir zaman damgalı not/yapılacak iş, öğrenme aşaması, tekrar tarihi ve fayda değerlendirmesi saklanabilir. Tekrar tarihleri liste ekranında hatırlatılır; işletim sistemi bildirimi gönderilmez. Alanlar JSON ve isteğe bağlı bulut yedeğine dahildir; eski yedeklerle uyumludur.
+
+Çıkış geri bildiriminde aradığım cevabı buldum, zaten biliyordum ve vaktim kalmadı seçenekleri erken çıkışı pişmanlıktan ayırır. Puan açıklamasında kalibrasyon farkı ayrı gösterilir. Haftalık rapordan hedeflere, plana ve geri bildirim merkezine geçilebilir.

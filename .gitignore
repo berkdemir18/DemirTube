@@ -10,3 +10,4 @@ playwright-report/
 bash.exe.stackdump
 .claude/
 .DS_Store
+work/

@@ -171,9 +171,17 @@ function mergeData(local: AppData, remote?: AppData | LegacyAppData): AppData {
     keywordRules: remote.version === 2 && local.keywordRules.updatedAt < remote.keywordRules.updatedAt ? remote.keywordRules : local.keywordRules,
     weeklyReports: [...reports.values()],
     diagnostics: [...(remote.version === 2 ? remote.diagnostics : []), ...local.diagnostics].slice(-100),
-    settings: local.settings
+    settings: local.settings,
+    watchlist: mergeLists(local.watchlist ?? [], remote.version === 2 ? remote.watchlist ?? [] : [], item => item.updatedAt ?? item.addedAt),
+    watchlistArchive: mergeLists(local.watchlistArchive ?? [], remote.version === 2 ? remote.watchlistArchive ?? [] : [], item => item.removedAt)
   };
   return { ...base, checksum: checksumPayload(base) };
+}
+
+function mergeLists<T extends { videoId: string }>(local: T[], remote: T[], timestamp: (item: T) => string): T[] {
+  const merged = new Map(remote.map(item => [item.videoId, item]));
+  for (const item of local) { const previous = merged.get(item.videoId); if (!previous || timestamp(item) >= timestamp(previous)) merged.set(item.videoId, item); }
+  return [...merged.values()];
 }
 
 export async function syncCloudData() {

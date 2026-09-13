@@ -1,3 +1,4 @@
+import { AnalysisGuide } from "./AnalysisGuide";
 // DemirTube Aurora UI v2 · unified dashboard visual system
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { chartAccent, chartAxis, chartGrid } from "./chart-theme";
@@ -36,6 +37,7 @@ export function Durations({ videos }: { videos: VideoRecord[] }) {
   return (
     <>
       <PageHeading eyebrow="İZLEME FORMATI" title="Video Süresi ve İçerik Türü" copy="Hangi uzunluk ve formatlara gerçekten zaman ayırdığını karşılaştır." />
+      <AnalysisGuide takeaway="Kısa ve uzun videoların ne kadarını izlediğini karşılaştırır. Benzer örnek sayısı olan gruplara birlikte bak." definitions={[["Ortalama izlenen bölüm","%75, o gruptaki videoların ortalama dörtte üçünü izlediğin anlamına gelir."],["Video başına süre","Her videoya ortalama kaç dakika ayırdığın. Videonun toplam uzunluğu değildir."],["Örnek sayısı","Tek videodan oluşan bir grup, kalıcı tercihini açıklamak için yeterli değildir."]]} hint="Sadece en yüksek yüzdeyi seçme: birkaç dakikalık videoları bitirmek uzun videolardan daha kolay olabilir." />
       <DataMaturity count={videos.length} />
 
       {videos.length >= 3 ? (
@@ -56,7 +58,7 @@ export function Durations({ videos }: { videos: VideoRecord[] }) {
         {rows.map((row) => (
           <article className={`duration-row ${row.count ? "has-data" : ""}`} key={row.bucket}>
             <h3>{row.bucket}</h3>
-            <strong>{row.count ? `%${row.completion}` : "—"}</strong>
+            <strong>{row.count ? `%${row.completion}` : "—"}</strong><p className="analysis-unit">ortalama izlenen bölüm</p>
             <dl>
               <div>
                 <dt>Video</dt>
@@ -85,7 +87,7 @@ export function Durations({ videos }: { videos: VideoRecord[] }) {
                   <th>Tür</th>
                   <th>Video</th>
                   <th>Ortalama Tamamlama</th>
-                  <th>Ortalama Sarılma</th>
+                  <th>Etkileşim puanı /100</th>
                   <th>Pişmanlık Oranı</th>
                 </tr>
               </thead>

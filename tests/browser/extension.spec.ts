@@ -83,6 +83,25 @@ test("MV3 paketi açılır ve tüm YouTube rotasındaki içerik betiği watch sa
     await dashboard.setViewportSize({ width: 390, height: 844 });
     await expect(dashboard.getByRole("button", { name: "Menüyü aç" })).toBeVisible();
 
+    // Persist a timestamped learning note through the real worker, then reload.
+    await dashboard.evaluate(async () => {
+      await chrome.runtime.sendMessage({ type: "WATCHLIST_TOGGLE", item: { videoId: "learning-test", title: "Öğrenme testi", channelName: "Test", url: "https://www.youtube.com/watch?v=learning-test", topics: ["Programlama"], durationSeconds: 600, addedAt: new Date().toISOString() } });
+    });
+    await dashboard.goto(`chrome-extension://${extensionId}/dashboard.html#/watchlist`);
+    await expect(dashboard.getByRole("heading", { name: "Şimdi ne izleyeyim?" })).toBeVisible();
+    await dashboard.getByText("Notlar ve öğrenme takibi", { exact: true }).click();
+    await dashboard.getByLabel("Not / yapılacak iş").fill("Projede uygula");
+    await dashboard.getByLabel("Videodaki saniye").fill("120");
+    await dashboard.getByLabel("Aşama", { exact: true }).selectOption("practiced");
+    await dashboard.getByRole("button", { name: "Kaydet", exact: true }).click();
+    await expect(dashboard.getByRole("status").filter({ hasText: "Kaydedildi." })).toBeVisible();
+    await dashboard.reload();
+    await dashboard.getByText("Notlar ve öğrenme takibi", { exact: true }).click();
+    await expect(dashboard.getByLabel("Not / yapılacak iş")).toHaveValue("Projede uygula");
+    await expect(dashboard.getByLabel("Aşama", { exact: true })).toHaveValue("practiced");
+    await expect(dashboard.getByRole("link", { name: "Notun olduğu anı aç" })).toHaveAttribute("href", /t=120/);
+    expect(await dashboard.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+
     const youtube = await context.newPage();
     captureErrors(youtube);
     await youtube.route("https://www.youtube.com/**", (route) => route.fulfill({

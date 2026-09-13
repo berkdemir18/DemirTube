@@ -1,3 +1,4 @@
+import { AnalysisGuide } from "./AnalysisGuide";
 // DemirTube Aurora UI v2 · unified dashboard visual system
 import type { KeywordRules, UserVideoFeedback, VideoRecord } from "../shared/types";
 import { calculateKeywordStatistics } from "../analytics/keyword-statistics";
@@ -16,9 +17,9 @@ export function TitleAnalysis({ videos, feedback = [], rules }: { videos: VideoR
         { title: "Pişmanlık sinyali olan örnekler", metric: "regret", items: stats.toSorted((a, b) => b.averageRegretScore - a.averageRegretScore) }
       ]
     : [
-        { title: "En çok tıklatan kelimeler", metric: "completion", items: stats.toSorted((a, b) => b.count - a.count) },
+        { title: "İzlediğin başlıklarda en sık geçenler", metric: "completion", items: stats.toSorted((a, b) => b.count - a.count) },
         { title: "En yüksek tamamlama", metric: "completion", items: stats.toSorted((a, b) => b.averageCompletion - a.averageCompletion) },
-        { title: "En çok pişman eden", metric: "regret", items: stats.toSorted((a, b) => b.averageRegretScore - a.averageRegretScore) }
+        { title: "Pişmanlık sinyali yüksek başlıklar", metric: "regret", items: stats.toSorted((a, b) => b.averageRegretScore - a.averageRegretScore) }
       ];
   const copy = provisional
     ? "Tekrarlanan kelime henüz yok; tek videoluk örnekler keşif amaçlı gösteriliyor."
@@ -26,16 +27,17 @@ export function TitleAnalysis({ videos, feedback = [], rules }: { videos: VideoR
 
   return <>
     <PageHeading eyebrow="BAŞLIK PSİKOLOJİSİ" title="Başlık Analizi" copy={copy} />
+      <AnalysisGuide takeaway="İzlediğin videoların başlıklarında tekrar eden kelimeleri ve bu videoları ne kadar izlediğini karşılaştırır." definitions={[["İzlenen bölüm (%)","Kelimenin geçtiği videoların ortalama tamamlanma yüzdesi."],["Pişmanlık puanı (/100)","O videolardaki ortalama pişmanlık sinyali. Düşük değer daha az olumsuz sinyal demektir."],["Veri güveni","Kelime ne kadar çok farklı videoda görüldüyse çıkarım için o kadar çok örnek vardır."]]} hint="Bir kelimenin sık görünmesi, seni tıklamaya onun ikna ettiğini kanıtlamaz. Açmadığın tüm videolar burada karşılaştırılmaz." />
     {stats.length ? <>
       <div className="keyword-grid premium-grid">{groups.map(({ title, metric, items }) =>
         <section className="surface" key={title}>
-          <h2>{title}</h2>
+          <h2>{title}</h2><p className="analysis-unit">{metric === "regret" ? "Ortalama pişmanlık puanı · 0–100" : "Ortalama izlenen bölüm · yüzde"}</p>
           <ol className="keyword-list">{items.slice(0, 8).map((stat) =>
             <li key={stat.keyword}>
               <span>{stat.keyword}<em>{stat.kind === "phrase" ? "cümlecik" : "kelime"}</em></span>
               <small>{stat.count} video · {stat.confidence === "high" ? "yüksek" : stat.confidence === "medium" ? "orta" : "düşük"} güven{provisional ? " · ön veri" : ""}</small>
               <b title={metric === "regret" ? "Ortalama pişmanlık puanı" : "Ortalama tamamlama"}>
-                {metric === "regret" ? stat.averageRegretScore : `%${stat.averageCompletion}`}
+                {metric === "regret" ? `${stat.averageRegretScore}/100` : `%${stat.averageCompletion}`}
               </b>
             </li>
           )}</ol>

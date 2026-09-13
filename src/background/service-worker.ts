@@ -115,12 +115,43 @@ async function archiveWatchlistItem(item: WatchlistItem) {
   await chrome.storage.local.set({ [WATCHLIST_ARCHIVE_KEY]: next });
 }
 
+async function recoverOpenYouTubeTabs() {
+  const tabs = await chrome.tabs.query({ url: "https://www.youtube.com/*" });
+  await Promise.allSettled(tabs.map(async (tab) => {
+    if (!tab.id) return;
+    await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          document.querySelectorAll([
+            "#demirtube-panel-host", "#demirtube-player-hud", "#demirtube-shorts-dock",
+            "#demirtube-budget-guard", ".demirtube-feed-analysis", ".dt-feed-mini-summary",
+          ].join(",")).forEach((element) => element.remove());
+        },
+    });
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["assets/content.js"] });
+  }));
+}
+
+const CONTENT_RECOVERY_KEY = "contentRecoveryCompleted";
+
+async function recoverOncePerExtensionLoad() {
+  const stored = await chrome.storage.session.get(CONTENT_RECOVERY_KEY);
+  if (stored[CONTENT_RECOVERY_KEY]) return;
+  await chrome.storage.session.set({ [CONTENT_RECOVERY_KEY]: true });
+  await recoverOpenYouTubeTabs();
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   getSettings().then(setSettings);
   chrome.alarms.create("demirtube-cloud-sync-periodic", { periodInMinutes: 15 });
   chrome.alarms.create("demirtube-weekly-report", { periodInMinutes: 10_080 });
   chrome.alarms.create("demirtube-local-backup-reminder", { periodInMinutes: 1_440 });
 });
+
+// Unpacked uzantıda Chrome'un "Yeniden yükle" düğmesi onInstalled olayını
+// her zaman üretmez. Service worker yeniden uyandığında açık YouTube sekmelerini
+// ping ile kontrol etmek, yalnızca yetim kalan sekmelere yeni betiği bağlar.
+void recoverOncePerExtensionLoad().catch((error) => logError("RECOVER_OPEN_TABS", "background", error, false));
 
 chrome.runtime.onStartup.addListener(() => {
   void finalizeStaleSessions();
@@ -327,6 +358,27 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
         const source = await response.text();
         if (source.length > 4_000_000) throw new Error("YouTube altyazı yanıtı güvenli boyut sınırını aştı.");
         return { source };
+      }
+      case "WATCHLIST_UPDATE": {
+        const items = ((await chrome.storage.local.get("watchlistItems")).watchlistItems ?? []) as WatchlistItem[];
+        if (!items.some(item => item.videoId === message.videoId)) throw new Error("Video artık listede değil.");
+        const next = items.map(item => item.videoId === message.videoId ? { ...item, ...message.patch, updatedAt: new Date().toISOString() } : item);
+        await chrome.storage.local.set({ watchlistItems: next });
+        await scheduleCloudSync().catch(() => undefined);
+        return next;
+      }
+      case "WATCHLIST_PRESENTATION": {
+        const [stored, history, feedback, settings, sessions] = await Promise.all([chrome.storage.local.get("watchlistItems"), videoRepository.all(), feedbackRepository.all(), getSettings(), sessionRepository.all()]);
+        const usable = history.filter(video => !video.excludedFromAnalytics);
+        const model = sharedPersonalModel(usable);
+        const topics = sharedTopicMemory(usable);
+        return ((stored.watchlistItems ?? []) as WatchlistItem[]).map(item => {
+          const video = history.find(video => video.videoId === item.videoId);
+          const channel = history.find(video => (item.channelId ? video.channelId === item.channelId : video.channelName === item.channelName) && video.channelAvatarUrl);
+          const metadata: VideoMetadata = { ...item, title: video?.title || item.title, contentType: video?.contentType ?? "unknown", thumbnailUrl: item.thumbnailUrl || video?.thumbnailUrl, channelAvatarUrl: item.channelAvatarUrl || video?.channelAvatarUrl || channel?.channelAvatarUrl };
+          const decision = makeVideoDecision(metadata, usable, feedback, settings, sessions, video ? undefined : model, topics);
+          return { videoId: item.videoId, title: metadata.title, thumbnailUrl: metadata.thumbnailUrl, channelAvatarUrl: metadata.channelAvatarUrl, score: decision.score, label: decision.decisionLabel };
+        });
       }
       case "WATCHLIST_GET": return ((await chrome.storage.local.get("watchlistItems")).watchlistItems ?? []);
       case "WATCHLIST_TOGGLE": {
