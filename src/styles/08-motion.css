@@ -114,16 +114,33 @@ main .surface:nth-of-type(n+5) { animation-delay:.2s }
 .completion-rings b { position:absolute; top:calc(min(96px, 100%) / 2 - 11px); font-size:16px; font-variant-numeric:tabular-nums }
 .completion-rings span { color:var(--muted); font-size:11px; text-align:center }
 
-.week-heatmap { display:grid; gap:3px; overflow-x:auto; padding-bottom:4px }
-.wh-hours, .wh-row { display:grid; grid-template-columns:34px repeat(24,minmax(14px,1fr)); gap:3px; align-items:center }
-.wh-hours small, .wh-row span, .wh-scale small { color:var(--muted); font-size:10px }
-.wh-row i, .wh-scale i { display:block; aspect-ratio:1; min-height:14px; border-radius:4px;
-  background:color-mix(in srgb,var(--accent) calc(var(--level) * 100%),var(--surface-2)); transition:transform .15s, box-shadow .15s }
-.wh-row i { animation:dt-pop .45s ease both; animation-delay:var(--d) }
-.wh-row i.empty { background:var(--surface-2) }
-.wh-row i:hover { transform:scale(1.35); box-shadow:0 0 0 2px var(--accent); position:relative; z-index:1 }
-.wh-scale { display:flex; align-items:center; justify-content:flex-end; gap:4px; margin-top:8px }
-.wh-scale i { width:14px }
+.chart-legend { display:flex; flex-wrap:wrap; gap:6px 16px; margin:0 0 10px; color:var(--muted); font-size:12px }
+.chart-legend span { display:inline-flex; align-items:center; gap:7px }
+.chart-legend i { display:inline-block }
+.lg-bar { width:10px; height:14px; border-radius:3px 3px 1px 1px; background:linear-gradient(var(--accent),color-mix(in srgb,var(--accent) 40%,transparent)) }
+.lg-line { width:20px; height:3px; border-radius:2px; background:#F4C27A }
+.lg-zero { width:14px; height:2px; background:var(--border) }
+
+.wh-summary { margin:0 0 14px; color:var(--muted); font-size:13px; line-height:1.6 }
+.wh-summary b { color:var(--text); font-weight:600 }
+.week-heatmap { display:grid; gap:5px; overflow-x:auto; padding-bottom:4px }
+.wh-row { display:grid; grid-template-columns:92px repeat(6,minmax(64px,1fr)) minmax(120px,1.3fr); gap:5px; align-items:center; min-width:640px }
+.wh-row > span { color:var(--text); font-size:12px; font-weight:500 }
+.wh-head small { display:grid; gap:1px; color:var(--muted); font-size:10px; text-align:center }
+.wh-head small b { color:var(--text); font-size:11px; font-weight:600 }
+.wh-row > i { display:grid; place-items:center; height:38px; border-radius:8px; font-style:normal; font-size:11px; font-variant-numeric:tabular-nums;
+  color:color-mix(in srgb,var(--text) 80%,transparent);
+  background:color-mix(in srgb,var(--accent) calc(var(--level) * 100%),var(--surface-2)); transition:transform .15s, box-shadow .15s;
+  animation:dt-pop .45s ease both; animation-delay:var(--d) }
+.wh-row > i.hot { color:#fff; font-weight:600 }
+.wh-row > i.empty { color:color-mix(in srgb,var(--muted) 45%,transparent); background:var(--surface-2) }
+.wh-row > i:hover { transform:scale(1.06); box-shadow:0 0 0 2px var(--accent); position:relative; z-index:1 }
+.wh-row > em { position:relative; display:flex; align-items:center; height:38px; padding:0 10px; border-radius:8px; background:var(--surface-2); overflow:hidden; font-style:normal }
+.wh-row > em i { position:absolute; inset:0 auto 0 0; background:color-mix(in srgb,#F4C27A 22%,transparent); transform-origin:left; animation:dt-grow .8s cubic-bezier(.2,.8,.2,1) both }
+.wh-row > em b { position:relative; font-size:12px; font-variant-numeric:tabular-nums }
+.wh-scale { display:flex; align-items:center; justify-content:flex-end; gap:4px; margin-top:10px }
+.wh-scale small { color:var(--muted); font-size:10px }
+.wh-scale i { width:16px; height:12px; border-radius:3px; background:color-mix(in srgb,var(--accent) calc(var(--level) * 100%),var(--surface-2)) }
 
 .stats-formats > .stats-formats-body { display:grid; grid-template-columns:240px minmax(0,1fr); gap:22px; align-items:center }
 .stats-formats-body > div:last-child { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 22px }
@@ -142,7 +159,7 @@ main .surface:nth-of-type(n+5) { animation-delay:.2s }
 
 @media (prefers-reduced-motion:reduce) {
   main .surface, .meter i, .kg-edge, .kg-node > .kg-bob, .kg-pulse, .kg-depth, .kg-detail, .kg-detail::before,
-  .kg-detail li i, .kg-rank em i, .kg-rank button, .stats-metric, .completion-rings > div, .cr-value, .wh-row i {
+  .kg-detail li i, .kg-rank em i, .kg-rank button, .stats-metric, .completion-rings > div, .cr-value, .wh-row > i, .wh-row > em i {
     animation:none !important
   }
   .kg-edge { stroke-dashoffset:0 }

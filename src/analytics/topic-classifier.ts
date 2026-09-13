@@ -61,7 +61,16 @@ const SHORT_SUFFIX_PATTERN = `(?:${SHORT_SUFFIXES.join("|")})?`;
  * bir maç finali olabilir ama Hazırlık konusuna yazılır, "motor" → "motorlu"
  * her bağlamda otomobil değildir.
  */
-const EXACT_ONLY = new Set(["cover", "motor", "tepki", "vize", "final"]);
+const EXACT_ONLY = new Set(["cover", "motor", "tepki", "vize", "final", "kod"]);
+
+/**
+ * Tek başına konu kanıtı sayılamayacak kadar genel anahtarlar. "FBI tarihinin
+ * en büyük operasyonu" bir tarih videosu değildir, "yapay zekâya karşı savaş"
+ * da. Başlıkta geçerlerse zayıf puan alırlar, açıklamada geçerlerse hiç almazlar;
+ * böylece yalnızca başka kanıt yoksa veya kanıtı destekliyorsa konu olurlar.
+ */
+const WEAK_KEYWORDS = new Set(["tarih", "tarihi", "savaş", "sistem", "inceleme", "rehber", "anlatım", "sohbet"]);
+const WEAK_TITLE_HIT = 2;
 
 /**
  * Türkçe ünsüz yumuşaması: kelime sonundaki sert ünsüz ek aldığında yumuşar.
@@ -113,6 +122,14 @@ function keywordRegex(keyword: string): RegExp {
 
 const matches = (text: string, keyword: string) => keywordRegex(keyword).test(text);
 
+/**
+ * Ham metinde, sınıflandırıcıyla aynı ek toleransıyla kelime arar. Kullanıcının
+ * kendi konu kuralları da bunu kullanır: düz `includes` "sistem"i
+ * "Sistemleri"nde bulduğu kadar "ybs"yi rastgele bir kelimenin içinde de buluyordu.
+ */
+export const keywordMatches = (text: string, keyword: string) =>
+  Boolean(keyword.trim()) && matches(foldText(text), keyword);
+
 /** Öğrenilen kelime eşleşmesinde kullanılan basit kelime ayrıştırma. */
 export const foldedWords = (text: string) =>
   foldText(text).split(/[^\p{L}\p{N}]+/u).filter((word) => word.length >= 4);
@@ -144,6 +161,10 @@ export function classifyTopics(
 
   for (const [topic, keywords] of Object.entries(TOPIC_RULES) as [Exclude<Topic, "Diğer">, string[]][]) {
     for (const keyword of keywords) {
+      if (WEAK_KEYWORDS.has(keyword)) {
+        if (matches(titleText, keyword)) add(topic, WEAK_TITLE_HIT);
+        continue;
+      }
       if (matches(titleText, keyword)) add(topic, TITLE_HIT);
       if (matches(channelText, keyword)) add(topic, CHANNEL_HIT);
       if (matches(contextText, keyword)) add(topic, CONTEXT_HIT);
@@ -159,7 +180,10 @@ export function classifyTopics(
   }
 
   const channelTopics = memory?.channelTopics.get(channelKey(channelName)) ?? [];
-  for (const topic of channelTopics) add(topic, CHANNEL_MEMORY_BOOST);
+  // Kanal hafızası yalnızca videoda zaten kanıtı olan konuyu güçlendirir.
+  // Önceden her konuya puan ekliyordu: bir kanal bir kez tarih videosu attıysa
+  // o kanalın GTA ya da dram videosu da "Tarih" etiketi alıyordu.
+  for (const topic of channelTopics) if (scores.has(topic)) add(topic, CHANNEL_MEMORY_BOOST);
 
   const scored = [...scores.entries()]
     .filter(([, score]) => score > 0)
@@ -173,7 +197,14 @@ export function classifyTopics(
     return ["Eğlence"];
   }
 
-  const topics = scored.slice(0, 3).map((item) => item.topic);
+  // İkincil konular ana konunun en az yarısı kadar kanıt ister. Aksi hâlde
+  // açıklamadaki tek bir "kod" (indirim kodu) veya etiket, eğlence videosunu
+  // Programlama'ya da yazıyordu.
+  const top = scored[0]?.score ?? 0;
+  const topics = scored
+    .filter((item, index) => index === 0 || item.score >= Math.max(TITLE_HIT - 1, top / 2))
+    .slice(0, 3)
+    .map((item) => item.topic);
   if (topics.length) return topics;
 
   // Hiçbir kural tutmadı: kanal geçmişi biliniyorsa videoyu ona devret.

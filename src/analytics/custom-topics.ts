@@ -1,13 +1,16 @@
 import type { CustomTopicRule, VideoRecord } from "../shared/types";
 import { normalizeText } from "../shared/utils";
+import { keywordMatches } from "./topic-classifier";
 
 export function matchCustomTopics(title: string, channelName: string, rules: CustomTopicRule[], context = "") {
-  const normalizedTitle = normalizeText(`${title} ${context}`);
   const normalizedChannel = normalizeText(channelName);
   return rules
     .filter((rule) => rule.enabled)
     .filter((rule) =>
-      rule.keywords.some((keyword) => normalizedTitle.includes(normalizeText(keyword)))
+      // Kelime olarak geçmeli, başka kelimenin içinde değil. Açıklama/etiketler
+      // gürültülü olduğu için orada "ybs" gibi kısa kısaltmalar sayılmaz.
+      rule.keywords.some((keyword) => keywordMatches(title, keyword)
+        || (keyword.trim().length >= 4 && keywordMatches(context, keyword)))
       || rule.channels.some((channel) => normalizedChannel.includes(normalizeText(channel)))
     )
     .toSorted((a, b) => b.priority - a.priority)
