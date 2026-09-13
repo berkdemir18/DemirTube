@@ -37,7 +37,32 @@ export type PersonalModel = {
   benchmark: BacktestResult;
 };
 
+/**
+ * Ağırlık araması ızgara taramasıdır (geçiş × sinyal × çarpan × geri test) ve
+ * 400 örneklik pencerede ~1.5-2 sn sürer. Aynı geçmiş için sonuç değişmeyeceği
+ * için son sonuç saklanır: panelde sayfalar arasında gidip gelmek yeniden
+ * hesaplatmaz.
+ */
+let modelCache: { key: string; model: PersonalModel } | undefined;
+
+const historyKey = (history: VideoRecord[]) => {
+  // İlk kayıt da anahtara girer: aynı uzunlukta ama farklı süzülmüş iki liste
+  // (panel tüm videoları, servis çalışanı yalnızca uygun olanları verir)
+  // birbirinin sonucunu okumasın.
+  const first = history[0];
+  const last = history.at(-1);
+  return `${history.length}|${first?.videoId ?? ""}|${last?.videoId ?? ""}|${last?.lastSeenAt ?? ""}|${CURRENT_MODEL_VERSION}`;
+};
+
 export function derivePersonalModel(history: VideoRecord[]): PersonalModel {
+  const cacheKey = historyKey(history);
+  if (modelCache?.key === cacheKey) return modelCache.model;
+  const model = computePersonalModel(history);
+  modelCache = { key: cacheKey, model };
+  return model;
+}
+
+function computePersonalModel(history: VideoRecord[]): PersonalModel {
   const eligible = trainingOrder(history);
   const ordered = eligible.slice(-MODEL_SAMPLE_LIMIT);
   const reliability = chronologicalReliability(ordered);

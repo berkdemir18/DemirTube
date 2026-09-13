@@ -78,9 +78,17 @@ function matchCount(pattern: RegExp, text: string) {
  * sorgulanıyor (keşfette 40 kart × tüm geçmiş); sonuç kayıt bazında saklanır.
  */
 const recordFormats = new Map<string, VideoFormat>();
+/**
+ * Nesne kimliğine bağlı önbellek. Anahtar üretmek (başlığı da içeren bir dize
+ * birleştirme) tek başına ölçülebilir bir maliyetti: 1500 videoluk kütüphanede
+ * bu fonksiyon iki milyondan fazla kez çağrılıyor.
+ */
+const recordFormatsByRef = new WeakMap<VideoRecord, VideoFormat>();
 
 export function recordVideoFormat(video: VideoRecord): VideoFormat {
   if (video.videoFormat) return video.videoFormat;
+  const byRef = recordFormatsByRef.get(video);
+  if (byRef !== undefined) return byRef;
   const key = `${video.videoId}|${video.contentType}|${video.durationSeconds}|${video.title}`;
   let cached = recordFormats.get(key);
   if (cached === undefined) {
@@ -88,6 +96,7 @@ export function recordVideoFormat(video: VideoRecord): VideoFormat {
     if (recordFormats.size > 4_000) recordFormats.clear();
     recordFormats.set(key, cached);
   }
+  recordFormatsByRef.set(video, cached);
   return cached;
 }
 
@@ -256,9 +265,12 @@ export function analyzeVideoIntelligence(metadata: VideoMetadata, history: Video
     : intent.intent === "news" || /\bbugun\b|\bson dakika\b|\bguncel\b|\b202[0-9]\b/.test(text)
     ? "Zamana duyarlı"
     : "Kalıcı içerik";
+  // Konu karşılaştırması küme üzerinden: `includes` her kayıt için konu
+  // dizisini baştan tarıyordu ve bu filtre geçmişin tamamı kadar çalışıyor.
+  const ownTopics = new Set(metadata.topics);
   const similar = history.filter((video) =>
     video.videoId !== metadata.videoId
-    && (video.topics.some((topic) => metadata.topics.includes(topic))
+    && (video.topics.some((topic) => ownTopics.has(topic))
       || recordVideoFormat(video) === format.format)
   );
   const evidence = evidenceLevel(similar.length + (metadata.description ? 2 : 0) + (intent.matches ? 1 : 0), 3, 8);

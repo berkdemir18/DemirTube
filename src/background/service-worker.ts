@@ -23,6 +23,7 @@ import {
   analyzeVideoWithGroq, configureGroq, fingerprintCloudInput, getGroqStatus, resetGroq, testGroqConnection
 } from "../cloud/groq-service";
 import { repairUnknownChannels } from "./youtube-metadata";
+import { migrateTopicRules } from "../storage/data-service";
 import { uid } from "../shared/utils";
 import { isAllowedCaptionUrl } from "../content/caption-tracks";
 import { dayKey, deriveBudgetState, endOfDayIso } from "../shared/budget";
@@ -225,7 +226,12 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
         return session;
       }
       case "GET_DATA": {
-        if (await repairUnknownChannels()) await scheduleCloudSync();
+        // Bu iki iş panelin açılışını bekletmez. Başlık onarımı ağa çıkıyor
+        // (video başına bir oEmbed isteği), konu göçü de tüm kütüphaneyi
+        // yeniden sınıflıyor; ikisi de birkaç saniye sürebilir ve sonucu bir
+        // sonraki açılışta görünür. Ölçüm: 1500 videoda göç ~10 sn.
+        void repairUnknownChannels().then(async (repaired) => { if (repaired) await scheduleCloudSync(); }).catch(() => undefined);
+        void migrateTopicRules().catch(() => undefined);
         return exportData();
       }
       case "EXPORT_DATA": return exportData();

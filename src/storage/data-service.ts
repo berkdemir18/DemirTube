@@ -1,4 +1,4 @@
-import type {
+import type { VideoRecord,
   AppData,
   ArchivedWatchlistItem,
   CustomTopicRule,
@@ -153,13 +153,31 @@ export async function rebuildAllVideoSummaries() {
   return rebuilt;
 }
 
+/** İki konu listesi aynı mı — sıra dahil. */
+const sameTopics = (left: readonly string[], right: readonly string[]) =>
+  left.length === right.length && left.every((topic, index) => topic === right[index]);
+
+/** Tek seferde yazılan video sayısı; her öbek ayrı bir IndexedDB işlemidir. */
+const RECLASSIFY_CHUNK = 200;
+
+/**
+ * Kayıtlı videoların konularını yeniden hesaplar.
+ *
+ * İki şey ölçülerek değişti (1500 videoluk ölçüm, 2026-09-13):
+ *   • Video başına ayrı `put` çağrısı toplam sürenin ~%80'iydi. Artık yalnızca
+ *     konusu GERÇEKTEN değişen videolar yazılıyor ve yazma öbekler hâlinde
+ *     tek işlemde yapılıyor.
+ *   • Hesap tarafı (sınıflandırma) 1500 videoda ~1.9 sn; bu yüzden işlem
+ *     panelin açılışını bekletmemeli, arka planda yürümeli.
+ */
 export async function reclassifyTopics() {
   const [videos, feedback, customTopics] = await Promise.all([videoRepository.all(), feedbackRepository.all(), auxiliaryRepository.customTopics()]);
   const feedbackByVideo = new Map(feedback.map((item) => [item.videoId, item]));
-  const database = await getDatabase(); let updated = 0;
+  const database = await getDatabase();
   // Hafıza yeniden sınıflamadan ÖNCE bir kez kurulur: elle düzeltilen konular
   // ve kanal tutarlılığı, anlaşılamamış başlıkları da kurtarabilsin.
   const memory = buildTopicMemory(videos);
+  const changed: VideoRecord[] = [];
   for (const video of videos) {
     if (feedbackByVideo.get(video.videoId)?.manualTopics?.length) continue;
     const context = `${video.description ?? ""} ${(video.hashtags ?? []).join(" ")}`;
@@ -168,9 +186,15 @@ export async function reclassifyTopics() {
     // sınıflama bunları siliyor, bir sonraki izlemede geri geliyorlardı.
     const custom = matchCustomTopics(video.title, video.channelName, customTopics, context);
     const topics = custom.length ? [...new Set([...custom, ...inferred.filter((topic) => topic !== "Diğer")])] : inferred;
-    await database.put("videos", { ...video, topics, inferredTopics: inferred }); updated += 1;
+    if (sameTopics(video.topics, topics) && sameTopics(video.inferredTopics ?? [], inferred)) continue;
+    changed.push({ ...video, topics, inferredTopics: inferred });
   }
-  return updated;
+  for (let index = 0; index < changed.length; index += RECLASSIFY_CHUNK) {
+    const transaction = database.transaction("videos", "readwrite");
+    await Promise.all(changed.slice(index, index + RECLASSIFY_CHUNK).map((video) => transaction.store.put(video)));
+    await transaction.done;
+  }
+  return changed.length;
 }
 
 /**
@@ -179,11 +203,24 @@ export async function reclassifyTopics() {
  */
 const TOPIC_RULES_VERSION = 2;
 
-async function migrateTopicRules() {
+let topicMigrationRunning = false;
+
+/**
+ * Panel açılışını bekletmez: çağıran `await` etmez, iş arka planda yürür ve
+ * sonucu bir sonraki açılışta görünür. Aynı anda iki kez başlamasın diye
+ * bayrakla korunur.
+ */
+export async function migrateTopicRules() {
+  if (topicMigrationRunning) return;
   const { topicRulesVersion } = await chrome.storage.local.get("topicRulesVersion");
   if (Number(topicRulesVersion ?? 0) >= TOPIC_RULES_VERSION) return;
-  await reclassifyTopics();
-  await chrome.storage.local.set({ topicRulesVersion: TOPIC_RULES_VERSION });
+  topicMigrationRunning = true;
+  try {
+    await reclassifyTopics();
+    await chrome.storage.local.set({ topicRulesVersion: TOPIC_RULES_VERSION });
+  } finally {
+    topicMigrationRunning = false;
+  }
 }
 
 async function migrateLegacySummaries() {
@@ -209,7 +246,6 @@ export function checksumPayload(value: unknown) {
 export async function exportData(): Promise<AppData> {
   await finalizeStaleSessions();
   await migrateLegacySummaries();
-  await migrateTopicRules();
   const [videos, sessions, feedback, customTopics, keywordRules, weeklyReports, diagnostics, settings, storedWatchlist] = await Promise.all([
     videoRepository.all(),
     sessionRepository.all(),
