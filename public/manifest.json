@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "DemirTube AI",
-  "version": "0.11.2",
+  "version": "0.11.3",
   "version_name": "0.11.2 · Sekme kurtarma",
   "description": "YouTube videolarını, altyazılarını ve kişisel izleme davranışını yerel-first analiz eder.",
   "permissions": ["storage", "alarms", "scripting"],
