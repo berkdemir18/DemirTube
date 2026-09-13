@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 // DemirTube Aurora UI v2 · unified dashboard visual system
 import {
   Activity, ArrowDownRight, ArrowRight, ArrowUpRight, BrainCircuit, Clock3, Flame, Gauge,
@@ -102,9 +103,12 @@ export function Overview({
       : "Aylara göre izleme süresi";
 
   const evidence = evidenceLevel(videos.length);
-  const latest = videos.toSorted((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt))[0];
-  const reasons = latest ? selectionReasons(latest, videos).slice(0, 3) : [];
-  const smartInsights = autonomousInsights(videos);
+  const latest = useMemo(() => videos.toSorted((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt))[0], [videos]);
+  const reasons = useMemo(() => latest ? selectionReasons(latest, videos).slice(0, 3) : [], [latest, videos]);
+  // Bu ikisi geçmişin tamamını tarar (ölçüm: 1500 videoda ~0.8 sn). useMemo
+  // olmadan menü açmak veya tema değiştirmek gibi her yeniden çizimde baştan
+  // hesaplanıyordu.
+  const smartInsights = useMemo(() => autonomousInsights(videos), [videos]);
   const regretAverage = regretOf(videos);
   const overviewTitle = videos.length
     ? focusScore >= 70
