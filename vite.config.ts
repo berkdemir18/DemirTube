@@ -10,6 +10,10 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    // Eklenti sayfaları dosyaları diskten okur; önyükleme ağ kazancı sağlamaz,
+    // yalnızca Chrome'un uzantı hata panelini "preload ... not used" ve
+    // "cross-world extension resource mismatch" uyarılarıyla doldurur.
+    modulePreload: false,
     rollupOptions: {
       input: {
         dashboard: resolve(rootDirectory, "dashboard.html"),
