@@ -16,7 +16,6 @@
 ### Doğrulama
 
 - Başlık ayrıştırma, eşleştirme, sıradaki bölüm ve yedek birleştirme için 28 yeni test (toplam 323). Gerçek tarayıcıda uçtan uca: 47 dakikalık bir video çapraz kökenli iframe içinden oynatıldı ("Loki 2. Sezon 4. Bölüm Türkçe Altyazılı İzle") ve Loki S2B4 %47 olarak TMDB'ye bağlandı; netflix.com yerel sayfaya yönlendirilerek Netflix oynatıcı başlığı okundu (Stranger Things S4B7). Yedek → sil → geri yükle turu kayıpsız.
-- Bilinen: tarayıcı duman testi (`tests/browser/extension.spec.ts`) bu sürümden önce de, değiştirilmemiş kodda da zaman aşımına uğruyor; CI 0.11.3'ten beri kırmızı. Ayrı iş olarak ele alınacak.
 
 ## 0.11.1 — 2026-08-25
 
