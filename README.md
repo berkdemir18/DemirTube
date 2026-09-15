@@ -23,6 +23,7 @@ Sürüm 0.12.0; YouTube dışındaki film/dizi takibini, kendi tahmin hatasını
 - Analiz sekmesi: son 7 gün (YouTube süresiyle kıyaslı), saat kadranı ve gece payı, haftanın günleri, en uzun maraton, dizi temposu ve bitiş tahmini, tür ve platform dağılımı, film bitirme oranı, yarıda kalanlar ve "herkes sevdi, sen bıraktın" listesi. Hesaplar `src/media/insights.ts` içinde saf fonksiyonlar; yetersiz veride sonuç üretmezler.
 - Kütüphane sekmesi: durum, favori ve tür filtreleri, dört sıralama.
 - Öneri sekmesi: sevilen yapımların TMDB öneri listeleri; sevilen yapım desteği, tür uyumu ve oy sayısıyla düzeltilmiş puandan 0–100 uyum. Gerekçe her kartta yazılı. Hesap `src/media/recommend.ts`; havuz service worker'da 12 saat önbelleklenir, puanlama ekranda yapılır.
+- Trakt bağlantısı (İzliyorum sekmesinin altında): kullanıcının kendi açtığı Trakt API uygulamasıyla cihaz kodu akışı; geçmiş, puan ve izleme listesi içe aktarılır. Client ID/Secret ve belirteçler yalnızca `chrome.storage.local`'da durur, JSON yedeğine ve buluta girmez.
 - İzliyorum sekmesi: kaldığın yerler sahnesi, "Bu akşam için" öneriler, yeni bölüm tarihleri (TMDB), günlere göre son izlenenler.
 - Film/dizi kaydı JSON yedeğine girer; birleştirmeli geri yüklemede en yeni ilerleme kazanır.
 

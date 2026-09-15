@@ -23,7 +23,9 @@ export function relativeDay(iso: string, now = new Date()) {
   if (days <= 0) return "Bugün";
   if (days === 1) return "Dün";
   if (days < 7) return `${days} gün önce`;
-  return new Date(iso).toLocaleDateString("tr-TR", { day: "numeric", month: "long" });
+  const date = new Date(iso);
+  // Trakt'tan gelen eski kayıtlarda yıl yazılmazsa "11 Ağustos" bu yıl sanılır.
+  return date.toLocaleDateString("tr-TR", date.getFullYear() === new Date(now).getFullYear() ? { day: "numeric", month: "long" } : { day: "numeric", month: "long", year: "numeric" });
 }
 
 /** "4 sa 12 dk" yerine büyük rakam için iki parça: değer ve birim. */

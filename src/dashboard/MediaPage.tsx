@@ -15,6 +15,7 @@ import type { MediaLibrary, MediaProgress, MediaStatus, MediaTitle, RecPool, Tmd
 import { MediaInsights } from "./MediaInsights";
 import { MediaLibraryGrid } from "./MediaLibraryGrid";
 import { MediaRecommend } from "./MediaRecommend";
+import { MediaTrakt } from "./MediaTrakt";
 import { episodeLabel, nextLabel, poster, relativeDay } from "./media-format";
 
 type Loaded = { library: MediaLibrary; status: MediaStatus };
@@ -130,6 +131,8 @@ export function MediaPage({ youtubeSessions = [] }: { youtubeSessions?: WatchSes
           <ol>{upcoming.slice(0, 5).map((item) => <UpcomingRow key={item.title.key} item={item} onOpen={() => setOpen(item.title.key)} />)}</ol>
         </section> : null}
       </div> : null}
+
+      <MediaTrakt onImported={async () => { await load(); await loadPool(); }} />
 
       <section className="media-row">
         <div className="perde-section-head"><h2>Listem</h2><p>Kalbe bastıkların ve Türkiye'de nerede oldukları.</p></div>

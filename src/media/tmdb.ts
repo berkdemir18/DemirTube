@@ -86,6 +86,15 @@ export function pickBestMatch(parsed: ParsedMediaTitle, results: TmdbSearchResul
 }
 
 type RawDetails = {
+  name?: string;
+  title?: string;
+  original_name?: string;
+  original_title?: string;
+  poster_path?: string | null;
+  backdrop_path?: string | null;
+  overview?: string;
+  first_air_date?: string;
+  release_date?: string;
   genres?: { id: number; name: string }[];
   vote_average?: number;
   runtime?: number;
@@ -96,11 +105,20 @@ type RawDetails = {
   status?: string;
 };
 
-/** Tür, puan, süre ve (dizide) sezon başına bölüm sayısı. */
+/** Tür, puan, süre ve (dizide) sezon başına bölüm sayısı; içe aktarmada ad ve görseller de buradan gelir. */
 export async function titleDetails(apiKey: string, kind: "tv" | "movie", tmdbId: number) {
   const body = await request<RawDetails>(apiKey, `/${kind}/${tmdbId}`, { language: "tr-TR" });
   const runtime = kind === "movie" ? body.runtime : body.episode_run_time?.[0] ?? body.last_episode_to_air?.runtime;
+  const date = kind === "tv" ? body.first_air_date : body.release_date;
   return {
+    identity: {
+      name: (kind === "tv" ? body.name : body.title) ?? body.name ?? body.title,
+      originalName: kind === "tv" ? body.original_name : body.original_title,
+      year: date ? Number(date.slice(0, 4)) || undefined : undefined,
+      posterPath: body.poster_path ?? undefined,
+      backdropPath: body.backdrop_path ?? undefined,
+      overview: body.overview || undefined,
+    },
     genres: (body.genres ?? []).map((genre) => genre.name).filter(Boolean),
     voteAverage: body.vote_average || undefined,
     runtimeMinutes: runtime || undefined,
