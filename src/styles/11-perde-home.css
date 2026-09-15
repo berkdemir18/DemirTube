@@ -1,0 +1,160 @@
+/* DemirTube · Perde › İzliyorum sahnesi ve Öneri sekmesi */
+
+/* === sahne =============================================================== */
+.perde-stage { min-height:clamp(420px, 60vh, 620px); flex-direction:column; justify-content:flex-end; align-items:stretch; }
+.perde-stage-art { animation:perde-stage-in .6s ease-out both, media-drift 22s ease-in-out .6s infinite alternate; }
+.perde-stage .media-hero-copy { animation:perde-copy-in .45s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes perde-stage-in { from { opacity:0; transform:scale(1.08); } to { opacity:1; transform:scale(1.04); } }
+@keyframes perde-copy-in { from { opacity:0; transform:translateY(10px); } }
+.perde-stage-strip { display:flex; align-items:center; gap:10px; padding:0 clamp(24px, 4vw, 56px) clamp(20px, 3vw, 32px); color:#F4F2EF; }
+.perde-stage-strip .media-icon { border-color:rgba(255,255,255,.22); background:rgba(10,9,8,.4); color:#fff; }
+.perde-stage-strip ol { list-style:none; margin:0; padding:4px 2px; display:flex; gap:10px; overflow-x:auto; scrollbar-width:none; flex:1; min-width:0; }
+.perde-stage-strip ol::-webkit-scrollbar { display:none; }
+.perde-stage-strip li button { all:unset; box-sizing:border-box; position:relative; display:grid; place-items:center; width:132px; aspect-ratio:16/9; border-radius:10px; overflow:hidden; cursor:pointer; background:rgba(255,255,255,.08); outline:2px solid transparent; outline-offset:2px; opacity:.6; transition:opacity .2s, outline-color .2s, transform .2s; }
+.perde-stage-strip li button:hover { opacity:.9; transform:translateY(-2px); }
+.perde-stage-strip li button.on { opacity:1; outline-color:#F4F2EF; }
+.perde-stage-strip li button:focus-visible { outline-color:var(--focus-ring, #FFB02E); opacity:1; }
+.perde-stage-strip img { width:100%; height:100%; object-fit:cover; }
+.perde-stage-strip li i { position:absolute; left:0; bottom:0; height:3px; background:var(--accent); }
+
+/* === bu akşam + yeni bölüm ============================================== */
+.perde-home-split { display:grid; grid-template-columns:minmax(0, 1.7fr) minmax(0, 1fr); gap:28px; align-items:start; }
+.perde-home-split > :only-child { grid-column:1 / -1; }
+.perde-link { all:unset; display:inline-flex; align-items:center; gap:6px; color:var(--muted); font:600 14px/1 Inter,system-ui,sans-serif; cursor:pointer; }
+.perde-link:hover { color:var(--text); }
+.perde-link:focus-visible { outline:2px solid var(--focus-ring, #FFB02E); outline-offset:3px; border-radius:4px; }
+.perde-tonight ol { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:14px; }
+.perde-tonight-card { all:unset; box-sizing:border-box; display:grid; gap:10px; cursor:pointer; width:100%; }
+.perde-tonight-art { position:relative; display:block; aspect-ratio:16/10; border-radius:14px; overflow:hidden; background:color-mix(in srgb, var(--text) 7%, transparent); }
+.perde-tonight-art img { width:100%; height:100%; object-fit:cover; transition:transform .5s cubic-bezier(.2,.8,.2,1); }
+.perde-tonight-card:hover img { transform:scale(1.05); }
+.perde-tonight-art em { position:absolute; right:8px; top:8px; font:700 13px/1 "IBM Plex Mono",monospace; font-style:normal; padding:6px 8px; border-radius:8px; color:#fff; background:var(--accent); }
+.perde-tonight-copy { display:grid; gap:3px; min-width:0; }
+.perde-tonight-copy small { color:var(--brand-amber, #FFB02E); font:600 10.5px/1.3 "IBM Plex Mono",monospace; letter-spacing:.06em; text-transform:uppercase; }
+.perde-tonight-copy b { font-size:16px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.perde-tonight-copy > span { color:var(--muted); font-size:13px; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.perde-tonight-card:focus-visible { outline:2px solid var(--focus-ring, #FFB02E); outline-offset:4px; border-radius:14px; }
+
+.perde-upcoming ol { list-style:none; margin:0; padding:0; display:grid; gap:6px; }
+.perde-upcoming button { all:unset; box-sizing:border-box; width:100%; display:grid; grid-template-columns:52px minmax(0, 1fr) auto; gap:14px; align-items:center; padding:10px 12px; border-radius:14px; border:1px solid var(--border); cursor:pointer; }
+.perde-upcoming button:hover { background:color-mix(in srgb, var(--text) 4%, transparent); }
+.perde-upcoming button:focus-visible { outline:2px solid var(--focus-ring, #FFB02E); outline-offset:2px; }
+.perde-upcoming-date { display:grid; justify-items:center; line-height:1; padding:6px 0; border-radius:10px; background:color-mix(in srgb, var(--text) 6%, transparent); }
+.perde-upcoming-date b { font:700 20px/1 Archivo,Inter,sans-serif; }
+.perde-upcoming-date small { font-size:11px; color:var(--muted); text-transform:uppercase; margin-top:3px; }
+.perde-upcoming-copy { display:grid; gap:3px; min-width:0; }
+.perde-upcoming-copy b { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; }
+.perde-upcoming-copy small { color:var(--muted); font-size:12.5px; }
+.perde-upcoming-when { display:inline-flex; align-items:center; gap:6px; color:var(--muted); font-size:12.5px; white-space:nowrap; }
+.perde-upcoming-when.soon { color:var(--brand-amber, #FFB02E); font-weight:600; }
+
+/* === zaman çizelgesi ===================================================== */
+.perde-timeline-day { display:grid; grid-template-columns:110px minmax(0, 1fr); gap:8px 20px; padding:6px 0; border-top:1px solid var(--border); }
+.perde-timeline-day:first-of-type { border-top:0; }
+.perde-timeline-day h3 { margin:14px 0 0; font:600 13px/1 "IBM Plex Mono",monospace; letter-spacing:.04em; color:var(--muted); }
+.perde-timeline-progress { width:72px; flex:none; display:grid; justify-items:end; color:var(--green, #7FE07A); }
+.perde-timeline-progress .perde-meter { width:72px; }
+
+/* === değerlendirme ======================================================= */
+.perde-rate { display:inline-flex; gap:6px; align-items:center; padding-left:4px; }
+.perde-rate .media-icon { width:44px; height:44px; }
+.perde-rate .media-icon.on svg { fill:none; }
+
+/* === öneri =============================================================== */
+.perde-recs { display:grid; gap:24px; animation:media-fade .35s ease-out; }
+.perde-taste { display:grid; grid-template-columns:minmax(0, .9fr) minmax(0, 1.4fr); gap:28px; padding:clamp(22px, 3vw, 36px); border-radius:24px; border:1px solid var(--border);
+  background:radial-gradient(80% 120% at 0% 0%, color-mix(in srgb, var(--brand-amber, #FFB02E) 12%, transparent), transparent 60%), color-mix(in srgb, var(--text) 3%, transparent); }
+.perde-taste-copy { display:grid; align-content:start; gap:12px; }
+.perde-taste-copy h2 { margin:0 !important; font-size:clamp(24px, 2.4vw, 34px) !important; line-height:1.1; letter-spacing:-.03em; text-wrap:balance; }
+.perde-taste-copy p { margin:0; color:var(--muted); line-height:1.6; }
+.perde-taste-lists { display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:20px; }
+.perde-taste-lists small { display:block; margin-bottom:10px; color:var(--muted); font:600 11px/1 "IBM Plex Mono",monospace; letter-spacing:.1em; text-transform:uppercase; }
+.perde-taste-lists ul { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+.perde-taste-lists li { display:flex; align-items:center; gap:10px; min-width:0; }
+.perde-taste-lists li img { width:30px; height:45px; border-radius:5px; object-fit:cover; flex:none; }
+.perde-taste-lists li > span { display:grid; gap:2px; min-width:0; }
+.perde-taste-lists li b { font-size:13.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.perde-taste-lists li em { font-style:normal; font-size:12px; color:var(--muted); }
+.perde-taste-lists li.cold img { filter:grayscale(1); opacity:.7; }
+.perde-taste-genres li { display:grid; grid-template-columns:minmax(0, 1fr) 90px; gap:10px; font-size:13px; }
+.perde-diverge { position:relative; height:8px; border-radius:4px; background:color-mix(in srgb, var(--text) 8%, transparent); }
+.perde-diverge::before { content:""; position:absolute; left:50%; top:-3px; bottom:-3px; width:1px; background:var(--muted); opacity:.5; }
+.perde-diverge i { position:absolute; left:50%; top:0; bottom:0; border-radius:4px; background:var(--green, #7FE07A); }
+.perde-diverge.neg i { left:auto; right:50%; background:var(--accent); }
+
+.perde-recs-bar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; }
+.spin { animation:perde-spin 1s linear infinite; }
+@keyframes perde-spin { to { transform:rotate(360deg); } }
+
+.perde-ring { position:relative; display:inline-grid; place-items:center; flex:none; }
+.perde-ring svg { position:absolute; inset:0; width:100%; height:100%; transform:rotate(-90deg); }
+.perde-ring circle { fill:none; stroke-width:5; }
+.perde-ring .track { stroke:color-mix(in srgb, currentColor 18%, transparent); }
+.perde-ring .value { stroke:var(--accent); stroke-linecap:round; transition:stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1); }
+.perde-ring b { position:relative; font:700 clamp(15px, 1.3vw, 20px)/1 Archivo,Inter,sans-serif; letter-spacing:-.02em; }
+
+.perde-top-pick { position:relative; display:flex; align-items:flex-end; min-height:clamp(440px, 58vh, 600px); border-radius:24px; overflow:hidden; isolation:isolate; background:#0b0a09; color:#F4F2EF; }
+.perde-top-art { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:-2; animation:media-drift 26s ease-in-out infinite alternate; }
+.perde-top-pick::after { content:""; position:absolute; inset:0; z-index:-1; background:linear-gradient(90deg, rgba(10,9,8,.95) 0%, rgba(10,9,8,.78) 42%, rgba(10,9,8,.1) 78%), linear-gradient(0deg, rgba(10,9,8,.8), transparent 50%); }
+.perde-top-copy { display:grid; gap:16px; padding:clamp(24px, 4vw, 52px); max-width:min(680px, 100%); }
+.perde-top-head { display:flex; gap:20px; align-items:center; }
+.perde-top-head h2 { margin:6px 0 4px !important; font-size:clamp(34px, 4.6vw, 64px) !important; line-height:.95; letter-spacing:-.045em; text-wrap:balance; }
+.perde-top-head .perde-ring .track { stroke:rgba(255,255,255,.2); }
+.perde-top-meta { margin:0; color:rgba(244,242,239,.7); font-size:14px; }
+.perde-top-overview { margin:0; color:rgba(244,242,239,.82); line-height:1.6; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.perde-reasons { list-style:none; margin:0; padding:0; display:grid; gap:6px; }
+.perde-reasons li { position:relative; padding-left:18px; font-size:14.5px; }
+.perde-reasons li::before { content:""; position:absolute; left:0; top:.55em; width:8px; height:8px; border-radius:50%; background:var(--green, #7FE07A); }
+.perde-reasons li.warn::before { background:var(--brand-amber, #FFB02E); }
+.perde-signals { margin:0; display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:14px; max-width:520px; }
+.perde-signals div { display:grid; gap:6px; }
+.perde-signals dt { font-size:12px; color:rgba(244,242,239,.66); }
+.perde-signals dd { margin:0; }
+.perde-top-pick .perde-meter { background:rgba(255,255,255,.16); }
+.perde-top-where { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.perde-top-where small { color:rgba(244,242,239,.66); font-size:12.5px; margin-right:4px; }
+.perde-top-where img { width:30px; height:30px; border-radius:8px; }
+.perde-top-where em { font-style:normal; font-size:13px; }
+.perde-top-pick .media-button:not(.primary) { color:#F4F2EF; }
+
+.perde-rec-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.perde-rec-ask { font-size:13px; color:inherit; opacity:.8; margin-right:2px; }
+
+.perde-rec-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:28px 18px; }
+.perde-rec { display:grid; align-content:start; gap:4px; min-width:0; }
+.perde-rec-art { position:relative; aspect-ratio:2/3; border-radius:14px; overflow:hidden; background:color-mix(in srgb, var(--text) 7%, transparent); margin-bottom:8px; }
+.perde-rec-art img { width:100%; height:100%; object-fit:cover; transition:transform .5s cubic-bezier(.2,.8,.2,1); }
+.perde-rec:hover .perde-rec-art img { transform:scale(1.04); }
+.perde-rec-art .perde-ring { position:absolute; right:8px; top:8px; color:#fff; background:rgba(10,9,8,.72); border-radius:50%; }
+.perde-rec-art .perde-ring b { font-size:14px; }
+.perde-rec b { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.perde-rec > small { color:var(--muted); font-size:12.5px; }
+.perde-rec-reason { margin:4px 0 0; font-size:12.5px; line-height:1.45; color:var(--muted); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.perde-rec-reason.warn { color:var(--brand-amber, #FFB02E); }
+.perde-rec .perde-rec-actions { margin-top:8px; }
+.perde-rec .perde-rec-actions .media-button { min-height:36px; padding:0 12px; font-size:13px; }
+
+@media (max-width: 1100px) {
+  .perde-home-split { grid-template-columns:1fr; }
+  .perde-taste { grid-template-columns:1fr; }
+}
+@media (max-width: 720px) {
+  .perde-tabs { margin-bottom:0; }
+  .perde-tabs [role=tablist] { width:100%; overflow-x:auto; scrollbar-width:none; }
+  .perde-tabs button { flex:1 0 auto; justify-content:center; padding:0 10px; font-size:13px; }
+  .perde-tabs button svg { display:none; }
+  .perde-stage-strip li button { width:96px; }
+  .perde-stage-strip .media-icon { display:none; }
+  .perde-tonight ol { grid-template-columns:1fr; }
+  .perde-tonight-card { grid-template-columns:120px minmax(0, 1fr); align-items:center; }
+  .perde-timeline-day { grid-template-columns:1fr; }
+  .perde-timeline-day h3 { margin-top:10px; }
+  .perde-timeline-progress { display:none; }
+  .perde-top-head { flex-direction:column; align-items:flex-start; }
+  .perde-top-pick::after { background:linear-gradient(0deg, rgba(10,9,8,.96) 0%, rgba(10,9,8,.75) 65%, rgba(10,9,8,.3) 100%); }
+  .perde-signals { grid-template-columns:1fr; }
+  .perde-rec-grid { grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .perde-stage-art, .perde-stage .media-hero-copy, .perde-top-art, .perde-recs, .spin { animation:none; }
+}

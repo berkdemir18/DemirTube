@@ -48,6 +48,12 @@ export interface MediaTitle {
   voteAverage?: number;
   runtimeMinutes?: number;
   detailsFetchedAt?: string;
+  /** Dizinin yayındaki bir sonraki bölümü (TMDB next_episode_to_air). */
+  nextEpisode?: { season: number; episode: number; airDate: string };
+  /** "Returning Series", "Ended" … */
+  status?: string;
+  /** Kullanıcının açık yargısı; öneri motorunda en ağır sinyal. */
+  userRating?: "liked" | "disliked";
   favorite: boolean;
   /** Kullanıcı eşleşmeyi elle seçtiyse otomatik eşleştirme bir daha dokunmaz. */
   manualMatch?: boolean;
@@ -95,6 +101,25 @@ export interface MediaLibrary {
   resolved: Record<string, string>;
   /** Saat, gün ve maraton analizleri için. İlk sürüm kütüphanelerinde yoktur. */
   sessions?: MediaSession[];
+  /** "İlgilenmiyorum" denen öneriler; bir daha önerilmez, türleri hafifçe geri çekilir. */
+  dismissed?: Record<string, { at: string; genres: string[] }>;
+}
+
+/** TMDB öneri listesinden gelen aday. */
+export interface RecCandidate extends TmdbSearchResult {
+  genreIds: number[];
+  voteAverage?: number;
+  voteCount?: number;
+  originalLanguage?: string;
+}
+
+/** Service worker'ın topladığı ham öneri havuzu; puanlama ekranda, saf fonksiyonla yapılır. */
+export interface RecPool {
+  fetchedAt: string;
+  /** Havuzun hangi tohumlarla kurulduğu; tohumlar değişince havuz tazelenir. */
+  seedKeys: string[];
+  bySeed: Record<string, RecCandidate[]>;
+  genres: Record<string, string>;
 }
 
 export interface TmdbSearchResult {

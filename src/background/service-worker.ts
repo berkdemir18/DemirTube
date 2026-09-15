@@ -23,7 +23,7 @@ import {
   analyzeVideoWithGroq, configureGroq, fingerprintCloudInput, getGroqStatus, resetGroq, testGroqConnection
 } from "../cloud/groq-service";
 import { repairUnknownChannels } from "./youtube-metadata";
-import { backfillDetails, deleteMedia, getMediaStatus, getProviders, markEpisode, readLibrary, recordMediaProgress, rematchMedia, searchMedia, setApiKey, setMediaTracking, toggleFavorite } from "./media-service";
+import { backfillDetails, deleteMedia, dismissRecommendation, getMediaStatus, getRecommendationPool, rateMedia, getProviders, markEpisode, readLibrary, recordMediaProgress, rematchMedia, searchMedia, setApiKey, setMediaTracking, toggleFavorite } from "./media-service";
 import { migrateTopicRules } from "../storage/data-service";
 import { uid } from "../shared/utils";
 import { isAllowedCaptionUrl } from "../content/caption-tracks";
@@ -507,6 +507,9 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendRes
       case "MEDIA_MARK_EPISODE": return markEpisode(message.progressId, message.completed);
       case "MEDIA_PROVIDERS": return getProviders(message.kind, message.tmdbId);
       case "MEDIA_BACKFILL": return backfillDetails();
+      case "MEDIA_REC_POOL": return (await getRecommendationPool(message.force)) ?? null;
+      case "MEDIA_RATE": return rateMedia(message);
+      case "MEDIA_DISMISS": return dismissRecommendation(message.result);
     }
   };
   handle().then(sendResponse).catch(async (error: unknown) => {

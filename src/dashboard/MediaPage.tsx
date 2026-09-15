@@ -4,22 +4,25 @@
 // favoriler ve Türkiye'de nerede izlenebildiği.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowUpRight, BarChart3, Check, Clapperboard, Heart, KeyRound, Library, Link2, Play, Search, Trash2, X } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BarChart3, CalendarClock, Check, ChevronLeft, ChevronRight, Clapperboard, Heart, KeyRound, Library, Link2, Play, Search, Sparkles, ThumbsDown, ThumbsUp, Trash2, X } from "lucide-react";
 import { sendMessage } from "../shared/messages";
 import type { WatchSession } from "../shared/types";
 import { formatDuration } from "../shared/utils";
 import { continueWatching, nextUp, siteLabel, type ContinueItem, type NextUp } from "../media/library";
+import { scoreRecommendations, upcomingEpisodes, type Recommendation, type UpcomingEpisode } from "../media/recommend";
 import { TMDB_IMAGE } from "../media/tmdb";
-import type { MediaLibrary, MediaProgress, MediaStatus, MediaTitle, TmdbSearchResult, WatchProviders } from "../media/types";
+import type { MediaLibrary, MediaProgress, MediaStatus, MediaTitle, RecPool, TmdbSearchResult, WatchProviders } from "../media/types";
 import { MediaInsights } from "./MediaInsights";
 import { MediaLibraryGrid } from "./MediaLibraryGrid";
+import { MediaRecommend } from "./MediaRecommend";
 import { episodeLabel, nextLabel, poster, relativeDay } from "./media-format";
 
 type Loaded = { library: MediaLibrary; status: MediaStatus };
-type Tab = "watching" | "insights" | "library";
+type Tab = "watching" | "recs" | "insights" | "library";
 
 const TABS: { id: Tab; label: string; icon: typeof Play }[] = [
   { id: "watching", label: "İzliyorum", icon: Play },
+  { id: "recs", label: "Öneri", icon: Sparkles },
   { id: "insights", label: "Analiz", icon: BarChart3 },
   { id: "library", label: "Kütüphane", icon: Library },
 ];
@@ -32,7 +35,7 @@ function remaining(next: NextUp) {
 function storedTab(): Tab {
   try {
     const value = sessionStorage.getItem(TAB_KEY);
-    return value === "insights" || value === "library" ? value : "watching";
+    return value === "recs" || value === "insights" || value === "library" ? value : "watching";
   } catch { return "watching"; }
 }
 
@@ -41,18 +44,30 @@ export function MediaPage({ youtubeSessions = [] }: { youtubeSessions?: WatchSes
   const [error, setError] = useState<string>();
   const [open, setOpen] = useState<string>();
   const [tab, setTabState] = useState<Tab>(storedTab);
+  const [pool, setPool] = useState<RecPool | null>();
+  const [poolError, setPoolError] = useState<string>();
+  const [refreshing, setRefreshing] = useState(false);
   const extensionAvailable = Boolean(globalThis.chrome?.runtime?.id);
   const backfilled = useRef(false);
 
   const setTab = (next: Tab) => {
     setTabState(next);
     try { sessionStorage.setItem(TAB_KEY, next); } catch { /* önemsiz */ }
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const load = useCallback(async () => {
     if (!extensionAvailable) return;
     try { setData(await sendMessage<Loaded>({ type: "MEDIA_GET" })); setError(undefined); }
     catch (reason) { setError(reason instanceof Error ? reason.message : "Veri okunamadı."); }
+  }, [extensionAvailable]);
+
+  const loadPool = useCallback(async (force = false) => {
+    if (!extensionAvailable) return;
+    if (force) setRefreshing(true);
+    try { setPool(await sendMessage<RecPool | null>({ type: "MEDIA_REC_POOL", force })); setPoolError(undefined); }
+    catch (reason) { setPoolError(reason instanceof Error ? reason.message : "Öneriler alınamadı."); }
+    finally { setRefreshing(false); }
   }, [extensionAvailable]);
 
   useEffect(() => {
@@ -63,23 +78,24 @@ export function MediaPage({ youtubeSessions = [] }: { youtubeSessions?: WatchSes
     return () => globalThis.chrome?.storage?.onChanged?.removeListener(listener);
   }, [load]);
 
-  // Tür ve puan bilgisi olmayan eski kayıtları bir kez tamamla; kütüphane değişince liste kendiliğinden yenilenir.
+  // Tür, puan ve yeni bölüm tarihi olmayan ya da bayatlamış kayıtları bir kez tamamla.
   useEffect(() => {
     if (backfilled.current || !data?.status.hasApiKey) return;
     backfilled.current = true;
-    void sendMessage({ type: "MEDIA_BACKFILL" }).catch(() => undefined);
-  }, [data?.status.hasApiKey]);
+    void sendMessage({ type: "MEDIA_BACKFILL" }).catch(() => undefined).finally(() => void loadPool());
+  }, [data?.status.hasApiKey, loadPool]);
 
   const library = data?.library;
   const status = data?.status;
-  const shelf = useMemo(() => (library ? continueWatching(library) : []), [library]);
+  const shelf = useMemo(() => (library ? continueWatching(library, 8) : []), [library]);
   const favorites = useMemo(() => Object.values(library?.titles ?? {}).filter((title) => title.favorite).toSorted((a, b) => b.updatedAt.localeCompare(a.updatedAt)), [library]);
-  const recent = useMemo(() => Object.values(library?.progress ?? {}).toSorted((a, b) => b.lastWatchedAt.localeCompare(a.lastWatchedAt)).slice(0, 12), [library]);
+  const recent = useMemo(() => Object.values(library?.progress ?? {}).toSorted((a, b) => b.lastWatchedAt.localeCompare(a.lastWatchedAt)).slice(0, 14), [library]);
+  const upcoming = useMemo(() => (library ? upcomingEpisodes(library) : []), [library]);
+  const tonight = useMemo(() => (library && pool ? scoreRecommendations(library, pool).slice(0, 3) : []), [library, pool]);
   const youtubeWeekSeconds = useMemo(() => {
     const since = Date.now() - 7 * 86_400_000;
     return youtubeSessions.reduce((sum, session) => new Date(session.startedAt).getTime() >= since ? sum + (session.watchSeconds ?? 0) : sum, 0);
   }, [youtubeSessions]);
-  const hero = shelf[0];
   const openTitle = open && library ? library.titles[open] : undefined;
   const titleCount = Object.keys(library?.titles ?? {}).length;
 
@@ -98,40 +114,36 @@ export function MediaPage({ youtubeSessions = [] }: { youtubeSessions?: WatchSes
     {error ? <p className="media-error">{error}</p> : null}
 
     {tab === "watching" ? <>
-      {hero ? <Hero item={hero} onOpen={() => setOpen(hero.title.key)} /> : <Intro status={status} />}
+      {shelf.length ? <HeroStage items={shelf} onOpen={setOpen} /> : <Intro status={status} />}
       {status && !status.hasApiKey ? <KeyCard onSaved={load} /> : null}
 
-      {shelf.length > 1 ? <section className="media-row">
-        <h2>Devam et</h2>
-        <div className="media-rail">{shelf.slice(1).map((item) => <ContinueCard key={item.title.key} item={item} onOpen={() => setOpen(item.title.key)} />)}</div>
-      </section> : null}
-
-      <SearchBox enabled={Boolean(status?.hasApiKey)} library={library} onChanged={load} onOpen={setOpen} />
+      {tonight.length || upcoming.length ? <div className="perde-home-split">
+        {tonight.length ? <section className="perde-tonight">
+          <div className="perde-section-head">
+            <h2>Bu akşam için</h2>
+            <button type="button" className="perde-link" onClick={() => setTab("recs")}>Tüm öneriler<ArrowRight size={15} /></button>
+          </div>
+          <ol>{tonight.map((item, index) => <TonightCard key={item.key} item={item} rank={index + 1} onMore={() => setTab("recs")} />)}</ol>
+        </section> : null}
+        {upcoming.length ? <section className="perde-upcoming">
+          <div className="perde-section-head"><h2>Yeni bölüm yolda</h2></div>
+          <ol>{upcoming.slice(0, 5).map((item) => <UpcomingRow key={item.title.key} item={item} onOpen={() => setOpen(item.title.key)} />)}</ol>
+        </section> : null}
+      </div> : null}
 
       <section className="media-row">
-        <h2>Favorilerim</h2>
+        <div className="perde-section-head"><h2>Listem</h2><p>Kalbe bastıkların ve Türkiye'de nerede oldukları.</p></div>
+        <SearchBox enabled={Boolean(status?.hasApiKey)} library={library} onChanged={load} onOpen={setOpen} />
         {favorites.length ? <div className="media-posters">{favorites.map((title) => <PosterCard key={title.key} title={title} library={library!} hasKey={Boolean(status?.hasApiKey)} onOpen={() => setOpen(title.key)} />)}</div>
-          : <p className="media-note">Yukarıdan bir film ya da dizi arayıp kalbe bas; nerede izleneceği burada durur.</p>}
+          : <p className="media-note">Bir film ya da dizi arayıp kalbe bas, burada durur.</p>}
       </section>
 
-      {recent.length ? <section className="media-row">
-        <h2>Son izlenenler</h2>
-        <ol className="media-recent">{recent.map((item) => {
-          const title = library!.titles[item.titleKey];
-          return <li key={item.id}>
-            <button type="button" onClick={() => setOpen(item.titleKey)}>
-              {poster(title?.posterPath, "w92") ? <img src={poster(title?.posterPath, "w92")} alt="" loading="lazy" /> : <span className="media-thumb-empty"><Clapperboard size={16} /></span>}
-              <span className="media-recent-main"><b>{title?.name ?? item.rawTitle}</b><small>{episodeLabel(item.season, item.episode)}{item.completed ? " · bitti" : ` · %${item.duration ? Math.round((item.position / item.duration) * 100) : 0}`}</small></span>
-              {title && !title.tmdbId ? <span className="media-flag">eşleşmedi</span> : null}
-              <span className="media-recent-meta">{siteLabel(item.site)}<small>{relativeDay(item.lastWatchedAt)}</small></span>
-            </button>
-          </li>;
-        })}</ol>
-      </section> : null}
+      {recent.length ? <RecentTimeline items={recent} library={library!} onOpen={setOpen} /> : null}
 
       {status ? <MediaSettings status={status} onChanged={load} /> : null}
     </> : null}
 
+    {tab === "recs" && library && status ? <MediaRecommend library={library} status={status} pool={pool} poolError={poolError} refreshing={refreshing} onRefresh={() => void loadPool(true)} onChanged={load} onOpen={setOpen} /> : null}
     {tab === "insights" && library ? <MediaInsights library={library} youtubeWeekSeconds={youtubeWeekSeconds} onOpen={setOpen} /> : null}
     {tab === "library" && library ? <MediaLibraryGrid library={library} onOpen={setOpen} /> : null}
 
@@ -164,34 +176,94 @@ function Intro({ status }: { status?: MediaStatus }) {
   </header>;
 }
 
-function Hero({ item, onOpen }: { item: ContinueItem; onOpen: () => void }) {
+/**
+ * Kaldığın her şey tek sahnede. Alttaki şeritten seçilen yapım sahneye gelir;
+ * otomatik dönmez, çünkü okurken kayan afiş can sıkar.
+ */
+function HeroStage({ items, onOpen }: { items: ContinueItem[]; onOpen: (key: string) => void }) {
+  const [index, setIndex] = useState(0);
+  const safeIndex = Math.min(index, items.length - 1);
+  const item = items[safeIndex];
   const backdrop = poster(item.title.backdropPath, "w1280") ?? poster(item.title.posterPath, "w780");
   const percent = item.next.state === "resume" ? item.next.percent : 100;
-  return <section className="media-hero">
-    {backdrop ? <img className="media-hero-art" src={backdrop} alt="" /> : <div className="media-hero-art media-hero-blank" />}
+  const go = (delta: number) => setIndex((value) => (Math.min(value, items.length - 1) + delta + items.length) % items.length);
+
+  return <section className="media-hero perde-stage" aria-roledescription="carousel" aria-label="Kaldığın yerler"
+    onKeyDown={(event) => { if (event.key === "ArrowRight") go(1); if (event.key === "ArrowLeft") go(-1); }}>
+    {backdrop ? <img key={item.title.key} className="media-hero-art perde-stage-art" src={backdrop} alt="" /> : <div className="media-hero-art media-hero-blank" />}
     <div className="media-hero-shade" />
-    <div className="media-hero-copy">
-      <span className="media-eyebrow"><Play size={13} />KALDIĞIN YER</span>
+    <div className="media-hero-copy" key={`copy-${item.title.key}`}>
+      <span className="media-eyebrow"><Play size={13} />KALDIĞIN YER{items.length > 1 ? ` · ${safeIndex + 1}/${items.length}` : ""}</span>
       <h1>{item.title.name}</h1>
       <p className="media-hero-next">{nextLabel(item.next)}</p>
       <div className="media-hero-bar"><i style={{ width: `${percent}%` }} /></div>
-      <p className="media-hero-meta">{siteLabel(item.last.site)} · {relativeDay(item.last.lastWatchedAt)}{remaining(item.next) ? ` · ${remaining(item.next)}` : ""}</p>
+      <p className="media-hero-meta">{siteLabel(item.last.site)} · {relativeDay(item.last.lastWatchedAt)}{remaining(item.next) ? ` · ${remaining(item.next)}` : ""}{item.title.genres?.length ? ` · ${item.title.genres.slice(0, 2).join(", ")}` : ""}</p>
       <div className="media-actions">
-        {item.last.lastUrl ? <a className="media-button primary" href={item.last.lastUrl} target="_blank" rel="noreferrer"><Play size={16} />{item.next.state === "resume" ? "Kaldığın yerden aç" : "Siteye git"}</a> : null}
-        <button type="button" className="media-button" onClick={onOpen}>Ayrıntı ve nerede izlenir</button>
+        {item.last.lastUrl ? <a className="media-button primary" href={item.last.lastUrl} target="_blank" rel="noreferrer"><Play size={16} />{item.next.state === "resume" ? "Kaldığın yerden aç" : "Sıradaki bölüme git"}</a> : null}
+        <button type="button" className="media-button" onClick={() => onOpen(item.title.key)}>Ayrıntı ve nerede izlenir</button>
       </div>
     </div>
+    {items.length > 1 ? <div className="perde-stage-strip">
+      <button type="button" className="media-icon" onClick={() => go(-1)} aria-label="Önceki"><ChevronLeft size={18} /></button>
+      <ol>{items.map((entry, position) => {
+        const art = poster(entry.title.backdropPath, "w300") ?? poster(entry.title.posterPath, "w185");
+        const fill = entry.next.state === "resume" ? entry.next.percent : 0;
+        return <li key={entry.title.key}><button type="button" className={position === safeIndex ? "on" : ""} aria-current={position === safeIndex} onClick={() => setIndex(position)} aria-label={entry.title.name}>
+          {art ? <img src={art} alt="" /> : <Clapperboard size={16} />}<i style={{ width: `${fill}%` }} />
+        </button></li>;
+      })}</ol>
+      <button type="button" className="media-icon" onClick={() => go(1)} aria-label="Sonraki"><ChevronRight size={18} /></button>
+    </div> : null}
   </section>;
 }
 
-function ContinueCard({ item, onOpen }: { item: ContinueItem; onOpen: () => void }) {
-  const art = poster(item.title.backdropPath, "w780") ?? poster(item.title.posterPath, "w500");
-  const percent = item.next.state === "resume" ? item.next.percent : 0;
-  return <button type="button" className="media-continue" onClick={onOpen}>
-    <span className="media-continue-art">{art ? <img src={art} alt="" loading="lazy" /> : <Clapperboard />}<i style={{ width: `${percent}%` }} /></span>
-    <b>{item.title.name}</b>
-    <small>{nextLabel(item.next)}</small>
-  </button>;
+function TonightCard({ item, rank, onMore }: { item: Recommendation; rank: number; onMore: () => void }) {
+  const art = poster(item.candidate.backdropPath, "w780") ?? poster(item.candidate.posterPath, "w500");
+  return <li><button type="button" className="perde-tonight-card" onClick={onMore}>
+    <span className="perde-tonight-art">{art ? <img src={art} alt="" loading="lazy" /> : null}<em>%{item.score}</em></span>
+    <span className="perde-tonight-copy">
+      <small>{rank}. öneri · {item.candidate.kind === "tv" ? "Dizi" : "Film"}{item.candidate.year ? ` · ${item.candidate.year}` : ""}</small>
+      <b>{item.candidate.name}</b>
+      <span>{item.reasons[0]}</span>
+    </span>
+  </button></li>;
+}
+
+function UpcomingRow({ item, onOpen }: { item: UpcomingEpisode; onOpen: () => void }) {
+  const date = new Date(`${item.airDate}T12:00:00`);
+  const when = item.daysUntil === 0 ? "Bugün" : item.daysUntil === 1 ? "Yarın" : item.daysUntil < 7 ? date.toLocaleDateString("tr-TR", { weekday: "long" }) : `${item.daysUntil} gün sonra`;
+  return <li><button type="button" onClick={onOpen}>
+    <span className="perde-upcoming-date"><b>{date.getDate()}</b><small>{date.toLocaleDateString("tr-TR", { month: "short" })}</small></span>
+    <span className="perde-upcoming-copy"><b>{item.title.name}</b><small>{item.season}. sezon {item.episode}. bölüm</small></span>
+    <span className={`perde-upcoming-when ${item.daysUntil <= 1 ? "soon" : ""}`}><CalendarClock size={14} />{when}</span>
+  </button></li>;
+}
+
+function RecentTimeline({ items, library, onOpen }: { items: MediaProgress[]; library: MediaLibrary; onOpen: (key: string) => void }) {
+  const groups = new Map<string, MediaProgress[]>();
+  for (const item of items) {
+    const label = relativeDay(item.lastWatchedAt);
+    groups.set(label, [...(groups.get(label) ?? []), item]);
+  }
+  return <section className="media-row perde-timeline">
+    <div className="perde-section-head"><h2>Son izlenenler</h2></div>
+    {[...groups.entries()].map(([label, entries]) => <div key={label} className="perde-timeline-day">
+      <h3>{label}</h3>
+      <ol className="media-recent">{entries.map((item) => {
+        const title = library.titles[item.titleKey];
+        const share = item.duration ? Math.round((item.position / item.duration) * 100) : 0;
+        return <li key={item.id}>
+          <button type="button" onClick={() => onOpen(item.titleKey)}>
+            {poster(title?.posterPath, "w92") ? <img src={poster(title?.posterPath, "w92")} alt="" loading="lazy" /> : <span className="media-thumb-empty"><Clapperboard size={16} /></span>}
+            <span className="media-recent-main"><b>{title?.name ?? item.rawTitle}</b><small>{episodeLabel(item.season, item.episode)} · {formatDuration(item.watchedSeconds)}</small></span>
+            {title && !title.tmdbId ? <span className="media-flag">eşleşmedi</span> : null}
+            <span className="perde-timeline-progress" aria-label={item.completed ? "bitti" : `%${share}`}>{item.completed ? <Check size={14} /> : <span className="perde-meter"><i style={{ width: `${share}%` }} /></span>}</span>
+            <span className="media-recent-meta">{siteLabel(item.site)}<small>{new Date(item.lastWatchedAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}</small></span>
+          </button>
+        </li>;
+      })}</ol>
+    </div>)}
+  </section>;
 }
 
 function PosterCard({ title, library, hasKey, onOpen }: { title: MediaTitle; library: MediaLibrary; hasKey: boolean; onOpen: () => void }) {
@@ -274,7 +346,7 @@ function SearchBox({ enabled, library, onChanged, onOpen }: { enabled: boolean; 
     await onChanged();
   };
   return <section className="media-search">
-    <label><Search size={18} /><input disabled={!enabled} placeholder={enabled ? "Film ya da dizi ara, favorilere ekle" : "Aramak için önce TMDB anahtarını gir"} value={search.query} onChange={(event) => search.setQuery(event.target.value)} /></label>
+    <label><Search size={18} /><input disabled={!enabled} placeholder={enabled ? "Film ya da dizi ara, listene ekle" : "Aramak için önce TMDB anahtarını gir"} value={search.query} onChange={(event) => search.setQuery(event.target.value)} /></label>
     {search.busy ? <p className="media-note">Aranıyor…</p> : search.message ? <p className="media-note">{search.message}</p> : null}
     {search.results.length ? <ul>{search.results.map((result) => {
       const key = `tmdb:${result.kind}:${result.tmdbId}`;
@@ -283,7 +355,7 @@ function SearchBox({ enabled, library, onChanged, onOpen }: { enabled: boolean; 
         {poster(result.posterPath, "w92") ? <img src={poster(result.posterPath, "w92")} alt="" loading="lazy" /> : <span className="media-thumb-empty"><Clapperboard size={16} /></span>}
         <span><b>{result.name}</b><small>{result.kind === "tv" ? "Dizi" : "Film"}{result.year ? ` · ${result.year}` : ""}</small></span>
         {saved ? <button type="button" className="media-icon" onClick={() => onOpen(key)} aria-label="Ayrıntıyı aç"><ArrowUpRight size={16} /></button> : null}
-        <button type="button" className={`media-icon ${saved?.favorite ? "on" : ""}`} onClick={() => void toggle(result)} aria-pressed={Boolean(saved?.favorite)} aria-label={saved?.favorite ? "Favorilerden çıkar" : "Favorilere ekle"}><Heart size={16} /></button>
+        <button type="button" className={`media-icon ${saved?.favorite ? "on" : ""}`} onClick={() => void toggle(result)} aria-pressed={Boolean(saved?.favorite)} aria-label={saved?.favorite ? "Listemden çıkar" : "Listeme ekle"}><Heart size={16} /></button>
       </li>;
     })}</ul> : null}
   </section>;
@@ -334,7 +406,11 @@ function Detail({ title, library, hasKey, onClose, onChanged, onMoved }: { title
       {title.overview ? <p className="media-overview">{title.overview}</p> : null}
 
       <div className="media-actions">
-        <button type="button" className={`media-button ${title.favorite ? "primary" : ""}`} onClick={() => void act({ type: "MEDIA_TOGGLE_FAVORITE", titleKey: title.key })}><Heart size={16} />{title.favorite ? "Favorilerde" : "Favorilere ekle"}</button>
+        <button type="button" className={`media-button ${title.favorite ? "primary" : ""}`} onClick={() => void act({ type: "MEDIA_TOGGLE_FAVORITE", titleKey: title.key })}><Heart size={16} />{title.favorite ? "Listemde" : "Listeme ekle"}</button>
+        <span className="perde-rate" role="group" aria-label="Değerlendir">
+          <button type="button" className={`media-icon ${title.userRating === "liked" ? "on" : ""}`} aria-pressed={title.userRating === "liked"} aria-label="Beğendim" title="Beğendim: öneriler buna göre şekillenir" onClick={() => void act({ type: "MEDIA_RATE", titleKey: title.key, rating: title.userRating === "liked" ? null : "liked" })}><ThumbsUp size={16} /></button>
+          <button type="button" className={`media-icon ${title.userRating === "disliked" ? "on" : ""}`} aria-pressed={title.userRating === "disliked"} aria-label="Beğenmedim" title="Beğenmedim: benzerleri geri çekilir" onClick={() => void act({ type: "MEDIA_RATE", titleKey: title.key, rating: title.userRating === "disliked" ? null : "disliked" })}><ThumbsDown size={16} /></button>
+        </span>
         {hasKey ? <button type="button" className="media-button" onClick={() => setFixing((value) => !value)}><Link2 size={16} />{title.tmdbId ? "Yanlış eşleşme mi?" : "Eşleştir"}</button> : null}
         <button type="button" className="media-button danger" onClick={() => { if (confirm(`"${title.name}" ve tüm izleme kaydı silinsin mi?`)) void act({ type: "MEDIA_DELETE", titleKey: title.key }).then(onClose); }}><Trash2 size={16} />Sil</button>
       </div>

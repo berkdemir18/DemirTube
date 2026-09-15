@@ -4,7 +4,7 @@
 // chrome.storage.local'da durur. Buradan dışarı çıkan tek şey film/dizi adı
 // araması; izleme geçmişi TMDB'ye gönderilmez.
 import { normalizeTitle } from "./title-parser";
-import type { ParsedMediaTitle, TmdbSearchResult, WatchProvider, WatchProviders } from "./types";
+import type { ParsedMediaTitle, RecCandidate, TmdbSearchResult, WatchProvider, WatchProviders } from "./types";
 
 const API = "https://api.themoviedb.org/3";
 export const TMDB_IMAGE = "https://image.tmdb.org/t/p";
@@ -92,6 +92,8 @@ type RawDetails = {
   episode_run_time?: number[];
   last_episode_to_air?: { runtime?: number } | null;
   seasons?: { season_number: number; episode_count: number }[];
+  next_episode_to_air?: { season_number: number; episode_number: number; air_date?: string } | null;
+  status?: string;
 };
 
 /** Tür, puan, süre ve (dizide) sezon başına bölüm sayısı. */
@@ -103,7 +105,32 @@ export async function titleDetails(apiKey: string, kind: "tv" | "movie", tmdbId:
     voteAverage: body.vote_average || undefined,
     runtimeMinutes: runtime || undefined,
     seasons: kind === "tv" ? (body.seasons ?? []).map((item) => ({ season: item.season_number, episodeCount: item.episode_count })) : undefined,
+    nextEpisode: body.next_episode_to_air?.air_date ? { season: body.next_episode_to_air.season_number, episode: body.next_episode_to_air.episode_number, airDate: body.next_episode_to_air.air_date } : undefined,
+    status: body.status,
   };
+}
+
+type RawRecommendation = RawResult & { genre_ids?: number[]; vote_average?: number; vote_count?: number; original_language?: string; adult?: boolean; softcore?: boolean };
+
+/** TMDB'nin "bunu izleyenler şunları da izledi" listesi. */
+export async function recommendationsFor(apiKey: string, kind: "tv" | "movie", tmdbId: number): Promise<RecCandidate[]> {
+  const body = await request<{ results?: RawRecommendation[] }>(apiKey, `/${kind}/${tmdbId}/recommendations`, { language: "tr-TR" });
+  return (body.results ?? [])
+    .filter((raw) => !raw.adult && !raw.softcore)
+    .map((raw): RecCandidate | undefined => {
+      const base = toResult(raw, kind);
+      return base ? { ...base, genreIds: raw.genre_ids ?? [], voteAverage: raw.vote_average, voteCount: raw.vote_count, originalLanguage: raw.original_language } : undefined;
+    })
+    .filter((item): item is RecCandidate => Boolean(item?.name));
+}
+
+/** Tür kimliği → Türkçe ad; dizi ve film listeleri birleşik. */
+export async function genreNames(apiKey: string): Promise<Record<string, string>> {
+  const [tv, movie] = await Promise.all([
+    request<{ genres: { id: number; name: string }[] }>(apiKey, "/genre/tv/list", { language: "tr-TR" }),
+    request<{ genres: { id: number; name: string }[] }>(apiKey, "/genre/movie/list", { language: "tr-TR" }),
+  ]);
+  return Object.fromEntries([...movie.genres, ...tv.genres].map((genre) => [String(genre.id), genre.name]));
 }
 
 type RawProviders = { results?: Record<string, { link?: string; flatrate?: RawProvider[]; rent?: RawProvider[]; buy?: RawProvider[]; ads?: RawProvider[]; free?: RawProvider[] }> };
