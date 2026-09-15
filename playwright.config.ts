@@ -14,5 +14,9 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: "list",
-  use: { trace: "retain-on-failure" }
+  // Tıklama ve doldurma varsayılan olarak süresiz bekler; bulunamayan bir öğe
+  // tüm testi 120 sn'lik zaman aşımına sürükleyip hangi adımda kalındığını
+  // gizliyordu (v0.11.2–v0.11.3 CI kırmızısı). Artık takılan adım 15 sn içinde
+  // kendi hata mesajıyla düşer.
+  use: { trace: "retain-on-failure", actionTimeout: 15_000 }
 });

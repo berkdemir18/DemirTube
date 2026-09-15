@@ -83,6 +83,13 @@ test("MV3 paketi açılır ve tüm YouTube rotasındaki içerik betiği watch sa
     await dashboard.setViewportSize({ width: 390, height: 844 });
     await expect(dashboard.getByRole("button", { name: "Menüyü aç" })).toBeVisible();
 
+    // Listeye eklenen sahte videonun (learning-test) gerçek bir YouTube kapağı
+    // yok; ağa çıkınca 404 konsol hatası olarak sayılıyordu. Kapaklar yerel
+    // 1x1 görselle sabitlenir, test dış ağa bağlı kalmaz.
+    await context.route("https://i.ytimg.com/**", (route) => route.fulfill({
+      contentType: "image/gif",
+      body: Buffer.from("R0lGODlhAQABAAAAACw=", "base64")
+    }));
     // Persist a timestamped learning note through the real worker, then reload.
     await dashboard.evaluate(async () => {
       await chrome.runtime.sendMessage({ type: "WATCHLIST_TOGGLE", item: { videoId: "learning-test", title: "Öğrenme testi", channelName: "Test", url: "https://www.youtube.com/watch?v=learning-test", topics: ["Programlama"], durationSeconds: 600, addedAt: new Date().toISOString() } });
