@@ -197,8 +197,8 @@ export interface StalledTitle {
   watchedSeconds: number;
 }
 
-/** 14 günden uzun süredir dokunulmamış yarım diziler ve filmler. */
-export function stalledTitles(library: MediaLibrary, now = new Date(), minIdleDays = 14): StalledTitle[] {
+/** 14 günden uzun, 180 günden kısa süredir dokunulmamış yarım diziler ve filmler. Daha eskisi "bıraktın" değil "geçmişin". */
+export function stalledTitles(library: MediaLibrary, now = new Date(), minIdleDays = 14, maxIdleDays = 180): StalledTitle[] {
   const progress = Object.values(library.progress);
   const result: StalledTitle[] = [];
   for (const title of Object.values(library.titles)) {
@@ -207,7 +207,7 @@ export function stalledTitles(library: MediaLibrary, now = new Date(), minIdleDa
     if (!next || next.state === "caught-up" || next.state === "finished-movie") continue;
     const last = own.toSorted((a, b) => b.lastWatchedAt.localeCompare(a.lastWatchedAt))[0];
     const daysIdle = Math.floor((now.getTime() - new Date(last.lastWatchedAt).getTime()) / DAY_MS);
-    if (daysIdle < minIdleDays) continue;
+    if (daysIdle < minIdleDays || daysIdle > maxIdleDays) continue;
     const label = next.state === "resume"
       ? (next.episode === 0 ? `${percentWith(next.percent, "possessive-locative")} bıraktın` : `${next.season}. sezon ${next.episode}. bölümün ${percentWith(next.percent, "possessive-locative")} bıraktın`)
       : `Sırada ${next.season}. sezon ${next.episode}. bölüm vardı`;

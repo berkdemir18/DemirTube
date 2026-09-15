@@ -37,6 +37,9 @@ function update(change: (library: MediaLibrary) => Promise<MediaLibrary> | Media
   return serialized(async () => writeLibrary(await change(await readLibrary())));
 }
 
+/** Kütüphaneye sıralı yazma; Trakt içe aktarması gibi başka servisler için. */
+export const updateLibrary = update;
+
 async function apiKey() {
   return ((await chrome.storage.local.get(API_KEY))[API_KEY] as string | undefined)?.trim() || undefined;
 }
@@ -87,9 +90,17 @@ async function enrich(key: string, title: MediaTitle): Promise<MediaTitle> {
   // Devam eden dizide yeni bölüm yayınlanır; sezon sayıları haftada bir tazelenir.
   const ttl = title.kind === "tv" && title.status !== "Ended" && title.status !== "Canceled" ? ONGOING_TTL_MS : DETAILS_TTL_MS;
   if (title.detailsFetchedAt && Date.now() - new Date(title.detailsFetchedAt).getTime() < ttl) return title;
-  const details = await titleDetails(key, title.kind, title.tmdbId).catch(() => undefined);
-  if (!details) return title;
-  return { ...title, ...details, seasons: details.seasons ?? title.seasons, detailsFetchedAt: new Date().toISOString() };
+  const fetched = await titleDetails(key, title.kind, title.tmdbId).catch(() => undefined);
+  if (!fetched) return title;
+  const { identity, ...details } = fetched;
+  return {
+    ...title, ...details,
+    posterPath: title.posterPath ?? identity.posterPath,
+    backdropPath: title.backdropPath ?? identity.backdropPath,
+    overview: title.overview ?? identity.overview,
+    seasons: details.seasons ?? title.seasons,
+    detailsFetchedAt: new Date().toISOString(),
+  };
 }
 
 /** Tür/puan bilgisi olmayan başlıkları tamamlar (ilk sürümde eşleşenler, çevrimdışı eşleşenler). */

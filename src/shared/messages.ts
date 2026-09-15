@@ -80,7 +80,13 @@ export type ExtensionMessage =
   | { type: "MEDIA_BACKFILL" }
   | { type: "MEDIA_REC_POOL"; force?: boolean }
   | { type: "MEDIA_RATE"; titleKey?: string; result?: import("../media/types").TmdbSearchResult; rating: "liked" | "disliked" | null }
-  | { type: "MEDIA_DISMISS"; result: import("../media/types").TmdbSearchResult & { genreNames?: string[] } };
+  | { type: "MEDIA_DISMISS"; result: import("../media/types").TmdbSearchResult & { genreNames?: string[] } }
+  | { type: "TRAKT_STATUS" }
+  | { type: "TRAKT_SAVE_APP"; clientId: string; clientSecret: string }
+  | { type: "TRAKT_START_DEVICE" }
+  | { type: "TRAKT_POLL" }
+  | { type: "TRAKT_SYNC"; full?: boolean }
+  | { type: "TRAKT_DISCONNECT" };
 
 export class ExtensionContextInvalidatedError extends Error {
   constructor(message = "Extension context invalidated.") {

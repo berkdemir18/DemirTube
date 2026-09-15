@@ -23,6 +23,7 @@ import {
   analyzeVideoWithGroq, configureGroq, fingerprintCloudInput, getGroqStatus, resetGroq, testGroqConnection
 } from "../cloud/groq-service";
 import { repairUnknownChannels } from "./youtube-metadata";
+import { traktDisconnect, traktPoll, traktSaveApp, traktStartDevice, traktStatus, traktSync } from "./trakt-service";
 import { backfillDetails, deleteMedia, dismissRecommendation, getMediaStatus, getRecommendationPool, rateMedia, getProviders, markEpisode, readLibrary, recordMediaProgress, rematchMedia, searchMedia, setApiKey, setMediaTracking, toggleFavorite } from "./media-service";
 import { migrateTopicRules } from "../storage/data-service";
 import { uid } from "../shared/utils";
@@ -510,6 +511,12 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendRes
       case "MEDIA_REC_POOL": return (await getRecommendationPool(message.force)) ?? null;
       case "MEDIA_RATE": return rateMedia(message);
       case "MEDIA_DISMISS": return dismissRecommendation(message.result);
+      case "TRAKT_STATUS": return traktStatus();
+      case "TRAKT_SAVE_APP": return traktSaveApp(message.clientId, message.clientSecret);
+      case "TRAKT_START_DEVICE": return traktStartDevice();
+      case "TRAKT_POLL": return traktPoll();
+      case "TRAKT_SYNC": return traktSync(message.full);
+      case "TRAKT_DISCONNECT": return traktDisconnect();
     }
   };
   handle().then(sendResponse).catch(async (error: unknown) => {

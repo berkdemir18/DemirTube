@@ -214,14 +214,19 @@ export interface ContinueItem {
   last: MediaProgress;
 }
 
-/** "Devam et" rafı: yarım kalanlar ve sırada bölümü olan diziler, en son izlenen başta. */
-export function continueWatching(library: MediaLibrary, limit = 12): ContinueItem[] {
+/** Trakt'tan gelen yıllar önceki diziler rafı doldurmasın. */
+export const CONTINUE_WINDOW_DAYS = 90;
+
+/** "Devam et" rafı: son 90 günde yarım kalanlar ve sırada bölümü olan diziler, en son izlenen başta. */
+export function continueWatching(library: MediaLibrary, limit = 12, now = new Date()): ContinueItem[] {
+  const since = new Date(now.getTime() - CONTINUE_WINDOW_DAYS * 86_400_000).toISOString();
   const progress = Object.values(library.progress);
   const items: ContinueItem[] = [];
   for (const title of Object.values(library.titles)) {
     const next = nextUp(title, progress);
     if (!next || next.state === "caught-up" || next.state === "finished-movie") continue;
     const last = progress.filter((item) => item.titleKey === title.key).toSorted((a, b) => b.lastWatchedAt.localeCompare(a.lastWatchedAt))[0];
+    if (last.lastWatchedAt < since) continue;
     items.push({ title, next, last });
   }
   return items.toSorted((a, b) => b.last.lastWatchedAt.localeCompare(a.last.lastWatchedAt)).slice(0, limit);
@@ -264,7 +269,7 @@ export function siteLabel(site: string) {
   const known: [RegExp, string][] = [
     [/netflix\./, "Netflix"], [/primevideo\.|amazon\./, "Prime Video"], [/(?:^|\.)max\.com$|hbomax\./, "HBO Max"],
     [/disneyplus\./, "Disney+"], [/tv\.apple\./, "Apple TV+"], [/mubi\./, "MUBI"], [/tabii\./, "tabii"],
-    [/exxen\./, "Exxen"], [/gain\.tv/, "Gain"], [/tod\.tv|todtv\./, "TOD"], [/puhutv\./, "puhutv"], [/blutv\./, "BluTV"],
+    [/exxen\./, "Exxen"], [/gain\.tv/, "Gain"], [/tod\.tv|todtv\./, "TOD"], [/puhutv\./, "puhutv"], [/blutv\./, "BluTV"], [/trakt\.tv/, "Trakt"],
   ];
   return known.find(([re]) => re.test(host))?.[1] ?? host;
 }
