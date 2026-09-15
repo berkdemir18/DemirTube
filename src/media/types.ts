@@ -43,6 +43,11 @@ export interface MediaTitle {
   overview?: string;
   /** TMDB'den gelen sezon başına bölüm sayıları; sıradaki bölümü hesaplamak için. */
   seasons?: { season: number; episodeCount: number }[];
+  /** TMDB ayrıntıları: Türkçe tür adları, 10 üzerinden puan, dakika cinsinden bölüm/film süresi. */
+  genres?: string[];
+  voteAverage?: number;
+  runtimeMinutes?: number;
+  detailsFetchedAt?: string;
   favorite: boolean;
   /** Kullanıcı eşleşmeyi elle seçtiyse otomatik eşleştirme bir daha dokunmaz. */
   manualMatch?: boolean;
@@ -68,6 +73,18 @@ export interface MediaProgress {
   lastWatchedAt: string;
 }
 
+/** Kesintisiz bir izleme: aynı bölüme 5 dakikadan kısa aralıklarla gelen bildirimler birleşir. */
+export interface MediaSession {
+  id: string;
+  titleKey: string;
+  season: number;
+  episode: number;
+  site: string;
+  startedAt: string;
+  endedAt: string;
+  seconds: number;
+}
+
 export interface MediaLibrary {
   version: 1;
   titles: Record<string, MediaTitle>;
@@ -76,6 +93,8 @@ export interface MediaLibrary {
   daily: Record<string, Record<string, number>>;
   /** Normalize sorgu → başlık anahtarı. Aynı başlık için TMDB'ye tekrar gidilmez. */
   resolved: Record<string, string>;
+  /** Saat, gün ve maraton analizleri için. İlk sürüm kütüphanelerinde yoktur. */
+  sessions?: MediaSession[];
 }
 
 export interface TmdbSearchResult {
@@ -110,5 +129,5 @@ export interface MediaStatus {
 }
 
 export function emptyLibrary(): MediaLibrary {
-  return { version: 1, titles: {}, progress: {}, daily: {}, resolved: {} };
+  return { version: 1, titles: {}, progress: {}, daily: {}, resolved: {}, sessions: [] };
 }

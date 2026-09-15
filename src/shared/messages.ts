@@ -76,7 +76,8 @@ export type ExtensionMessage =
   | { type: "MEDIA_REMATCH"; titleKey: string; result: import("../media/types").TmdbSearchResult }
   | { type: "MEDIA_DELETE"; titleKey: string }
   | { type: "MEDIA_MARK_EPISODE"; progressId: string; completed: boolean }
-  | { type: "MEDIA_PROVIDERS"; kind: "tv" | "movie"; tmdbId: number };
+  | { type: "MEDIA_PROVIDERS"; kind: "tv" | "movie"; tmdbId: number }
+  | { type: "MEDIA_BACKFILL" };
 
 export class ExtensionContextInvalidatedError extends Error {
   constructor(message = "Extension context invalidated.") {

@@ -5,7 +5,7 @@
 // yüzden kütüphaneye dokunan her işlem tek bir sıraya dizilir.
 import { applyProgress, rawKey, rematchTitle, removeTitle, titleFromSearch } from "../media/library";
 import { isGenericTitle, normalizeTitle, parseMediaTitle } from "../media/title-parser";
-import { pickBestMatch, searchTitles, testApiKey, tvSeasons, watchProviders } from "../media/tmdb";
+import { pickBestMatch, searchTitles, testApiKey, titleDetails, watchProviders } from "../media/tmdb";
 import { emptyLibrary, type MediaLibrary, type MediaProgressReport, type MediaStatus, type MediaTitle, type ParsedMediaTitle, type TmdbSearchResult, type WatchProviders } from "../media/types";
 
 const LIBRARY_KEY = "mediaLibrary";
@@ -75,10 +75,30 @@ async function findMatch(key: string, parsed: ParsedMediaTitle) {
   return pickBestMatch(parsed, await searchTitles(key, parsed.query));
 }
 
+const DETAILS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
 async function enrich(key: string, title: MediaTitle): Promise<MediaTitle> {
-  if (title.kind !== "tv" || !title.tmdbId || title.seasons?.length) return title;
-  const seasons = await tvSeasons(key, title.tmdbId).catch(() => undefined);
-  return seasons ? { ...title, seasons } : title;
+  if (!title.tmdbId || title.kind === "unknown") return title;
+  // Devam eden dizide yeni bölüm yayınlanır; sezon sayıları haftada bir tazelenir.
+  if (title.detailsFetchedAt && Date.now() - new Date(title.detailsFetchedAt).getTime() < DETAILS_TTL_MS) return title;
+  const details = await titleDetails(key, title.kind, title.tmdbId).catch(() => undefined);
+  if (!details) return title;
+  return { ...title, ...details, seasons: details.seasons ?? title.seasons, detailsFetchedAt: new Date().toISOString() };
+}
+
+/** Tür/puan bilgisi olmayan başlıkları tamamlar (ilk sürümde eşleşenler, çevrimdışı eşleşenler). */
+export async function backfillDetails(limit = 25) {
+  const key = await apiKey();
+  if (!key) return { updated: 0 };
+  const pending = Object.values((await readLibrary()).titles).filter((title) => title.tmdbId && title.kind !== "unknown" && !title.detailsFetchedAt).slice(0, limit);
+  if (!pending.length) return { updated: 0 };
+  const enriched = await Promise.all(pending.map((title) => enrich(key, title)));
+  await update((library) => {
+    const titles = { ...library.titles };
+    for (const title of enriched) if (titles[title.key]) titles[title.key] = { ...titles[title.key], ...title, favorite: titles[title.key].favorite };
+    return { ...library, titles };
+  });
+  return { updated: enriched.filter((title) => title.detailsFetchedAt).length };
 }
 
 function resolvedKey(parsed: ParsedMediaTitle) {

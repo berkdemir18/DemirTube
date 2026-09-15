@@ -7,6 +7,12 @@
 - **Perde: film ve dizi ekranı.** Menüde "Perde" adıyla. YouTube dışındaki sitelerde izlenen film ve diziler artık kaydediliyor: Netflix, HBO Max, Prime Video, Disney+, Apple TV+ ve oynatıcısı başka alan adındaki bir iframe'de duran diğer siteler. Ekran kaldığın diziyi tam genişlik gösteriyor (yüzde, kalan dakika, izlediğin sayfaya tek tıkla dönüş); altında "devam et" rafı, favoriler, son izlenenler ve son 30 günün platform dağılımı var.
 - **Sıradaki bölüm.** Bölüm %92'yi geçince ya da sonuna 4 dakikadan az kalınca bitmiş sayılıyor (jeneriği izlemeyene göre). Sezon sonu TMDB'deki bölüm sayısından anlaşılıyor, özel bölümler (sezon 0) atlanıyor; son sezonun sonunda "yayınlanan tüm bölümleri izledin" deniyor. Esas alınan, en yüksek numaralı bölüm değil en son izlenen bölüm.
 - **TMDB eşleştirmesi ve favoriler.** Aranan başlık favorilere eklenebiliyor, posterin altında Türkiye'de abonelikle izlenebildiği platformların logoları duruyor. Ad birebir tutmuyorsa eşleştirme yapılmıyor; bölüm bilgisi olan kayıt aynı adlı filme değil diziye bağlanıyor. Yanlış eşleşme elle düzeltilince bütün bölümler taşınıyor.
+- **Üç sekme: İzliyorum, Analiz, Kütüphane.**
+  - *Analiz* rakam tablosu değil, her kartı tek cümle: son 7 gün (önceki haftaya ve aynı haftadaki YouTube süresine göre), gece 00–05 payı ve 24 saatlik kadran, haftanın günleri, en uzun maraton (aynı dizide 45 dakikadan kısa aralarla izlenen bölümler), dizi temposu ve "bu hızla X günde biter", tür dağılımı (izleme süresine göre), platform/site dağılımı, film bitirme oranı, iki haftadır dokunulmayan yarım yapımlar ve TMDB'de 7,8+ puanlı olup yarıda bırakılanlar.
+  - Veri yetmeyen kart konuşmuyor: saat analizi 3 saatlik kayıttan, maraton analizi üç oturuştan sonra açılıyor.
+  - *Kütüphane*: durum (izliyorsun/yarıda/bitti), favori, dizi/film filtreleri; son izlenen, en çok zaman, TMDB puanı ve ada göre sıralama.
+- Oturum kaydı eklendi (aynı bölüme 5 dakikadan kısa arayla dönmek aynı oturum). TMDB'den tür, puan ve bölüm süresi alınıyor, haftada bir tazeleniyor; eski kayıtlar ekran açılınca bir kez tamamlanıyor.
+- Sayılara Türkçe ek doğru çekiliyor: "%29'u", "%90'ında kaldın", "%38'de kapattın".
 - Film/dizi kaydı JSON yedeğine ve "tüm veriyi sil"e dahil.
 
 ### İzinler

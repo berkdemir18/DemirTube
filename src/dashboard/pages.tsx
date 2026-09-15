@@ -87,6 +87,6 @@ export const pages: Record<PageId, (context: PageContext) => ReactNode> = {
   history: (c) => <WatchHistory videos={c.videos} sessions={c.sessions} feedback={c.data.feedback} onDelete={c.deleteVideo} onFeedback={c.saveFeedback} onResetFeedback={c.resetFeedback} />,
   report: (c) => <WeeklyReportPage videos={c.data.videos} sessions={c.data.sessions} stored={c.data.weeklyReports} onGenerate={c.generateReport} />,
   capsule: (c) => <CapsulePage videos={c.data.videos} sessions={c.data.sessions} />,
-  media: () => <MediaPage />,
+  media: (c) => <MediaPage youtubeSessions={c.data.sessions} />,
   settings: (c) => <SettingsPage data={c.data} settings={c.data.settings} onSettings={c.setSettings} onClear={c.clear} onExport={c.exportData} onImport={c.importData} />,
 };
