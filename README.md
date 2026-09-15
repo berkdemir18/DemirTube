@@ -20,6 +20,8 @@ Sürüm 0.12.0; YouTube dışındaki film/dizi takibini, kendi tahmin hatasını
 - TMDB ile eşleştirme: ad birebir tutmuyorsa eşleştirmez; yanlış diziye bölüm yazmaktansa "eşleşmedi" der ve elle seçtirir. Elle düzeltmede bütün bölümler doğru başlığa taşınır.
 - Kaldığın yer (yüzde, kalan dakika, izlediğin sayfaya dönüş), sıradaki bölüm (sezon sonları TMDB bölüm sayısından), favoriler, Türkiye'de nerede izlenebildiği (JustWatch verisi, TMDB üzerinden, 24 saat önbellek), son 7/30 gün ve platform dağılımı.
 - TMDB anahtarı kullanıcıya ait ve yalnızca `chrome.storage.local`'da durur. Anahtarsız takip yine çalışır, yalnızca poster ve eşleşme olmaz; anahtar sonradan girilince eski kayıtlar kendiliğinden eşleştirilir.
+- Analiz sekmesi: son 7 gün (YouTube süresiyle kıyaslı), saat kadranı ve gece payı, haftanın günleri, en uzun maraton, dizi temposu ve bitiş tahmini, tür ve platform dağılımı, film bitirme oranı, yarıda kalanlar ve "herkes sevdi, sen bıraktın" listesi. Hesaplar `src/media/insights.ts` içinde saf fonksiyonlar; yetersiz veride sonuç üretmezler.
+- Kütüphane sekmesi: durum, favori ve tür filtreleri, dört sıralama.
 - Film/dizi kaydı JSON yedeğine girer; birleştirmeli geri yüklemede en yeni ilerleme kazanır.
 
 ### YouTube

@@ -5,6 +5,7 @@ import { Dashboard } from "./Dashboard";
 import "../styles/global.css";
 import "../styles/07-library.css";
 import "../styles/09-media.css";
+import "../styles/10-perde.css";
 
 document.documentElement.classList.add("demirtube-ui");
 document.documentElement.style.setProperty("--app-vh", `${window.innerHeight * 0.01}px`);

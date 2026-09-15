@@ -4,47 +4,50 @@
 // favoriler ve Türkiye'de nerede izlenebildiği.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowUpRight, Check, Clapperboard, Heart, KeyRound, Link2, Play, Search, Trash2, X } from "lucide-react";
+import { ArrowUpRight, BarChart3, Check, Clapperboard, Heart, KeyRound, Library, Link2, Play, Search, Trash2, X } from "lucide-react";
 import { sendMessage } from "../shared/messages";
+import type { WatchSession } from "../shared/types";
 import { formatDuration } from "../shared/utils";
-import { continueWatching, mediaStats, nextUp, siteLabel, type ContinueItem, type NextUp } from "../media/library";
+import { continueWatching, nextUp, siteLabel, type ContinueItem, type NextUp } from "../media/library";
 import { TMDB_IMAGE } from "../media/tmdb";
 import type { MediaLibrary, MediaProgress, MediaStatus, MediaTitle, TmdbSearchResult, WatchProviders } from "../media/types";
+import { MediaInsights } from "./MediaInsights";
+import { MediaLibraryGrid } from "./MediaLibraryGrid";
+import { episodeLabel, nextLabel, poster, relativeDay } from "./media-format";
 
 type Loaded = { library: MediaLibrary; status: MediaStatus };
+type Tab = "watching" | "insights" | "library";
 
-const poster = (path?: string, size = "w342") => (path ? `${TMDB_IMAGE}/${size}${path}` : undefined);
-
-function episodeLabel(season: number, episode: number) {
-  return season === 0 && episode === 0 ? "Film" : `${season}. sezon · ${episode}. bölüm`;
-}
-
-function nextLabel(next: NextUp) {
-  switch (next.state) {
-    case "resume": return next.season === 0 && next.episode === 0 ? `%${next.percent}'inde kaldın` : `${next.season}. sezon ${next.episode}. bölüm · %${next.percent}'inde kaldın`;
-    case "next": return `Sırada ${next.season}. sezon ${next.episode}. bölüm`;
-    case "caught-up": return "Yayınlanan tüm bölümleri izledin";
-    case "finished-movie": return "İzlendi";
-  }
-}
+const TABS: { id: Tab; label: string; icon: typeof Play }[] = [
+  { id: "watching", label: "İzliyorum", icon: Play },
+  { id: "insights", label: "Analiz", icon: BarChart3 },
+  { id: "library", label: "Kütüphane", icon: Library },
+];
+const TAB_KEY = "demirtube-perde-tab";
 
 function remaining(next: NextUp) {
   return next.state === "resume" && next.duration > next.position ? `${Math.max(1, Math.round((next.duration - next.position) / 60))} dk kaldı` : undefined;
 }
 
-function relativeDay(iso: string) {
-  const days = Math.floor((new Date().setHours(0, 0, 0, 0) - new Date(iso).setHours(0, 0, 0, 0)) / 86_400_000);
-  if (days <= 0) return "Bugün";
-  if (days === 1) return "Dün";
-  if (days < 7) return `${days} gün önce`;
-  return new Date(iso).toLocaleDateString("tr-TR", { day: "numeric", month: "long" });
+function storedTab(): Tab {
+  try {
+    const value = sessionStorage.getItem(TAB_KEY);
+    return value === "insights" || value === "library" ? value : "watching";
+  } catch { return "watching"; }
 }
 
-export function MediaPage() {
+export function MediaPage({ youtubeSessions = [] }: { youtubeSessions?: WatchSession[] }) {
   const [data, setData] = useState<Loaded>();
   const [error, setError] = useState<string>();
   const [open, setOpen] = useState<string>();
+  const [tab, setTabState] = useState<Tab>(storedTab);
   const extensionAvailable = Boolean(globalThis.chrome?.runtime?.id);
+  const backfilled = useRef(false);
+
+  const setTab = (next: Tab) => {
+    setTabState(next);
+    try { sessionStorage.setItem(TAB_KEY, next); } catch { /* önemsiz */ }
+  };
 
   const load = useCallback(async () => {
     if (!extensionAvailable) return;
@@ -60,59 +63,77 @@ export function MediaPage() {
     return () => globalThis.chrome?.storage?.onChanged?.removeListener(listener);
   }, [load]);
 
+  // Tür ve puan bilgisi olmayan eski kayıtları bir kez tamamla; kütüphane değişince liste kendiliğinden yenilenir.
+  useEffect(() => {
+    if (backfilled.current || !data?.status.hasApiKey) return;
+    backfilled.current = true;
+    void sendMessage({ type: "MEDIA_BACKFILL" }).catch(() => undefined);
+  }, [data?.status.hasApiKey]);
+
   const library = data?.library;
   const status = data?.status;
   const shelf = useMemo(() => (library ? continueWatching(library) : []), [library]);
-  const stats = useMemo(() => (library ? mediaStats(library) : undefined), [library]);
   const favorites = useMemo(() => Object.values(library?.titles ?? {}).filter((title) => title.favorite).toSorted((a, b) => b.updatedAt.localeCompare(a.updatedAt)), [library]);
   const recent = useMemo(() => Object.values(library?.progress ?? {}).toSorted((a, b) => b.lastWatchedAt.localeCompare(a.lastWatchedAt)).slice(0, 12), [library]);
+  const youtubeWeekSeconds = useMemo(() => {
+    const since = Date.now() - 7 * 86_400_000;
+    return youtubeSessions.reduce((sum, session) => new Date(session.startedAt).getTime() >= since ? sum + (session.watchSeconds ?? 0) : sum, 0);
+  }, [youtubeSessions]);
   const hero = shelf[0];
   const openTitle = open && library ? library.titles[open] : undefined;
+  const titleCount = Object.keys(library?.titles ?? {}).length;
 
   if (!extensionAvailable) return <div className="media-page"><p className="media-note">Bu ekran eklenti içinde açıldığında çalışır.</p></div>;
 
   return <div className="media-page">
-    {hero ? <Hero item={hero} onOpen={() => setOpen(hero.title.key)} /> : <Intro status={status} />}
+    <nav className="perde-tabs" aria-label="Perde bölümleri">
+      <span className="perde-wordmark">Perde</span>
+      <div role="tablist">
+        {TABS.map(({ id, label, icon: Icon }) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={tab === id ? "on" : ""} onClick={() => setTab(id)}>
+          <Icon size={15} />{label}{id === "library" && titleCount ? <span>{titleCount}</span> : null}
+        </button>)}
+      </div>
+    </nav>
 
     {error ? <p className="media-error">{error}</p> : null}
-    {status && !status.hasApiKey ? <KeyCard onSaved={load} /> : null}
 
-    {stats && (stats.monthSeconds > 0 || favorites.length > 0) ? <section className="media-stats" aria-label="Son 30 gün">
-      <div><strong>{formatDuration(stats.weekSeconds)}</strong><span>bu hafta</span></div>
-      <div><strong>{stats.episodesThisMonth}</strong><span>bölüm bitti · 30 gün</span></div>
-      <div><strong>{stats.moviesThisMonth}</strong><span>film bitti · 30 gün</span></div>
-      <div className="media-sites">{stats.sites.slice(0, 4).map((site) => <span key={site.site}><b>{siteLabel(site.site)}</b>{Math.round((site.seconds / Math.max(1, stats.monthSeconds)) * 100)}%</span>)}</div>
-    </section> : null}
+    {tab === "watching" ? <>
+      {hero ? <Hero item={hero} onOpen={() => setOpen(hero.title.key)} /> : <Intro status={status} />}
+      {status && !status.hasApiKey ? <KeyCard onSaved={load} /> : null}
 
-    {shelf.length > 1 ? <section className="media-row">
-      <h2>Devam et</h2>
-      <div className="media-rail">{shelf.slice(1).map((item) => <ContinueCard key={item.title.key} item={item} onOpen={() => setOpen(item.title.key)} />)}</div>
-    </section> : null}
+      {shelf.length > 1 ? <section className="media-row">
+        <h2>Devam et</h2>
+        <div className="media-rail">{shelf.slice(1).map((item) => <ContinueCard key={item.title.key} item={item} onOpen={() => setOpen(item.title.key)} />)}</div>
+      </section> : null}
 
-    <SearchBox enabled={Boolean(status?.hasApiKey)} library={library} onChanged={load} onOpen={setOpen} />
+      <SearchBox enabled={Boolean(status?.hasApiKey)} library={library} onChanged={load} onOpen={setOpen} />
 
-    <section className="media-row">
-      <h2>Favorilerim</h2>
-      {favorites.length ? <div className="media-posters">{favorites.map((title) => <PosterCard key={title.key} title={title} library={library!} hasKey={Boolean(status?.hasApiKey)} onOpen={() => setOpen(title.key)} />)}</div>
-        : <p className="media-note">Yukarıdan bir film ya da dizi arayıp kalbe bas; nerede izleneceği burada durur.</p>}
-    </section>
+      <section className="media-row">
+        <h2>Favorilerim</h2>
+        {favorites.length ? <div className="media-posters">{favorites.map((title) => <PosterCard key={title.key} title={title} library={library!} hasKey={Boolean(status?.hasApiKey)} onOpen={() => setOpen(title.key)} />)}</div>
+          : <p className="media-note">Yukarıdan bir film ya da dizi arayıp kalbe bas; nerede izleneceği burada durur.</p>}
+      </section>
 
-    {recent.length ? <section className="media-row">
-      <h2>Son izlenenler</h2>
-      <ol className="media-recent">{recent.map((item) => {
-        const title = library!.titles[item.titleKey];
-        return <li key={item.id}>
-          <button type="button" onClick={() => setOpen(item.titleKey)}>
-            {poster(title?.posterPath, "w92") ? <img src={poster(title?.posterPath, "w92")} alt="" loading="lazy" /> : <span className="media-thumb-empty"><Clapperboard size={16} /></span>}
-            <span className="media-recent-main"><b>{title?.name ?? item.rawTitle}</b><small>{episodeLabel(item.season, item.episode)}{item.completed ? " · bitti" : ` · %${item.duration ? Math.round((item.position / item.duration) * 100) : 0}`}</small></span>
-            {title && !title.tmdbId ? <span className="media-flag">eşleşmedi</span> : null}
-            <span className="media-recent-meta">{siteLabel(item.site)}<small>{relativeDay(item.lastWatchedAt)}</small></span>
-          </button>
-        </li>;
-      })}</ol>
-    </section> : null}
+      {recent.length ? <section className="media-row">
+        <h2>Son izlenenler</h2>
+        <ol className="media-recent">{recent.map((item) => {
+          const title = library!.titles[item.titleKey];
+          return <li key={item.id}>
+            <button type="button" onClick={() => setOpen(item.titleKey)}>
+              {poster(title?.posterPath, "w92") ? <img src={poster(title?.posterPath, "w92")} alt="" loading="lazy" /> : <span className="media-thumb-empty"><Clapperboard size={16} /></span>}
+              <span className="media-recent-main"><b>{title?.name ?? item.rawTitle}</b><small>{episodeLabel(item.season, item.episode)}{item.completed ? " · bitti" : ` · %${item.duration ? Math.round((item.position / item.duration) * 100) : 0}`}</small></span>
+              {title && !title.tmdbId ? <span className="media-flag">eşleşmedi</span> : null}
+              <span className="media-recent-meta">{siteLabel(item.site)}<small>{relativeDay(item.lastWatchedAt)}</small></span>
+            </button>
+          </li>;
+        })}</ol>
+      </section> : null}
 
-    {status ? <MediaSettings status={status} onChanged={load} /> : null}
+      {status ? <MediaSettings status={status} onChanged={load} /> : null}
+    </> : null}
+
+    {tab === "insights" && library ? <MediaInsights library={library} youtubeWeekSeconds={youtubeWeekSeconds} onOpen={setOpen} /> : null}
+    {tab === "library" && library ? <MediaLibraryGrid library={library} onOpen={setOpen} /> : null}
 
     {openTitle && library ? <Detail title={openTitle} library={library} hasKey={Boolean(status?.hasApiKey)} onClose={() => setOpen(undefined)} onChanged={load} onMoved={setOpen} /> : null}
   </div>;

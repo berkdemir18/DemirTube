@@ -1,0 +1,164 @@
+/* DemirTube · Perde sekmeleri, analiz ve kütüphane
+   09-media.css'in üstüne biner; aynı değişkenleri kullanır. */
+
+/* === sekmeler ============================================================ */
+.perde-tabs { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:14px 24px; margin-bottom:-8px; }
+.perde-wordmark { font:700 clamp(30px, 3.2vw, 44px)/1 Archivo,Inter,sans-serif; letter-spacing:-.045em; }
+.perde-tabs [role=tablist] { display:inline-flex; gap:4px; padding:4px; border-radius:999px; border:1px solid var(--border); background:color-mix(in srgb, var(--text) 4%, transparent); }
+.perde-tabs button { all:unset; box-sizing:border-box; display:inline-flex; align-items:center; gap:8px; min-height:38px; padding:0 16px; border-radius:999px; font:600 14px/1 Inter,system-ui,sans-serif; color:var(--muted); cursor:pointer; transition:background .2s, color .2s; }
+.perde-tabs button:hover { color:var(--text); }
+.perde-tabs button.on { background:var(--text); color:var(--bg, #11100f); }
+.perde-tabs button span { font:500 11px/1 "IBM Plex Mono",monospace; padding:3px 6px; border-radius:6px; background:color-mix(in srgb, currentColor 14%, transparent); }
+.perde-tabs button:focus-visible { outline:2px solid var(--focus-ring, #FFB02E); outline-offset:2px; }
+
+/* === analiz ============================================================== */
+.perde-insights { display:grid; gap:28px; animation:media-fade .35s ease-out; }
+.perde-lede { display:grid; grid-template-columns:minmax(0, 1.1fr) minmax(0, 1fr); gap:32px; align-items:end; padding:clamp(24px, 3.4vw, 44px); border-radius:24px; border:1px solid var(--border);
+  background:radial-gradient(90% 120% at 100% 0%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 60%), color-mix(in srgb, var(--text) 4%, transparent); }
+.perde-lede-number { margin:10px 0 6px; font:700 clamp(60px, 8vw, 116px)/.9 Archivo,Inter,sans-serif; letter-spacing:-.05em; display:flex; gap:.18em; flex-wrap:wrap; font-variant-numeric:tabular-nums; }
+.perde-lede-number small { font-size:.34em; letter-spacing:-.01em; margin-left:.08em; color:var(--muted); font-weight:600; }
+.perde-lede-sentence { margin:0; font-size:clamp(16px, 1.3vw, 19px); line-height:1.55; color:var(--muted); max-width:560px; }
+.perde-lede-sentence b { color:var(--text); font-weight:600; }
+.perde-lede-sentence b.up { color:var(--accent); }
+.perde-lede-sentence b.down { color:var(--green, #7FE07A); }
+.perde-weeks { display:grid; grid-template-columns:repeat(8, 1fr); gap:8px; height:180px; align-items:end; }
+.perde-weeks span { display:grid; grid-template-rows:1fr auto; gap:8px; height:100%; align-items:end; min-width:0; }
+.perde-weeks i { display:block; border-radius:8px 8px 3px 3px; background:color-mix(in srgb, var(--text) 16%, transparent); transform-origin:bottom; animation:perde-grow .7s cubic-bezier(.2,.8,.2,1) both; }
+.perde-weeks span.now i { background:var(--accent); }
+.perde-weeks small { font-size:11px; color:var(--muted); text-align:center; white-space:nowrap; overflow:hidden; }
+.perde-weeks span:nth-child(2) i { animation-delay:.04s } .perde-weeks span:nth-child(3) i { animation-delay:.08s } .perde-weeks span:nth-child(4) i { animation-delay:.12s }
+.perde-weeks span:nth-child(5) i { animation-delay:.16s } .perde-weeks span:nth-child(6) i { animation-delay:.2s } .perde-weeks span:nth-child(7) i { animation-delay:.24s } .perde-weeks span:nth-child(8) i { animation-delay:.28s }
+@keyframes perde-grow { from { transform:scaleY(0); } }
+@keyframes perde-fill { from { transform:scaleX(0); } }
+
+.perde-grid { display:grid; grid-template-columns:repeat(12, minmax(0, 1fr)); gap:16px; }
+.perde-card { position:relative; grid-column:span 6; display:grid; align-content:start; gap:14px; padding:24px; border-radius:22px; border:1px solid var(--border); background:color-mix(in srgb, var(--text) 3%, transparent); overflow:hidden; min-width:0; }
+.perde-card > header, .perde-binge-copy > header { display:flex; align-items:center; gap:8px; color:var(--brand-amber, #FFB02E); font:600 11px/1 "IBM Plex Mono",monospace; letter-spacing:.14em; }
+.perde-card h3 { margin:0; font:600 clamp(20px, 1.7vw, 26px)/1.2 Archivo,Inter,sans-serif; letter-spacing:-.025em; text-wrap:balance; }
+.perde-card h3 b { color:var(--accent); font-weight:700; }
+.perde-binge h3 b { color:var(--brand-amber, #FFB02E); }
+/* Kaydırmalı raflar grid öğesini içeriği kadar genişletip sayfayı taşırmasın. */
+.media-page > *, .perde-insights > *, .perde-library > * { min-width:0; }
+.perde-foot { color:var(--muted); font-size:12px; }
+.perde-pending { background:transparent; border-style:dashed; }
+.perde-pending p { margin:0; color:var(--muted); line-height:1.55; }
+
+.perde-clock { grid-column:span 7; }
+.perde-clock-body { display:grid; grid-template-columns:minmax(160px, 220px) 1fr; gap:24px; align-items:center; }
+.perde-clock-dial { width:100%; height:auto; }
+.perde-clock line { stroke:color-mix(in srgb, var(--text) 22%, transparent); }
+.perde-clock line.peak { stroke:var(--brand-amber, #FFB02E); }
+.perde-clock line.late { stroke:var(--accent); }
+.perde-clock text { fill:var(--muted); font:500 10px "IBM Plex Mono",monospace; }
+.perde-weekdays { display:grid; grid-template-columns:repeat(7, 1fr); grid-template-rows:150px auto; gap:6px; align-items:end; }
+.perde-weekdays span { display:grid; grid-template-rows:1fr auto; gap:6px; height:100%; align-items:end; }
+.perde-weekdays i { display:block; border-radius:6px; background:color-mix(in srgb, var(--text) 20%, transparent); transform-origin:bottom; animation:perde-grow .6s cubic-bezier(.2,.8,.2,1) both; }
+.perde-weekdays span.weekend i { background:var(--brand-amber, #FFB02E); }
+.perde-weekdays small { font-size:11px; color:var(--muted); text-align:center; }
+.perde-weekdays p { grid-column:1 / -1; margin:6px 0 0; color:var(--muted); font-size:13px; }
+.perde-weekdays p b { color:var(--text); }
+
+.perde-binge { grid-column:span 5; display:flex; flex-direction:column; justify-content:flex-end; padding:0; min-height:340px; color:#F4F2EF; background:#0b0a09; isolation:isolate; }
+.perde-binge-art { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:-2; opacity:.9; }
+.perde-binge::after { content:""; position:absolute; inset:0; z-index:-1; background:linear-gradient(180deg, rgba(10,9,8,.3) 0%, rgba(10,9,8,.93) 72%); }
+.perde-binge-copy { display:grid; gap:12px; padding:24px; }
+.perde-binge-copy p { margin:0; color:rgba(244,242,239,.72); font-size:14px; }
+.perde-binge .media-button { justify-self:start; }
+.perde-binge .perde-figures small { color:rgba(244,242,239,.66); }
+
+.perde-figures { display:flex; flex-wrap:wrap; gap:14px 28px; }
+.perde-figures > div { display:grid; gap:4px; }
+.perde-figures strong { font:700 clamp(28px, 2.6vw, 38px)/1 Archivo,Inter,sans-serif; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+.perde-figures strong span { font-size:.55em; color:var(--muted); }
+.perde-figures small { color:var(--muted); font-size:12.5px; }
+
+.perde-meter { position:relative; display:block; height:6px; border-radius:6px; background:color-mix(in srgb, var(--text) 10%, transparent); overflow:hidden; }
+.perde-meter i { position:absolute; inset:0 auto 0 0; border-radius:inherit; background:var(--accent); transform-origin:left; animation:perde-fill .8s cubic-bezier(.2,.8,.2,1) both; }
+
+.perde-pace ol, .perde-bars { list-style:none; margin:0; padding:0; display:grid; gap:4px; }
+.perde-pace li button { all:unset; box-sizing:border-box; width:100%; display:grid; grid-template-columns:minmax(0, 1.2fr) minmax(60px, 1fr) 52px; gap:14px; align-items:center; padding:8px 6px; border-radius:12px; cursor:pointer; }
+.perde-pace li button:hover { background:color-mix(in srgb, var(--text) 5%, transparent); }
+.perde-pace-name { display:grid; gap:2px; min-width:0; }
+.perde-pace-name b { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; }
+.perde-pace-name small { color:var(--muted); font-size:12.5px; }
+.perde-pace em { font-style:normal; text-align:right; font:600 13px "IBM Plex Mono",monospace; }
+
+.perde-stack { display:flex; height:22px; border-radius:8px; overflow:hidden; gap:3px; }
+.perde-stack i { display:block; min-width:4px; transform-origin:left; animation:perde-fill .9s cubic-bezier(.2,.8,.2,1) both; }
+.perde-legend { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:8px 16px; }
+.perde-legend li { display:flex; align-items:center; gap:8px; font-size:13.5px; }
+.perde-legend li i { width:10px; height:10px; border-radius:3px; flex:none; }
+.perde-legend li b { margin-left:auto; font:500 12.5px "IBM Plex Mono",monospace; color:var(--muted); }
+
+.perde-bars li { display:grid; grid-template-columns:minmax(90px, 140px) 1fr auto; gap:14px; align-items:center; padding:6px 0; font-size:14px; }
+.perde-bars li span:first-child { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.perde-bars b { font:500 12.5px "IBM Plex Mono",monospace; color:var(--muted); }
+
+.perde-section-head { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:6px 24px; margin-bottom:14px; }
+.perde-section-head h2 { margin:0 !important; }
+.perde-section-head p { margin:0; color:var(--muted); font-size:14px; }
+.perde-stalled-rail { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(150px, 180px); gap:16px; overflow-x:auto; padding-bottom:10px; scroll-snap-type:x mandatory; }
+.perde-stalled-card { all:unset; box-sizing:border-box; display:grid; gap:4px; cursor:pointer; scroll-snap-align:start; min-width:0; }
+.perde-stalled-card b { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:6px; }
+.perde-stalled-card small { color:var(--muted); font-size:12.5px; line-height:1.35; }
+.perde-stalled-art { position:relative; aspect-ratio:2/3; border-radius:14px; overflow:hidden; background:color-mix(in srgb, var(--text) 7%, transparent); }
+.perde-stalled-art img { width:100%; height:100%; object-fit:cover; filter:grayscale(.55) brightness(.8); transition:filter .35s; }
+.perde-stalled-card:hover img, .perde-stalled-card:focus-visible img { filter:none; }
+.perde-stalled-art em { position:absolute; left:8px; top:8px; font:600 11px/1 "IBM Plex Mono",monospace; font-style:normal; padding:6px 8px; border-radius:7px; color:#fff; background:rgba(10,9,8,.72); }
+
+.perde-gaps ul { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:12px; }
+.perde-gaps button { all:unset; box-sizing:border-box; width:100%; display:flex; gap:14px; align-items:center; padding:10px; border-radius:16px; border:1px solid var(--border); cursor:pointer; }
+.perde-gaps button:hover { background:color-mix(in srgb, var(--text) 4%, transparent); }
+.perde-gaps img { width:52px; height:78px; border-radius:8px; object-fit:cover; flex:none; }
+.perde-gaps span { display:grid; gap:4px; }
+.perde-gaps small { color:var(--muted); font-size:12.5px; line-height:1.4; }
+
+.perde-empty { display:grid; justify-items:start; gap:12px; padding:clamp(28px, 5vw, 56px); border-radius:24px; border:1px dashed var(--border); }
+.perde-empty > svg { color:var(--brand-amber, #FFB02E); }
+.perde-empty h2 { margin:0 !important; }
+.perde-empty p { margin:0; color:var(--muted); max-width:620px; line-height:1.6; }
+
+/* === kütüphane =========================================================== */
+.perde-library { display:grid; gap:22px; animation:media-fade .35s ease-out; }
+.perde-library-bar { display:flex; flex-wrap:wrap; align-items:center; gap:12px 20px; }
+.perde-library-bar > p { margin:0; color:var(--muted); }
+.perde-library-bar > p b { color:var(--text); }
+.perde-chips { display:flex; flex-wrap:wrap; gap:6px; }
+.perde-chips button { all:unset; box-sizing:border-box; display:inline-flex; align-items:center; gap:7px; min-height:34px; padding:0 12px; border-radius:999px; border:1px solid var(--border); font:500 13.5px/1 Inter,system-ui,sans-serif; cursor:pointer; }
+.perde-chips button span { font:500 11px "IBM Plex Mono",monospace; color:var(--muted); }
+.perde-chips button.on { background:var(--text); color:var(--bg, #11100f); border-color:var(--text); }
+.perde-chips button.on span { color:inherit; opacity:.7; }
+.perde-chips button:disabled { opacity:.35; cursor:default; }
+.perde-chips button:focus-visible { outline:2px solid var(--focus-ring, #FFB02E); outline-offset:2px; }
+.perde-sort { margin-left:auto; display:inline-flex; align-items:center; gap:8px; color:var(--muted); font-size:13px; }
+.perde-sort select { min-height:34px; padding:0 10px; color:var(--text); }
+.perde-library-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:26px 18px; }
+.perde-tile { all:unset; box-sizing:border-box; display:grid; gap:4px; cursor:pointer; min-width:0; }
+.perde-tile b { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:8px; }
+.perde-tile small { color:var(--muted); font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.perde-tile-art { position:relative; aspect-ratio:2/3; border-radius:14px; overflow:hidden; display:grid; place-items:center; color:var(--muted); background:color-mix(in srgb, var(--text) 7%, transparent); }
+.perde-tile-art img { width:100%; height:100%; object-fit:cover; transition:transform .5s cubic-bezier(.2,.8,.2,1); }
+.perde-tile:hover .perde-tile-art img { transform:scale(1.05); }
+.perde-tile:focus-visible { outline:2px solid var(--focus-ring, #FFB02E); outline-offset:4px; border-radius:14px; }
+.perde-status { position:absolute; left:8px; top:8px; font:600 10.5px/1 "IBM Plex Mono",monospace; font-style:normal; letter-spacing:.04em; padding:6px 8px; border-radius:7px; color:#fff; background:rgba(10,9,8,.72); }
+.perde-status.watching { background:var(--accent); }
+.perde-status.finished { background:rgba(30,90,50,.88); }
+.perde-tile-fav { position:absolute; right:9px; top:8px; color:var(--accent); fill:var(--accent); filter:drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
+.perde-tile-bar { position:absolute; left:0; bottom:0; height:4px; background:var(--accent); }
+.perde-tile-genres { font-size:11.5px; color:var(--muted); opacity:.8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+@media (max-width: 1100px) {
+  .perde-card, .perde-clock, .perde-binge { grid-column:span 12; }
+}
+@media (max-width: 720px) {
+  .perde-lede { grid-template-columns:1fr; }
+  .perde-weeks { height:130px; }
+  .perde-clock-body { grid-template-columns:1fr; }
+  .perde-clock-dial { max-width:240px; justify-self:center; }
+  .perde-sort { margin-left:0; }
+  .perde-library-grid { grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); }
+  .perde-pace li button { grid-template-columns:minmax(0, 1fr) 70px 44px; gap:10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .perde-weeks i, .perde-weekdays i, .perde-meter i, .perde-stack i, .perde-insights, .perde-library { animation:none; }
+}

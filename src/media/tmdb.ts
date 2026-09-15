@@ -85,9 +85,25 @@ export function pickBestMatch(parsed: ParsedMediaTitle, results: TmdbSearchResul
   return best && best.score >= 80 ? best.result : undefined;
 }
 
-export async function tvSeasons(apiKey: string, tmdbId: number) {
-  const body = await request<{ seasons?: { season_number: number; episode_count: number }[] }>(apiKey, `/tv/${tmdbId}`, { language: "tr-TR" });
-  return (body.seasons ?? []).map((item) => ({ season: item.season_number, episodeCount: item.episode_count }));
+type RawDetails = {
+  genres?: { id: number; name: string }[];
+  vote_average?: number;
+  runtime?: number;
+  episode_run_time?: number[];
+  last_episode_to_air?: { runtime?: number } | null;
+  seasons?: { season_number: number; episode_count: number }[];
+};
+
+/** Tür, puan, süre ve (dizide) sezon başına bölüm sayısı. */
+export async function titleDetails(apiKey: string, kind: "tv" | "movie", tmdbId: number) {
+  const body = await request<RawDetails>(apiKey, `/${kind}/${tmdbId}`, { language: "tr-TR" });
+  const runtime = kind === "movie" ? body.runtime : body.episode_run_time?.[0] ?? body.last_episode_to_air?.runtime;
+  return {
+    genres: (body.genres ?? []).map((genre) => genre.name).filter(Boolean),
+    voteAverage: body.vote_average || undefined,
+    runtimeMinutes: runtime || undefined,
+    seasons: kind === "tv" ? (body.seasons ?? []).map((item) => ({ season: item.season_number, episodeCount: item.episode_count })) : undefined,
+  };
 }
 
 type RawProviders = { results?: Record<string, { link?: string; flatrate?: RawProvider[]; rent?: RawProvider[]; buy?: RawProvider[]; ads?: RawProvider[]; free?: RawProvider[] }> };

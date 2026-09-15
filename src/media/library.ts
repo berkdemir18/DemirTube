@@ -4,7 +4,28 @@
 // yeni kütüphaneyi geri alır. Böylece "bölüm bitti mi", "sıradaki ne" gibi
 // kararların hepsi testle sabitlenebiliyor.
 import { normalizeTitle } from "./title-parser";
-import type { MediaKind, MediaLibrary, MediaProgress, MediaProgressReport, MediaTitle, ParsedMediaTitle, TmdbSearchResult } from "./types";
+import type { MediaKind, MediaLibrary, MediaProgress, MediaProgressReport, MediaSession, MediaTitle, ParsedMediaTitle, TmdbSearchResult } from "./types";
+
+/** Aynı bölüme bu kadar ara vermeden dönmek aynı oturum sayılır. */
+export const SESSION_GAP_MS = 5 * 60 * 1000;
+/** Oturum kaydı sınırsız büyümesin; yoğun izlemeyle yaklaşık iki yıl. */
+export const MAX_SESSIONS = 4000;
+
+/** Bildirimi oturum kaydına işler: aynı bölümün açık oturumunu uzatır ya da yenisini açar. */
+export function appendSession(sessions: MediaSession[], entry: Omit<MediaSession, "id" | "startedAt" | "endedAt"> & { at: string }): MediaSession[] {
+  const at = new Date(entry.at).getTime();
+  for (let index = sessions.length - 1; index >= Math.max(0, sessions.length - 20); index -= 1) {
+    const session = sessions[index];
+    if (session.titleKey !== entry.titleKey || session.season !== entry.season || session.episode !== entry.episode) continue;
+    if (at - new Date(session.endedAt).getTime() > SESSION_GAP_MS || at < new Date(session.startedAt).getTime()) break;
+    const next = sessions.slice();
+    next[index] = { ...session, endedAt: entry.at, seconds: session.seconds + entry.seconds };
+    return next;
+  }
+  const started = new Date(at - entry.seconds * 1000).toISOString();
+  const created: MediaSession = { id: `${entry.titleKey}|${entry.season}|${entry.episode}|${started}`, titleKey: entry.titleKey, season: entry.season, episode: entry.episode, site: entry.site, startedAt: started, endedAt: entry.at, seconds: entry.seconds };
+  return [...sessions, created].slice(-MAX_SESSIONS);
+}
 
 /** Jenerik müziğini izlemeyen için: %92'yi geçen ya da sonuna 4 dakikadan az kalan bölüm bitmiş sayılır. */
 export function isFinished(position: number, duration: number) {
@@ -88,8 +109,10 @@ export function applyProgress(
   };
   const day = localDay(now);
   const daily = { ...library.daily, [day]: { ...library.daily[day], [report.site]: (library.daily[day]?.[report.site] ?? 0) + delta } };
+  const sessions = delta > 0 ? appendSession(library.sessions ?? [], { titleKey: title.key, season, episode, site: report.site, seconds: delta, at: now }) : library.sessions ?? [];
   return {
     ...library,
+    sessions,
     titles: { ...library.titles, [title.key]: { ...title, kind, lastWatchedAt: now, updatedAt: now } },
     progress: { ...library.progress, [id]: next },
     daily,
@@ -122,7 +145,9 @@ export function rematchTitle(library: MediaLibrary, fromKey: string, target: Med
       : { ...item, id, titleKey: target.key, season, episode, watchedSeconds: item.watchedSeconds + (clash?.watchedSeconds ?? 0) };
   }
   const resolved = Object.fromEntries(Object.entries(library.resolved).map(([query, key]) => [query, key === fromKey ? target.key : key]));
-  return { ...library, titles, progress, resolved };
+  const sessions = (library.sessions ?? []).map((session) => session.titleKey !== fromKey ? session
+    : { ...session, titleKey: target.key, season: target.kind === "movie" ? 0 : session.season, episode: target.kind === "movie" ? 0 : session.episode });
+  return { ...library, titles, progress, resolved, sessions };
 }
 
 /** Yedekten birleştirme: her kayıtta en yeni sürüm kazanır, günlük süreler büyük olan alınır (iki kez sayılmasın). */
@@ -137,7 +162,13 @@ export function mergeLibraries(current: MediaLibrary, incoming: MediaLibrary): M
     daily[day] = { ...daily[day] };
     for (const [site, seconds] of Object.entries(sites)) daily[day][site] = Math.max(daily[day][site] ?? 0, seconds);
   }
-  return { version: 1, titles, progress, daily, resolved: { ...incoming.resolved, ...current.resolved } };
+  const sessions = new Map((current.sessions ?? []).map((session) => [session.id, session]));
+  for (const session of incoming.sessions ?? []) {
+    const existing = sessions.get(session.id);
+    if (!existing || session.endedAt > existing.endedAt) sessions.set(session.id, session);
+  }
+  const mergedSessions = [...sessions.values()].toSorted((a, b) => a.startedAt.localeCompare(b.startedAt)).slice(-MAX_SESSIONS);
+  return { version: 1, titles, progress, daily, resolved: { ...incoming.resolved, ...current.resolved }, sessions: mergedSessions };
 }
 
 export function removeTitle(library: MediaLibrary, key: string): MediaLibrary {
@@ -145,7 +176,8 @@ export function removeTitle(library: MediaLibrary, key: string): MediaLibrary {
   delete titles[key];
   const progress = Object.fromEntries(Object.entries(library.progress).filter(([, item]) => item.titleKey !== key));
   const resolved = Object.fromEntries(Object.entries(library.resolved).filter(([, value]) => value !== key));
-  return { ...library, titles, progress, resolved };
+  const sessions = (library.sessions ?? []).filter((session) => session.titleKey !== key);
+  return { ...library, titles, progress, resolved, sessions };
 }
 
 export type NextUp =
