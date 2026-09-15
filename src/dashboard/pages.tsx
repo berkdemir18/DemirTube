@@ -29,6 +29,7 @@ const CapsulePage = lazy(async () => ({ default: (await import("./CapsulePage"))
 const CostPage = lazy(async () => ({ default: (await import("./CostPage")).CostPage }));
 const StatisticsPage = lazy(async () => ({ default: (await import("./StatisticsPage")).StatisticsPage }));
 const JourneyPage = lazy(async () => ({ default: (await import("./JourneyPage")).JourneyPage }));
+const MediaPage = lazy(async () => ({ default: (await import("./MediaPage")).MediaPage }));
 const GoalsPage = lazy(async () => ({ default: (await import("./GoalsPage")).GoalsPage }));
 
 export type PageContext = {
@@ -86,5 +87,6 @@ export const pages: Record<PageId, (context: PageContext) => ReactNode> = {
   history: (c) => <WatchHistory videos={c.videos} sessions={c.sessions} feedback={c.data.feedback} onDelete={c.deleteVideo} onFeedback={c.saveFeedback} onResetFeedback={c.resetFeedback} />,
   report: (c) => <WeeklyReportPage videos={c.data.videos} sessions={c.data.sessions} stored={c.data.weeklyReports} onGenerate={c.generateReport} />,
   capsule: (c) => <CapsulePage videos={c.data.videos} sessions={c.data.sessions} />,
+  media: () => <MediaPage />,
   settings: (c) => <SettingsPage data={c.data} settings={c.data.settings} onSettings={c.setSettings} onClear={c.clear} onExport={c.exportData} onImport={c.importData} />,
 };

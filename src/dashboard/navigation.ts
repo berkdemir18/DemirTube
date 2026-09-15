@@ -1,13 +1,13 @@
 // DemirTube · dashboard navigasyon sözleşmesi
 // Sayfa kimlikleri, menü yapısı ve dönem seçicisi gösterilen sayfalar tek yerde
 // tanımlanır; hem kabuk (Dashboard.tsx) hem de hash yönlendirmesi bunu kullanır.
-import { BarChart3, History, LayoutDashboard, Newspaper, Settings as SettingsIcon } from "lucide-react";
+import { BarChart3, Clapperboard, History, LayoutDashboard, Newspaper, Settings as SettingsIcon } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export type PageId =
   | "analysis" | "overview" | "topics" | "channels" | "statistics" | "cost" | "intelligence" | "journey" | "goals" | "durations"
   | "time" | "titles" | "shorts" | "calendar" | "compare"
-  | "watchlist" | "feedback" | "history" | "report" | "capsule" | "settings";
+  | "watchlist" | "feedback" | "history" | "report" | "capsule" | "media" | "settings";
 
 export type NavChild = [id: PageId, label: string];
 
@@ -31,6 +31,7 @@ export const navigationSections: NavSection[] = [
       ["watchlist", "Kişisel Listem"],
     ],
   },
+  { label: "Film & Dizi", icon: Clapperboard, root: "media", children: [] },
   {
     label: "Analizler",
     icon: BarChart3,

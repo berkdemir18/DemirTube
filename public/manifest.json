@@ -1,12 +1,12 @@
 {
   "manifest_version": 3,
   "name": "DemirTube AI",
-  "version": "0.11.3",
-  "version_name": "0.11.2 · Sekme kurtarma",
-  "description": "YouTube videolarını, altyazılarını ve kişisel izleme davranışını yerel-first analiz eder.",
+  "version": "0.12.0",
+  "version_name": "0.12.0 · Film & Dizi",
+  "description": "YouTube videolarını ve başka sitelerde izlediğin film/dizileri yerel-first analiz eder.",
   "permissions": ["storage", "alarms", "scripting"],
   "optional_permissions": ["notifications", "downloads"],
-  "host_permissions": ["https://www.youtube.com/*"],
+  "host_permissions": ["https://www.youtube.com/*", "<all_urls>"],
   "optional_host_permissions": [
     "https://*.supabase.co/*",
     "https://identitytoolkit.googleapis.com/*",
@@ -57,6 +57,13 @@
       "matches": ["https://www.youtube.com/*"],
       "js": ["assets/content.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "exclude_matches": ["https://www.youtube.com/*", "https://m.youtube.com/*"],
+      "js": ["assets/media-tracker.js"],
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ],
   "web_accessible_resources": []

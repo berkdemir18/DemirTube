@@ -31,6 +31,15 @@ await Promise.all([
     minify: true,
     define: { "process.env.NODE_ENV": '"production"' }
   }),
+  // YouTube dışındaki her sayfa ve iframe'de film/dizi oynatmasını sayan küçük betik.
+  build({
+    entryPoints: ["src/content/media-tracker.ts"],
+    outfile: "dist/assets/media-tracker.js",
+    bundle: true,
+    format: "iife",
+    target: "chrome120",
+    minify: true
+  }),
   build({
     entryPoints: ["src/content/page-bridge.ts"],
     outfile: "dist/assets/page-bridge.js",

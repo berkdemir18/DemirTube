@@ -23,6 +23,7 @@ import {
   analyzeVideoWithGroq, configureGroq, fingerprintCloudInput, getGroqStatus, resetGroq, testGroqConnection
 } from "../cloud/groq-service";
 import { repairUnknownChannels } from "./youtube-metadata";
+import { deleteMedia, getMediaStatus, getProviders, markEpisode, readLibrary, recordMediaProgress, rematchMedia, searchMedia, setApiKey, setMediaTracking, toggleFavorite } from "./media-service";
 import { migrateTopicRules } from "../storage/data-service";
 import { uid } from "../shared/utils";
 import { isAllowedCaptionUrl } from "../content/caption-tracks";
@@ -189,7 +190,7 @@ chrome.notifications?.onClicked.addListener((notificationId) => {
   if (notificationId.startsWith("demirtube-")) void chrome.runtime.openOptionsPage();
 });
 
-chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendResponse) => {
   const handle = async () => {
     if (CACHE_INVALIDATING.has(message.type)) responseCache.clear();
     switch (message.type) {
@@ -259,10 +260,10 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
       // içerik betiğiyle aynı izole dünyaya enjekte edilir. Aynı sekmeye tekrar
       // enjekte edilmesi zararsızdır: video-ui kendini yalnızca bir kez kaydeder.
       case "INJECT_VIDEO_UI": {
-        const tabId = _sender.tab?.id;
+        const tabId = sender.tab?.id;
         if (tabId === undefined) throw new Error("Video arayüzü enjeksiyonu için sekme bulunamadı.");
         await chrome.scripting.executeScript({
-          target: _sender.frameId === undefined ? { tabId } : { tabId, frameIds: [_sender.frameId] },
+          target: sender.frameId === undefined ? { tabId } : { tabId, frameIds: [sender.frameId] },
           files: ["assets/video-ui.js"],
         });
         return true;
@@ -495,6 +496,16 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
       case "CLOUD_SIGN_OUT": return signOutCloud();
       case "CLOUD_RESET": return resetCloud();
       case "CLOUD_SYNC": return syncCloudData();
+      case "MEDIA_PROGRESS": return recordMediaProgress(message.report, sender, (await getSettings()).trackingEnabled);
+      case "MEDIA_GET": return { library: await readLibrary(), status: await getMediaStatus() };
+      case "MEDIA_SET_API_KEY": return setApiKey(message.apiKey);
+      case "MEDIA_SET_TRACKING": return setMediaTracking(message.enabled);
+      case "MEDIA_SEARCH": return searchMedia(message.query);
+      case "MEDIA_TOGGLE_FAVORITE": return toggleFavorite(message);
+      case "MEDIA_REMATCH": return rematchMedia(message.titleKey, message.result);
+      case "MEDIA_DELETE": return deleteMedia(message.titleKey);
+      case "MEDIA_MARK_EPISODE": return markEpisode(message.progressId, message.completed);
+      case "MEDIA_PROVIDERS": return getProviders(message.kind, message.tmdbId);
     }
   };
   handle().then(sendResponse).catch(async (error: unknown) => {

@@ -15,6 +15,8 @@ import type { VideoRecord,
 } from "../shared/types";
 import { APP_VERSION, DB_VERSION, DEFAULT_KEYWORD_RULES, DEFAULT_SETTINGS } from "../shared/constants";
 import { getDatabase } from "./database";
+import { mergeLibraries } from "../media/library";
+import { emptyLibrary, type MediaLibrary } from "../media/types";
 import { sessionRepository } from "./session-repository";
 import { videoRepository } from "./video-repository";
 import { feedbackRepository } from "./feedback-repository";
@@ -255,7 +257,7 @@ export async function exportData(): Promise<AppData> {
     auxiliaryRepository.reports(),
     auxiliaryRepository.diagnostics(),
     getSettings(),
-    chrome.storage.local.get(["watchlistItems", "watchlistArchive"])
+    chrome.storage.local.get(["watchlistItems", "watchlistArchive", "mediaLibrary"])
   ]);
   const base = {
     version: 2 as const,
@@ -272,7 +274,8 @@ export async function exportData(): Promise<AppData> {
     diagnostics: diagnostics.map(({ stack: _stack, ...safe }) => safe),
     settings,
     watchlist: (storedWatchlist.watchlistItems ?? []) as WatchlistItem[],
-    watchlistArchive: (storedWatchlist.watchlistArchive ?? []) as ArchivedWatchlistItem[]
+    watchlistArchive: (storedWatchlist.watchlistArchive ?? []) as ArchivedWatchlistItem[],
+    ...(storedWatchlist.mediaLibrary ? { media: storedWatchlist.mediaLibrary as MediaLibrary } : {})
   };
   return { ...base, checksum: checksumPayload(base) };
 }
@@ -335,13 +338,20 @@ export async function importData(input: AppData | LegacyAppData, mode: "merge" |
     await Promise.all(input.weeklyReports.map((item) => auxiliaryRepository.putReport(item)));
   }
   await setSettings({ ...DEFAULT_SETTINGS, ...input.settings });
-  const storedLists = await chrome.storage.local.get(["watchlistItems", "watchlistArchive"]);
+  const storedLists = await chrome.storage.local.get(["watchlistItems", "watchlistArchive", "mediaLibrary"]);
+  const incomingMedia = input.version === 2 && input.media?.version === 1 ? input.media : undefined;
   if (mode === "replace") {
+    if (incomingMedia) await chrome.storage.local.set({ mediaLibrary: incomingMedia });
+    else await chrome.storage.local.remove("mediaLibrary");
     if (input.version === 2 && input.watchlist?.length) await chrome.storage.local.set({ watchlistItems: input.watchlist });
     else await chrome.storage.local.remove("watchlistItems");
     if (input.version === 2 && input.watchlistArchive?.length) await chrome.storage.local.set({ watchlistArchive: input.watchlistArchive });
     else await chrome.storage.local.remove("watchlistArchive");
   } else if (input.version === 2) {
+    if (incomingMedia) {
+      const currentMedia = (storedLists.mediaLibrary as MediaLibrary | undefined) ?? emptyLibrary();
+      await chrome.storage.local.set({ mediaLibrary: mergeLibraries(currentMedia, incomingMedia) });
+    }
     const currentWatchlist = (storedLists.watchlistItems ?? []) as WatchlistItem[];
     const currentArchive = (storedLists.watchlistArchive ?? []) as ArchivedWatchlistItem[];
     await chrome.storage.local.set({
@@ -415,5 +425,5 @@ export async function clearData() {
   const transaction = database.transaction(names, "readwrite");
   await Promise.all(names.map((name) => transaction.objectStore(name).clear()));
   await transaction.done;
-  await chrome.storage.local.remove(["watchlistItems", "watchlistArchive", DATA_FINGERPRINT_KEY]);
+  await chrome.storage.local.remove(["watchlistItems", "watchlistArchive", "mediaLibrary", "mediaProviders", DATA_FINGERPRINT_KEY]);
 }

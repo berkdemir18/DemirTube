@@ -556,6 +556,8 @@ export type AppData = {
   watchlist?: WatchlistItem[];
   /** Kişisel liste arşivi; eski v2 yedeklerinde bulunmayabilir. */
   watchlistArchive?: ArchivedWatchlistItem[];
+  /** YouTube dışı film/dizi kaydı; bu alanı taşımayan eski yedekler de geçerlidir. */
+  media?: import("../media/types").MediaLibrary;
 };
 
 export type LegacyAppData = {
