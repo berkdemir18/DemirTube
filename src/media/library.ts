@@ -1,4 +1,4 @@
-// DemirTube · Film & Dizi kütüphanesi — saf fonksiyonlar
+// DemirTube · Perde kütüphanesi — saf fonksiyonlar
 //
 // Depolama ve ağ burada yok; service worker bu fonksiyonlara kütüphaneyi verir,
 // yeni kütüphaneyi geri alır. Böylece "bölüm bitti mi", "sıradaki ne" gibi

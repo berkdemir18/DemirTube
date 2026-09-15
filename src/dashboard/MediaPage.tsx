@@ -1,4 +1,4 @@
-// DemirTube · Film & Dizi ekranı
+// DemirTube · Perde ekranı (film ve dizi)
 //
 // YouTube dışındaki sitelerde izlenenler: kaldığın yer, sıradaki bölüm,
 // favoriler ve Türkiye'de nerede izlenebildiği.
@@ -136,7 +136,7 @@ function MediaSettings({ status, onChanged }: { status: MediaStatus; onChanged: 
 
 function Intro({ status }: { status?: MediaStatus }) {
   return <header className="media-intro">
-    <span className="media-eyebrow"><Clapperboard size={14} />FİLM & DİZİ</span>
+    <span className="media-eyebrow"><Clapperboard size={14} />PERDE</span>
     <h1>İzlediğin her şey,<br />nerede kaldığınla birlikte.</h1>
     <p>Netflix, HBO Max, Prime, Disney+, Apple TV+ ya da başka herhangi bir sitede 15 dakikadan uzun bir video oynattığında DemirTube bunu fark eder, hangi dizinin kaçıncı bölümü olduğunu sayfadan çıkarır ve buraya yazar. Veri bilgisayarından çıkmaz.</p>
     {status && !status.trackingEnabled ? <p className="media-error">Takip şu an kapalı.</p> : null}

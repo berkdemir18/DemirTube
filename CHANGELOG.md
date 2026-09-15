@@ -4,7 +4,7 @@
 
 ### Eklenenler
 
-- **Film & Dizi ekranı.** YouTube dışındaki sitelerde izlenen film ve diziler artık kaydediliyor: Netflix, HBO Max, Prime Video, Disney+, Apple TV+ ve oynatıcısı başka alan adındaki bir iframe'de duran diğer siteler. Ekran kaldığın diziyi tam genişlik gösteriyor (yüzde, kalan dakika, izlediğin sayfaya tek tıkla dönüş); altında "devam et" rafı, favoriler, son izlenenler ve son 30 günün platform dağılımı var.
+- **Perde: film ve dizi ekranı.** Menüde "Perde" adıyla. YouTube dışındaki sitelerde izlenen film ve diziler artık kaydediliyor: Netflix, HBO Max, Prime Video, Disney+, Apple TV+ ve oynatıcısı başka alan adındaki bir iframe'de duran diğer siteler. Ekran kaldığın diziyi tam genişlik gösteriyor (yüzde, kalan dakika, izlediğin sayfaya tek tıkla dönüş); altında "devam et" rafı, favoriler, son izlenenler ve son 30 günün platform dağılımı var.
 - **Sıradaki bölüm.** Bölüm %92'yi geçince ya da sonuna 4 dakikadan az kalınca bitmiş sayılıyor (jeneriği izlemeyene göre). Sezon sonu TMDB'deki bölüm sayısından anlaşılıyor, özel bölümler (sezon 0) atlanıyor; son sezonun sonunda "yayınlanan tüm bölümleri izledin" deniyor. Esas alınan, en yüksek numaralı bölüm değil en son izlenen bölüm.
 - **TMDB eşleştirmesi ve favoriler.** Aranan başlık favorilere eklenebiliyor, posterin altında Türkiye'de abonelikle izlenebildiği platformların logoları duruyor. Ad birebir tutmuyorsa eşleştirme yapılmıyor; bölüm bilgisi olan kayıt aynı adlı filme değil diziye bağlanıyor. Yanlış eşleşme elle düzeltilince bütün bölümler taşınıyor.
 - Film/dizi kaydı JSON yedeğine ve "tüm veriyi sil"e dahil.
