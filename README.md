@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/berkdemir18/DemirTube/actions/workflows/ci.yml/badge.svg)](https://github.com/berkdemir18/DemirTube/actions/workflows/ci.yml)
 
-DemirTube, YouTube izleme davranışını yalnızca cihazında kaydeden ve zamanla hangi konu, kanal, başlık ve video sürelerini gerçekten sevdiğini açıklanabilir kurallarla analiz eden bir Chrome eklentisidir.
+DemirTube, YouTube izleme davranışını (0.12.0 ile başka sitelerde izlediğin film ve dizileri de) yalnızca cihazında kaydeden ve zamanla hangi konu, kanal, başlık ve video sürelerini gerçekten sevdiğini açıklanabilir kurallarla analiz eden bir Chrome eklentisidir.
 
-Sürüm 0.11.2; kendi tahmin hatasını ölçüp ağırlıklarını geçmişten öğrenen kişisel modeli, önerilerin tutup tutmadığını gösteren seçim yanlılığı ölçümünü, yerel akıllı yardımcıyı, isteğe bağlı Groq derin analizini ve keşfet kartlarındaki ön analiz rozetlerini birlikte sunar. DemirTube YouTube sayfasında görünen video metadata'sını analiz eder; oynatma davranışını yalnızca geçerli watch ve Shorts sayfalarında kaydeder. Kullanıcı Groq'u açıkça bağlarsa yalnızca video metadata'sı ve altyazıdan çıkarılmış kısa sinyaller ikinci bir yapay zekâ değerlendirmesine gider; ham altyazı ve izleme geçmişi gönderilmez. Yerel analiz, kişisel kalibrasyon ve isteğe bağlı bulut yedeği (Firebase veya Supabase) birbirinden bağımsız çalışır.
+Sürüm 0.12.0; YouTube dışındaki film/dizi takibini, kendi tahmin hatasını ölçüp ağırlıklarını geçmişten öğrenen kişisel modeli, önerilerin tutup tutmadığını gösteren seçim yanlılığı ölçümünü, yerel akıllı yardımcıyı, isteğe bağlı Groq derin analizini ve keşfet kartlarındaki ön analiz rozetlerini birlikte sunar. DemirTube YouTube sayfasında görünen video metadata'sını analiz eder; oynatma davranışını yalnızca geçerli watch ve Shorts sayfalarında kaydeder. Kullanıcı Groq'u açıkça bağlarsa yalnızca video metadata'sı ve altyazıdan çıkarılmış kısa sinyaller ikinci bir yapay zekâ değerlendirmesine gider; ham altyazı ve izleme geçmişi gönderilmez. Yerel analiz, kişisel kalibrasyon ve isteğe bağlı bulut yedeği (Firebase veya Supabase) birbirinden bağımsız çalışır.
 
 ![DemirTube dashboard genel bakış ekranı](docs/dashboard.png)
 
@@ -12,6 +12,17 @@ Sürüm 0.11.2; kendi tahmin hatasını ölçüp ağırlıklarını geçmişten 
 > (`node scripts/capture-dashboard.mjs`); gerçek bir izleme geçmişi içermez.
 
 ## Neler çalışıyor?
+
+### Film & Dizi (0.12.0)
+
+- YouTube dışındaki her sitede ve her iframe'de 15 dakikadan uzun oynayan videoyu sayan küçük içerik betiği (`src/content/media-tracker.ts`). Korsan sitelerde oynatıcı çoğu zaman başka alan adından gelen bir iframe'dedir; iframe süreyi, service worker sekmenin kendisinden başlığı alır.
+- Netflix, Prime Video, HBO Max ve Disney+ oynatıcısındaki dizi adı / sezon-bölüm satırını okuma; tanınmayan sitelerde sayfa başlığından ayrıştırma ("Loki 2. Sezon 4. Bölüm Türkçe Altyazılı İzle - …", "The Bear S03E02", "Dune: Part Two (2024) Tek Parça"). Başlık yalnızca platform adıysa ("Netflix") kayıt açılmaz.
+- TMDB ile eşleştirme: ad birebir tutmuyorsa eşleştirmez; yanlış diziye bölüm yazmaktansa "eşleşmedi" der ve elle seçtirir. Elle düzeltmede bütün bölümler doğru başlığa taşınır.
+- Kaldığın yer (yüzde, kalan dakika, izlediğin sayfaya dönüş), sıradaki bölüm (sezon sonları TMDB bölüm sayısından), favoriler, Türkiye'de nerede izlenebildiği (JustWatch verisi, TMDB üzerinden, 24 saat önbellek), son 7/30 gün ve platform dağılımı.
+- TMDB anahtarı kullanıcıya ait ve yalnızca `chrome.storage.local`'da durur. Anahtarsız takip yine çalışır, yalnızca poster ve eşleşme olmaz; anahtar sonradan girilince eski kayıtlar kendiliğinden eşleştirilir.
+- Film/dizi kaydı JSON yedeğine girer; birleştirmeli geri yüklemede en yeni ilerleme kazanır.
+
+### YouTube
 
 - Tüm `youtube.com` rotalarında çalışan, yalnızca geçerli `/watch?v=…` veya `/shorts/{id}` sayfasında takip başlatan Manifest V3 içerik script'i
 - Tam sayfa yenilenmeden gerçekleşen YouTube SPA video geçişlerini algılama
@@ -203,12 +214,13 @@ Rapor eğitim/test MAE, kişisel ortalama tabanı, beceri, ±10/±20 isabet, 10 
 
 ## Gizlilik
 
-- Zorunlu izinler `storage`, `alarms` ve `https://www.youtube.com/*` ile sınırlıdır.
+- Zorunlu izinler `storage`, `alarms`, `scripting`, `https://www.youtube.com/*` ve 0.12.0 itibarıyla `<all_urls>`dir. Genel site erişimi yalnızca film/dizi takibi içindir: YouTube dışındaki sayfalarda çalışan betik sayfa içeriğini okumaz, yalnızca 15 dakikadan uzun oynayan bir video varsa oynatma konumunu, süresini, sayfa başlığını ve adresini service worker'a bildirir. Takip Film & Dizi ekranından tek düğmeyle durdurulur.
 - `https://*.supabase.co/*` izni opsiyoneldir; yalnızca kullanıcı **Projeyi bağla** dediğinde Chrome tarafından sorulur.
 - `https://api.groq.com/*` izni opsiyoneldir; yalnızca kullanıcı **Groq'u bağla** dediğinde Chrome tarafından sorulur.
 - `downloads` izni opsiyoneldir; yalnızca kullanıcı otomatik JSON yedeğini açtığında istenir.
 - `https://ntfy.sh/*` izni opsiyoneldir; yalnızca kullanıcı telefon bildirimi için bir ntfy konusu kaydettiğinde istenir.
-- Geçmiş, çerez, mikrofon, kamera veya genel site erişimi istenmez.
+- Geçmiş, çerez, mikrofon veya kamera erişimi istenmez.
+- Film/dizi eşleştirmesi için TMDB'ye yalnızca ayrıştırılmış başlık (ör. "Loki") gönderilir; izleme süresi, site adı ve adres gönderilmez.
 - Telemetri, analytics SDK'sı veya uzak JavaScript yoktur.
 - Video ve oturumlar IndexedDB'de, ayarlar `chrome.storage.local` içinde kalır.
 - Keşfette puanlanıp gösterilen kartların kaydı (`impressions`) yalnızca cihazda tutulur, en fazla 120 gün ve 4.000 kayıt saklanır, günde bir budanır ve JSON dışa aktarmaya dâhil edilmez. Bu kayıt olmadan "model iyi öneri yapıyor mu" sorusu ölçülemez, çünkü elde yalnızca zaten açılmış videolar kalır.
@@ -231,6 +243,7 @@ Rapor eğitim/test MAE, kişisel ortalama tabanı, beceri, ±10/±20 isabet, 10 
 | `storage` | Tema, takip tercihi, isteğe bağlı bulut yapılandırması ve son senkronizasyon durumunu eklentinin yerel alanında saklar. |
 | `alarms` | Sert kapanıştan sonra devam eden bulut eşitleme planı ve haftalık rapor zamanlaması için kullanılır. |
 | `https://www.youtube.com/*` | İçerik script’inin YouTube SPA rotaları arasında yüklü kalmasını sağlar. İzleme yalnızca geçerli `/watch?v=…` veya `/shorts/{id}` rotasında başlar. |
+| `<all_urls>` | Netflix, HBO Max, Prime, Disney+, Apple TV+ ve diğer sitelerde oynayan film/dizinin (oynatıcı başka alan adındaki bir iframe'de olsa bile) fark edilmesi ve sekme başlığının okunması için. |
 | `notifications` (isteğe bağlı) | Yalnızca kullanıcı haftalık bildirimi açarsa istenir ve rapor hazır bilgisini gösterir. |
 | `downloads` (isteğe bağlı) | Yalnızca kullanıcı otomatik JSON yedeğini açarsa, yedeği İndirilenler/DemirTube klasörüne kaydetmek için istenir. |
 | `https://*.supabase.co/*` (isteğe bağlı) | Yalnızca kullanıcı kendi Supabase projesini bağlarsa o projeye HTTPS yedeği için istenir. |
@@ -312,6 +325,8 @@ Her `main` push'unda ve pull request'te GitHub Actions aynı üçlüyü (`typech
 `test:browser`, üretim `dist` paketini Playwright Chromium’a MV3 uzantısı olarak yükler, dashboard açılışını ve müdahale edilmiş bir YouTube watch sayfasında içerik panelinin montajını doğrular. Yerel makinede Playwright'ın görünür Chromium penceresi açmasına izin verilmelidir.
 
 ## Bilinen sınırlar
+
+Film & Dizi: Netflix, Prime Video, HBO Max ve Disney+ oynatıcı seçicileri bu platformların arayüzü değiştikçe bozulabilir; bozulduğunda sayfa başlığına düşülür, platform adından ibaret başlık ise kaydedilmez. Prime Video, HBO Max ve Disney+ seçicileri gerçek bir hesapla doğrulanmadı. Sayfa başlığında dizi adı olmayan siteler eşleşemez; bu kayıtlar "eşleşmedi" etiketiyle görünür ve elle bağlanabilir. "Nerede izlenir" verisi JustWatch'ın Türkiye kapsamıyla sınırlıdır: bazı yapımlar için Türkiye kaydı hiç yoktur ve bu "yok" olarak değil "kayıt yok" olarak gösterilir.
 
 YouTube DOM seçicileri platform güncellemelerinde değişebilir; metadata okuyucusu birden fazla güvenli seçici ve fallback kullanır. Başlık/kanal metadata’sı bulunamadığında kayıt korunur ve sonraki dashboard açılışında oEmbed onarımı denenir.
 

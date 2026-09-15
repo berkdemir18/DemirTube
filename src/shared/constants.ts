@@ -1,6 +1,6 @@
 import type { DefaultTopic, KeywordRules, Settings } from "./types";
 
-export const APP_VERSION = "0.11.2";
+export const APP_VERSION = "0.12.0";
 export const EXPORT_SCHEMA_VERSION = 2;
 export const DEFAULT_SETTINGS: Settings = {
   trackingEnabled: true,

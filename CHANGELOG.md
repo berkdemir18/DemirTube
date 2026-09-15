@@ -1,5 +1,23 @@
 # Değişiklik günlüğü
 
+## 0.12.0 — 2026-09-15
+
+### Eklenenler
+
+- **Film & Dizi ekranı.** YouTube dışındaki sitelerde izlenen film ve diziler artık kaydediliyor: Netflix, HBO Max, Prime Video, Disney+, Apple TV+ ve oynatıcısı başka alan adındaki bir iframe'de duran diğer siteler. Ekran kaldığın diziyi tam genişlik gösteriyor (yüzde, kalan dakika, izlediğin sayfaya tek tıkla dönüş); altında "devam et" rafı, favoriler, son izlenenler ve son 30 günün platform dağılımı var.
+- **Sıradaki bölüm.** Bölüm %92'yi geçince ya da sonuna 4 dakikadan az kalınca bitmiş sayılıyor (jeneriği izlemeyene göre). Sezon sonu TMDB'deki bölüm sayısından anlaşılıyor, özel bölümler (sezon 0) atlanıyor; son sezonun sonunda "yayınlanan tüm bölümleri izledin" deniyor. Esas alınan, en yüksek numaralı bölüm değil en son izlenen bölüm.
+- **TMDB eşleştirmesi ve favoriler.** Aranan başlık favorilere eklenebiliyor, posterin altında Türkiye'de abonelikle izlenebildiği platformların logoları duruyor. Ad birebir tutmuyorsa eşleştirme yapılmıyor; bölüm bilgisi olan kayıt aynı adlı filme değil diziye bağlanıyor. Yanlış eşleşme elle düzeltilince bütün bölümler taşınıyor.
+- Film/dizi kaydı JSON yedeğine ve "tüm veriyi sil"e dahil.
+
+### İzinler
+
+- `<all_urls>` zorunlu izni eklendi. Sebebi ve sınırları README'nin Gizlilik bölümünde. Kısaca: sayfa içeriği okunmuyor; yalnızca 15 dakikadan uzun oynayan videonun konumu, süresi, sayfa başlığı ve adresi yerelde kaydediliyor. TMDB'ye yalnızca ayrıştırılmış ad gidiyor.
+
+### Doğrulama
+
+- Başlık ayrıştırma, eşleştirme, sıradaki bölüm ve yedek birleştirme için 28 yeni test (toplam 323). Gerçek tarayıcıda uçtan uca: 47 dakikalık bir video çapraz kökenli iframe içinden oynatıldı ("Loki 2. Sezon 4. Bölüm Türkçe Altyazılı İzle") ve Loki S2B4 %47 olarak TMDB'ye bağlandı; netflix.com yerel sayfaya yönlendirilerek Netflix oynatıcı başlığı okundu (Stranger Things S4B7). Yedek → sil → geri yükle turu kayıpsız.
+- Bilinen: tarayıcı duman testi (`tests/browser/extension.spec.ts`) bu sürümden önce de, değiştirilmemiş kodda da zaman aşımına uğruyor; CI 0.11.3'ten beri kırmızı. Ayrı iş olarak ele alınacak.
+
 ## 0.11.1 — 2026-08-25
 
 ### Düzeltmeler

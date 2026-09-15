@@ -1,0 +1,146 @@
+/* DemirTube · Film & Dizi ekranı
+   Diğer ekranlar sayıyla konuşuyor; bu ekran posterle konuşuyor. Kaldığın
+   dizi tam genişlik sahnede, gerisi raflarda. */
+
+.media-page { display:grid; gap:36px; padding-bottom:48px; color:var(--text); }
+.media-page h2 { font-size:clamp(20px, 1.6vw, 26px); letter-spacing:-.02em; margin:0 0 16px; }
+.media-page h3 { font-size:15px; margin:0 0 12px; letter-spacing:-.01em; }
+.media-note { color:var(--muted); margin:0; font-size:14px; }
+.media-error { color:var(--accent); margin:0; font-size:14px; }
+.media-eyebrow { display:inline-flex; align-items:center; gap:8px; font:600 11px/1 "IBM Plex Mono",ui-monospace,monospace; letter-spacing:.14em; color:var(--brand-amber, #FFB02E); }
+
+/* --- sahne ---------------------------------------------------------------- */
+.media-hero { position:relative; min-height:clamp(360px, 52vh, 560px); border-radius:24px; overflow:hidden; isolation:isolate; display:flex; align-items:flex-end; background:#0b0a09; }
+.media-hero-art { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:-2; transform:scale(1.04); animation:media-drift 22s ease-in-out infinite alternate; }
+.media-hero-blank { background:radial-gradient(120% 90% at 80% 10%, color-mix(in srgb, var(--accent) 45%, transparent), transparent 60%), #141312; }
+.media-hero-shade { position:absolute; inset:0; z-index:-1; background:linear-gradient(90deg, rgba(10,9,8,.94) 0%, rgba(10,9,8,.72) 38%, rgba(10,9,8,.08) 72%), linear-gradient(0deg, rgba(10,9,8,.85) 0%, transparent 45%); }
+.media-hero-copy { padding:clamp(24px, 4vw, 56px); max-width:min(640px, 100%); display:grid; gap:14px; color:#F4F2EF; }
+.media-hero-copy h1 { margin:0; font-size:clamp(40px, 6vw, 84px); line-height:.95; letter-spacing:-.045em; text-wrap:balance; }
+.media-hero-next { margin:0; font-size:clamp(16px, 1.4vw, 20px); font-weight:600; }
+.media-hero-meta { margin:0; color:rgba(244,242,239,.66); font-size:14px; }
+.media-hero-bar { height:4px; border-radius:4px; background:rgba(255,255,255,.18); overflow:hidden; max-width:420px; }
+.media-hero-bar i { display:block; height:100%; background:var(--accent); border-radius:inherit; }
+@keyframes media-drift { from { transform:scale(1.04) translate(0,0); } to { transform:scale(1.1) translate(-1.5%, -1%); } }
+
+.media-intro { padding:clamp(28px, 5vw, 64px) 0 8px; display:grid; gap:18px; max-width:880px; }
+.media-intro h1 { margin:0; font-size:clamp(40px, 5.6vw, 76px); line-height:.98; letter-spacing:-.045em; text-wrap:balance; }
+.media-intro p { margin:0; color:var(--muted); font-size:17px; line-height:1.6; max-width:680px; }
+
+/* --- düğmeler ------------------------------------------------------------- */
+.media-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:6px; }
+.media-button { display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:0 18px; border-radius:999px; border:1px solid color-mix(in srgb, currentColor 22%, transparent); background:color-mix(in srgb, currentColor 6%, transparent); color:inherit; font:600 14px/1 Inter,system-ui,sans-serif; text-decoration:none; cursor:pointer; transition:transform .18s cubic-bezier(.2,.8,.2,1), background .18s; }
+.media-button:hover { transform:translateY(-1px); background:color-mix(in srgb, currentColor 12%, transparent); }
+.media-button:active { transform:translateY(0) scale(.98); }
+.media-button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+.media-button.primary:hover { background:color-mix(in srgb, var(--accent) 86%, #fff); }
+.media-button.danger:hover { color:var(--accent); }
+.media-button:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+.media-icon { display:inline-grid; place-items:center; width:36px; height:36px; border-radius:50%; border:1px solid var(--border); background:transparent; color:inherit; cursor:pointer; flex:none; }
+.media-icon:hover { background:color-mix(in srgb, currentColor 8%, transparent); }
+.media-icon.on { color:var(--accent); border-color:color-mix(in srgb, var(--accent) 50%, transparent); }
+.media-icon.on svg { fill:currentColor; }
+.media-button:focus-visible, .media-icon:focus-visible, .media-continue:focus-visible, .media-poster:focus-visible, .media-recent button:focus-visible { outline:2px solid var(--focus-ring, #FFB02E); outline-offset:3px; }
+
+/* --- sayılar -------------------------------------------------------------- */
+.media-stats { display:flex; flex-wrap:wrap; gap:clamp(20px, 4vw, 56px); align-items:end; padding:4px 2px; }
+.media-stats > div { display:grid; gap:4px; }
+.media-stats strong { font:700 clamp(28px, 3vw, 40px)/1 Archivo,Inter,sans-serif; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+.media-stats span { color:var(--muted); font-size:13px; }
+.media-sites { display:flex !important; flex-wrap:wrap; gap:8px; margin-left:auto; }
+.media-sites span { display:inline-flex; gap:8px; padding:8px 12px; border-radius:999px; border:1px solid var(--border); font-variant-numeric:tabular-nums; }
+.media-sites b { color:var(--text); font-weight:600; }
+
+/* --- raflar --------------------------------------------------------------- */
+.media-rail { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(260px, 340px); gap:16px; overflow-x:auto; padding-bottom:10px; scroll-snap-type:x mandatory; scrollbar-width:thin; }
+.media-continue, .media-poster { all:unset; box-sizing:border-box; display:grid; gap:6px; cursor:pointer; scroll-snap-align:start; min-width:0; }
+.media-continue b, .media-poster b { font-size:15px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.media-continue small, .media-poster small { color:var(--muted); font-size:13px; }
+.media-continue-art, .media-poster-art { position:relative; display:grid; place-items:center; overflow:hidden; border-radius:14px; background:color-mix(in srgb, var(--text) 7%, transparent); color:var(--muted); margin-bottom:6px; }
+.media-continue-art { aspect-ratio:16/9; }
+.media-poster-art { aspect-ratio:2/3; }
+.media-continue-art img, .media-poster-art img { width:100%; height:100%; object-fit:cover; transition:transform .5s cubic-bezier(.2,.8,.2,1); }
+.media-continue:hover img, .media-poster:hover img { transform:scale(1.05); }
+.media-continue-art i { position:absolute; left:0; bottom:0; height:4px; background:var(--accent); }
+.media-poster-where { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:4px; min-height:26px; }
+.media-poster-where img { width:26px; height:26px; border-radius:7px; }
+.media-poster-where em { font-style:normal; font-size:12px; color:var(--muted); }
+.media-posters { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:22px 16px; }
+
+/* --- arama ---------------------------------------------------------------- */
+.media-search { display:grid; gap:12px; }
+.media-search label { display:flex; align-items:center; gap:12px; padding:0 20px; min-height:58px; border-radius:18px; border:1px solid var(--border); background:color-mix(in srgb, var(--text) 4%, transparent); color:var(--muted); }
+.media-search label:focus-within { border-color:color-mix(in srgb, var(--accent) 60%, transparent); }
+.media-page .media-search input { flex:1; padding:0; box-shadow:none !important; border-radius:0 !important; background:transparent !important; min-width:0; border:0; outline:0; background:transparent; color:var(--text); font:500 17px/1.2 Inter,system-ui,sans-serif; }
+.media-search ul, .media-fix ul { list-style:none; margin:0; padding:0; display:grid; gap:4px; }
+.media-search li { display:flex; align-items:center; gap:14px; padding:8px 10px; border-radius:12px; }
+.media-search li:hover { background:color-mix(in srgb, var(--text) 5%, transparent); }
+.media-search li > span, .media-fix li span:last-child { display:grid; gap:2px; flex:1; min-width:0; }
+.media-search li small, .media-fix small { color:var(--muted); font-size:12.5px; }
+.media-search li img, .media-fix img, .media-recent img, .media-thumb-empty { width:40px; height:60px; border-radius:6px; object-fit:cover; flex:none; background:color-mix(in srgb, var(--text) 8%, transparent); display:grid; place-items:center; color:var(--muted); }
+
+/* --- anahtar kartı -------------------------------------------------------- */
+.media-key { display:flex; gap:18px; padding:24px; border-radius:20px; border:1px dashed color-mix(in srgb, var(--brand-amber, #FFB02E) 45%, transparent); background:color-mix(in srgb, var(--brand-amber, #FFB02E) 5%, transparent); }
+.media-key > svg { color:var(--brand-amber, #FFB02E); flex:none; margin-top:3px; }
+.media-key h2 { font-size:18px; margin-bottom:8px; }
+.media-key p { margin:0 0 14px; color:var(--muted); line-height:1.55; max-width:760px; }
+.media-key form { display:flex; flex-wrap:wrap; gap:10px; }
+.media-key input, .media-fix input { flex:1 1 280px; min-height:44px; padding:0 14px; border-radius:12px; border:1px solid var(--border); background:var(--surface); color:var(--text); font:500 14px/1 "IBM Plex Mono",ui-monospace,monospace; }
+
+/* --- son izlenenler ------------------------------------------------------- */
+.media-recent { list-style:none; margin:0; padding:0; display:grid; gap:2px; }
+.media-recent button { all:unset; box-sizing:border-box; width:100%; display:flex; align-items:center; gap:14px; padding:10px 12px; border-radius:14px; cursor:pointer; }
+.media-recent button:hover { background:color-mix(in srgb, var(--text) 5%, transparent); }
+.media-recent-main { display:grid; gap:3px; flex:1; min-width:0; }
+.media-recent-main b { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; }
+.media-recent-main small, .media-recent-meta small { color:var(--muted); font-size:12.5px; }
+.media-recent-meta { display:grid; justify-items:end; gap:3px; font-size:13px; text-align:right; flex:none; }
+.media-flag { font:600 10.5px/1 "IBM Plex Mono",monospace; letter-spacing:.08em; text-transform:uppercase; padding:6px 8px; border-radius:6px; color:var(--brand-amber, #FFB02E); background:color-mix(in srgb, var(--brand-amber, #FFB02E) 12%, transparent); flex:none; }
+
+/* --- ayarlar ------------------------------------------------------------- */
+.media-settings { display:flex; flex-wrap:wrap; gap:16px 32px; align-items:center; justify-content:space-between; padding-top:28px; border-top:1px solid var(--border); }
+.media-settings > div:first-child { display:grid; gap:4px; max-width:620px; }
+.media-settings small { color:var(--muted); line-height:1.5; }
+.media-settings .media-key { flex-basis:100%; }
+
+/* --- ayrıntı paneli ------------------------------------------------------- */
+.media-overlay { position:fixed; inset:0; z-index:80; display:flex; justify-content:flex-end; background:rgba(8,7,6,.55); backdrop-filter:blur(6px); animation:media-fade .2s ease-out; }
+.media-detail { position:relative; width:min(560px, 100%); height:100%; overflow-y:auto; background:var(--focus-bg, var(--bg)); color:var(--text); border-left:1px solid var(--border); display:grid; align-content:start; gap:24px; padding:0 28px 40px; animation:media-slide .32s cubic-bezier(.2,.8,.2,1); }
+.media-close { position:absolute; top:16px; right:16px; z-index:2; background:rgba(10,9,8,.55); color:#fff; border-color:rgba(255,255,255,.2); }
+.media-detail-head { position:relative; margin:0 -28px; min-height:240px; display:flex; align-items:flex-end; padding:28px; overflow:hidden; isolation:isolate; background:#0b0a09; color:#F4F2EF; }
+.media-detail-head img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:-2; }
+.media-detail-head::after { content:""; position:absolute; inset:0; z-index:-1; background:linear-gradient(0deg, rgba(10,9,8,.95), rgba(10,9,8,.2) 70%); }
+.media-detail-head div { display:grid; gap:8px; }
+.media-detail-head h2 { margin:0; font-size:clamp(30px, 4vw, 42px); line-height:1; letter-spacing:-.035em; }
+.media-overview { margin:0; color:var(--muted); line-height:1.6; }
+.media-fix { display:grid; gap:10px; padding:16px; border-radius:16px; border:1px solid var(--border); }
+.media-fix p { margin:0; color:var(--muted); font-size:14px; }
+.media-fix li button { all:unset; box-sizing:border-box; width:100%; display:flex; gap:12px; align-items:center; padding:6px 8px; border-radius:10px; cursor:pointer; }
+.media-fix li button:hover { background:color-mix(in srgb, var(--text) 6%, transparent); }
+.media-where { display:grid; gap:14px; }
+.media-provider-group { display:grid; gap:8px; }
+.media-provider-group small { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.1em; }
+.media-provider-group > div { display:flex; flex-wrap:wrap; gap:8px; }
+.media-provider { display:inline-flex; align-items:center; gap:8px; padding:5px 12px 5px 5px; border-radius:999px; border:1px solid var(--border); font-size:13.5px; font-weight:500; }
+.media-provider img { width:28px; height:28px; border-radius:8px; }
+.media-attribution { color:var(--muted); font-size:12px; text-decoration:none; display:inline-flex; gap:4px; align-items:center; }
+.media-episodes ol { list-style:none; margin:0; padding:0; display:grid; gap:2px; }
+.media-episodes li { display:flex; align-items:center; gap:12px; padding:9px 4px; border-bottom:1px solid var(--border); }
+.media-episodes li > span { display:grid; gap:2px; flex:1; min-width:0; }
+.media-episodes small, .media-episodes time { color:var(--muted); font-size:12.5px; }
+.media-check { width:24px; height:24px; border-radius:7px; border:1.5px solid var(--border); background:transparent; color:#fff; display:grid; place-items:center; cursor:pointer; flex:none; }
+.media-check.on { background:var(--accent); border-color:var(--accent); }
+@keyframes media-fade { from { opacity:0; } }
+@keyframes media-slide { from { transform:translateX(40px); opacity:0; } }
+
+@media (max-width: 720px) {
+  .media-hero-shade { background:linear-gradient(0deg, rgba(10,9,8,.95) 0%, rgba(10,9,8,.6) 60%, rgba(10,9,8,.2) 100%); }
+  .media-sites { margin-left:0; }
+  .media-key { flex-direction:column; }
+  .media-detail { padding:0 18px 32px; }
+  .media-detail-head { margin:0 -18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-hero-art, .media-overlay, .media-detail { animation:none; }
+  .media-continue img, .media-poster img, .media-button { transition:none; }
+}

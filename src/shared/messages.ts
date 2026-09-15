@@ -66,7 +66,17 @@ export type ExtensionMessage =
   | { type: "CLOUD_SIGN_UP"; email: string; password: string }
   | { type: "CLOUD_SIGN_OUT" }
   | { type: "CLOUD_RESET" }
-  | { type: "CLOUD_SYNC" };
+  | { type: "CLOUD_SYNC" }
+  | { type: "MEDIA_PROGRESS"; report: import("../media/types").MediaProgressReport }
+  | { type: "MEDIA_GET" }
+  | { type: "MEDIA_SET_API_KEY"; apiKey: string }
+  | { type: "MEDIA_SET_TRACKING"; enabled: boolean }
+  | { type: "MEDIA_SEARCH"; query: string }
+  | { type: "MEDIA_TOGGLE_FAVORITE"; titleKey?: string; result?: import("../media/types").TmdbSearchResult }
+  | { type: "MEDIA_REMATCH"; titleKey: string; result: import("../media/types").TmdbSearchResult }
+  | { type: "MEDIA_DELETE"; titleKey: string }
+  | { type: "MEDIA_MARK_EPISODE"; progressId: string; completed: boolean }
+  | { type: "MEDIA_PROVIDERS"; kind: "tv" | "movie"; tmdbId: number };
 
 export class ExtensionContextInvalidatedError extends Error {
   constructor(message = "Extension context invalidated.") {
