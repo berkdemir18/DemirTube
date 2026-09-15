@@ -168,7 +168,7 @@ export function mergeLibraries(current: MediaLibrary, incoming: MediaLibrary): M
     if (!existing || session.endedAt > existing.endedAt) sessions.set(session.id, session);
   }
   const mergedSessions = [...sessions.values()].toSorted((a, b) => a.startedAt.localeCompare(b.startedAt)).slice(-MAX_SESSIONS);
-  return { version: 1, titles, progress, daily, resolved: { ...incoming.resolved, ...current.resolved }, sessions: mergedSessions };
+  return { version: 1, titles, progress, daily, resolved: { ...incoming.resolved, ...current.resolved }, sessions: mergedSessions, dismissed: { ...incoming.dismissed, ...current.dismissed } };
 }
 
 export function removeTitle(library: MediaLibrary, key: string): MediaLibrary {

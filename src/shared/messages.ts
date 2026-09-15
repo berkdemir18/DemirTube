@@ -77,7 +77,10 @@ export type ExtensionMessage =
   | { type: "MEDIA_DELETE"; titleKey: string }
   | { type: "MEDIA_MARK_EPISODE"; progressId: string; completed: boolean }
   | { type: "MEDIA_PROVIDERS"; kind: "tv" | "movie"; tmdbId: number }
-  | { type: "MEDIA_BACKFILL" };
+  | { type: "MEDIA_BACKFILL" }
+  | { type: "MEDIA_REC_POOL"; force?: boolean }
+  | { type: "MEDIA_RATE"; titleKey?: string; result?: import("../media/types").TmdbSearchResult; rating: "liked" | "disliked" | null }
+  | { type: "MEDIA_DISMISS"; result: import("../media/types").TmdbSearchResult & { genreNames?: string[] } };
 
 export class ExtensionContextInvalidatedError extends Error {
   constructor(message = "Extension context invalidated.") {

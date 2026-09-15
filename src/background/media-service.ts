@@ -5,8 +5,9 @@
 // yüzden kütüphaneye dokunan her işlem tek bir sıraya dizilir.
 import { applyProgress, rawKey, rematchTitle, removeTitle, titleFromSearch } from "../media/library";
 import { isGenericTitle, normalizeTitle, parseMediaTitle } from "../media/title-parser";
-import { pickBestMatch, searchTitles, testApiKey, titleDetails, watchProviders } from "../media/tmdb";
-import { emptyLibrary, type MediaLibrary, type MediaProgressReport, type MediaStatus, type MediaTitle, type ParsedMediaTitle, type TmdbSearchResult, type WatchProviders } from "../media/types";
+import { genreNames, pickBestMatch, recommendationsFor, searchTitles, testApiKey, titleDetails, watchProviders } from "../media/tmdb";
+import { recommendationSeeds } from "../media/recommend";
+import { emptyLibrary, type MediaLibrary, type MediaProgressReport, type MediaStatus, type MediaTitle, type ParsedMediaTitle, type RecPool, type TmdbSearchResult, type WatchProviders } from "../media/types";
 
 const LIBRARY_KEY = "mediaLibrary";
 const API_KEY = "tmdbApiKey";
@@ -75,12 +76,17 @@ async function findMatch(key: string, parsed: ParsedMediaTitle) {
   return pickBestMatch(parsed, await searchTitles(key, parsed.query));
 }
 
+// Devam eden dizinin yeni bölüm tarihi değişebilir; biten dizi ve film nadiren değişir.
 const DETAILS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const ONGOING_TTL_MS = 2 * 24 * 60 * 60 * 1000;
+const POOL_KEY = "mediaRecPool";
+const POOL_TTL_MS = 12 * 60 * 60 * 1000;
 
 async function enrich(key: string, title: MediaTitle): Promise<MediaTitle> {
   if (!title.tmdbId || title.kind === "unknown") return title;
   // Devam eden dizide yeni bölüm yayınlanır; sezon sayıları haftada bir tazelenir.
-  if (title.detailsFetchedAt && Date.now() - new Date(title.detailsFetchedAt).getTime() < DETAILS_TTL_MS) return title;
+  const ttl = title.kind === "tv" && title.status !== "Ended" && title.status !== "Canceled" ? ONGOING_TTL_MS : DETAILS_TTL_MS;
+  if (title.detailsFetchedAt && Date.now() - new Date(title.detailsFetchedAt).getTime() < ttl) return title;
   const details = await titleDetails(key, title.kind, title.tmdbId).catch(() => undefined);
   if (!details) return title;
   return { ...title, ...details, seasons: details.seasons ?? title.seasons, detailsFetchedAt: new Date().toISOString() };
@@ -90,7 +96,14 @@ async function enrich(key: string, title: MediaTitle): Promise<MediaTitle> {
 export async function backfillDetails(limit = 25) {
   const key = await apiKey();
   if (!key) return { updated: 0 };
-  const pending = Object.values((await readLibrary()).titles).filter((title) => title.tmdbId && title.kind !== "unknown" && !title.detailsFetchedAt).slice(0, limit);
+  const now = Date.now();
+  const pending = Object.values((await readLibrary()).titles).filter((title) => {
+    if (!title.tmdbId || title.kind === "unknown") return false;
+    if (!title.detailsFetchedAt) return true;
+    // Yayını süren dizide tarihi geçmiş "yeni bölüm" bilgisi bayat; tazele.
+    const ongoing = title.kind === "tv" && title.status !== "Ended" && title.status !== "Canceled";
+    return ongoing && now - new Date(title.detailsFetchedAt).getTime() > ONGOING_TTL_MS;
+  }).slice(0, limit);
   if (!pending.length) return { updated: 0 };
   const enriched = await Promise.all(pending.map((title) => enrich(key, title)));
   await update((library) => {
@@ -190,6 +203,61 @@ export function markEpisode(progressIdValue: string, completed: boolean) {
     if (!item) throw new Error("Kayıt bulunamadı.");
     return { ...library, progress: { ...library.progress, [item.id]: { ...item, completed, position: completed ? item.duration : 0 } } };
   });
+}
+
+/** Beğendim / beğenmedim. Kütüphanede olmayan bir aramaya ya da öneriye de verilebilir. */
+export function rateMedia(input: { titleKey?: string; result?: TmdbSearchResult; rating: "liked" | "disliked" | null }) {
+  return update(async (library) => {
+    const now = new Date().toISOString();
+    let title = input.titleKey ? library.titles[input.titleKey] : input.result ? library.titles[`tmdb:${input.result.kind}:${input.result.tmdbId}`] : undefined;
+    if (!title && input.result) {
+      const key = await apiKey();
+      title = titleFromSearch(input.result, now);
+      if (key) title = await enrich(key, title);
+    }
+    if (!title) throw new Error("Başlık bulunamadı.");
+    const next: MediaTitle = { ...title, userRating: input.rating ?? undefined, updatedAt: now };
+    const dismissed = { ...library.dismissed };
+    delete dismissed[title.key];
+    return { ...library, titles: { ...library.titles, [title.key]: next }, dismissed };
+  });
+}
+
+/** "İlgilenmiyorum": öneriden kalıcı olarak düşer. */
+export function dismissRecommendation(result: TmdbSearchResult & { genreNames?: string[] }) {
+  return update((library) => ({
+    ...library,
+    dismissed: { ...library.dismissed, [`tmdb:${result.kind}:${result.tmdbId}`]: { at: new Date().toISOString(), genres: result.genreNames ?? [] } },
+  }));
+}
+
+/**
+ * Öneri havuzu: en sevdiğin yapımların TMDB öneri listeleri. Tohumlar aynı
+ * kaldığı sürece 12 saat önbellekten döner; puanlama ekranda yapılır ki
+ * "ilgilenmiyorum" anında yansısın.
+ */
+export async function getRecommendationPool(force = false): Promise<RecPool | undefined> {
+  const key = await apiKey();
+  if (!key) return undefined;
+  const library = await readLibrary();
+  const seeds = recommendationSeeds(library).slice(0, 8);
+  if (!seeds.length) return undefined;
+  const seedKeys = seeds.map((seed) => seed.title.key).toSorted();
+  const cached = (await chrome.storage.local.get(POOL_KEY))[POOL_KEY] as RecPool | undefined;
+  const fresh = cached && Date.now() - new Date(cached.fetchedAt).getTime() < POOL_TTL_MS;
+  const sameSeeds = cached && cached.seedKeys.join() === seedKeys.join();
+  if (!force && fresh && sameSeeds) return cached;
+
+  const reuse = !force && fresh ? cached.bySeed : {};
+  const entries = await Promise.all(seeds.map(async ({ title }) => {
+    if (reuse[title.key]) return [title.key, reuse[title.key]] as const;
+    const list = await recommendationsFor(key, title.kind as "tv" | "movie", title.tmdbId!).catch(() => []);
+    return [title.key, list] as const;
+  }));
+  const genres = cached?.genres && Object.keys(cached.genres).length ? cached.genres : await genreNames(key).catch(() => ({}));
+  const pool: RecPool = { fetchedAt: new Date().toISOString(), seedKeys, bySeed: Object.fromEntries(entries), genres };
+  await chrome.storage.local.set({ [POOL_KEY]: pool });
+  return pool;
 }
 
 export async function getProviders(kind: "tv" | "movie", tmdbId: number): Promise<WatchProviders> {
