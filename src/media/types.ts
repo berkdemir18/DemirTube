@@ -1,4 +1,4 @@
-// DemirTube · Film & Dizi veri modeli
+// DemirTube · Perde veri modeli (film ve dizi)
 //
 // YouTube dışındaki sitelerde izlenen film ve diziler burada tutulur. Veri
 // chrome.storage.local'da tek anahtar altında durur; video sayısı YouTube

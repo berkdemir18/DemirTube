@@ -13,7 +13,7 @@ Sürüm 0.12.0; YouTube dışındaki film/dizi takibini, kendi tahmin hatasını
 
 ## Neler çalışıyor?
 
-### Film & Dizi (0.12.0)
+### Perde: film ve dizi takibi (0.12.0)
 
 - YouTube dışındaki her sitede ve her iframe'de 15 dakikadan uzun oynayan videoyu sayan küçük içerik betiği (`src/content/media-tracker.ts`). Korsan sitelerde oynatıcı çoğu zaman başka alan adından gelen bir iframe'dedir; iframe süreyi, service worker sekmenin kendisinden başlığı alır.
 - Netflix, Prime Video, HBO Max ve Disney+ oynatıcısındaki dizi adı / sezon-bölüm satırını okuma; tanınmayan sitelerde sayfa başlığından ayrıştırma ("Loki 2. Sezon 4. Bölüm Türkçe Altyazılı İzle - …", "The Bear S03E02", "Dune: Part Two (2024) Tek Parça"). Başlık yalnızca platform adıysa ("Netflix") kayıt açılmaz.
@@ -214,7 +214,7 @@ Rapor eğitim/test MAE, kişisel ortalama tabanı, beceri, ±10/±20 isabet, 10 
 
 ## Gizlilik
 
-- Zorunlu izinler `storage`, `alarms`, `scripting`, `https://www.youtube.com/*` ve 0.12.0 itibarıyla `<all_urls>`dir. Genel site erişimi yalnızca film/dizi takibi içindir: YouTube dışındaki sayfalarda çalışan betik sayfa içeriğini okumaz, yalnızca 15 dakikadan uzun oynayan bir video varsa oynatma konumunu, süresini, sayfa başlığını ve adresini service worker'a bildirir. Takip Film & Dizi ekranından tek düğmeyle durdurulur.
+- Zorunlu izinler `storage`, `alarms`, `scripting`, `https://www.youtube.com/*` ve 0.12.0 itibarıyla `<all_urls>`dir. Genel site erişimi yalnızca film/dizi takibi içindir: YouTube dışındaki sayfalarda çalışan betik sayfa içeriğini okumaz, yalnızca 15 dakikadan uzun oynayan bir video varsa oynatma konumunu, süresini, sayfa başlığını ve adresini service worker'a bildirir. Takip Perde ekranından tek düğmeyle durdurulur.
 - `https://*.supabase.co/*` izni opsiyoneldir; yalnızca kullanıcı **Projeyi bağla** dediğinde Chrome tarafından sorulur.
 - `https://api.groq.com/*` izni opsiyoneldir; yalnızca kullanıcı **Groq'u bağla** dediğinde Chrome tarafından sorulur.
 - `downloads` izni opsiyoneldir; yalnızca kullanıcı otomatik JSON yedeğini açtığında istenir.
@@ -326,7 +326,7 @@ Her `main` push'unda ve pull request'te GitHub Actions aynı üçlüyü (`typech
 
 ## Bilinen sınırlar
 
-Film & Dizi: Netflix, Prime Video, HBO Max ve Disney+ oynatıcı seçicileri bu platformların arayüzü değiştikçe bozulabilir; bozulduğunda sayfa başlığına düşülür, platform adından ibaret başlık ise kaydedilmez. Prime Video, HBO Max ve Disney+ seçicileri gerçek bir hesapla doğrulanmadı. Sayfa başlığında dizi adı olmayan siteler eşleşemez; bu kayıtlar "eşleşmedi" etiketiyle görünür ve elle bağlanabilir. "Nerede izlenir" verisi JustWatch'ın Türkiye kapsamıyla sınırlıdır: bazı yapımlar için Türkiye kaydı hiç yoktur ve bu "yok" olarak değil "kayıt yok" olarak gösterilir.
+Perde: Netflix, Prime Video, HBO Max ve Disney+ oynatıcı seçicileri bu platformların arayüzü değiştikçe bozulabilir; bozulduğunda sayfa başlığına düşülür, platform adından ibaret başlık ise kaydedilmez. Prime Video, HBO Max ve Disney+ seçicileri gerçek bir hesapla doğrulanmadı. Sayfa başlığında dizi adı olmayan siteler eşleşemez; bu kayıtlar "eşleşmedi" etiketiyle görünür ve elle bağlanabilir. "Nerede izlenir" verisi JustWatch'ın Türkiye kapsamıyla sınırlıdır: bazı yapımlar için Türkiye kaydı hiç yoktur ve bu "yok" olarak değil "kayıt yok" olarak gösterilir.
 
 YouTube DOM seçicileri platform güncellemelerinde değişebilir; metadata okuyucusu birden fazla güvenli seçici ve fallback kullanır. Başlık/kanal metadata’sı bulunamadığında kayıt korunur ve sonraki dashboard açılışında oEmbed onarımı denenir.
 

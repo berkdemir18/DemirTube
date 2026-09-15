@@ -1,4 +1,4 @@
-// DemirTube · Film & Dizi servisi (service worker tarafı)
+// DemirTube · Perde servisi (film ve dizi) (service worker tarafı)
 //
 // Birden fazla sekme/iframe aynı anda ilerleme yollayabilir. chrome.storage'da
 // "oku → değiştir → yaz" yarışı son yazanın öncekini silmesine yol açar; bu

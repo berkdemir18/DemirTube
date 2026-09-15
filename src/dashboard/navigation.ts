@@ -31,7 +31,7 @@ export const navigationSections: NavSection[] = [
       ["watchlist", "Kişisel Listem"],
     ],
   },
-  { label: "Film & Dizi", icon: Clapperboard, root: "media", children: [] },
+  { label: "Perde", icon: Clapperboard, root: "media", children: [] },
   {
     label: "Analizler",
     icon: BarChart3,
