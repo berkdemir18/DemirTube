@@ -86,7 +86,8 @@ export type ExtensionMessage =
   | { type: "TRAKT_START_DEVICE" }
   | { type: "TRAKT_POLL" }
   | { type: "TRAKT_SYNC"; full?: boolean }
-  | { type: "TRAKT_DISCONNECT" };
+  | { type: "TRAKT_DISCONNECT" }
+  | { type: "TRAKT_IMPORT_EXPORT"; input: import("../media/trakt-import").TraktImportInput };
 
 export class ExtensionContextInvalidatedError extends Error {
   constructor(message = "Extension context invalidated.") {

@@ -181,3 +181,14 @@
 .perde-copy:hover { background:color-mix(in srgb, var(--text) 6%, transparent); }
 .perde-copy:focus-visible { outline:2px solid var(--focus-ring, #FFB02E); outline-offset:2px; }
 .perde-copy code { font:500 12.5px "IBM Plex Mono",monospace; }
+
+.perde-trakt-drop { display:grid; justify-items:start; gap:12px; padding:18px; border-radius:16px; border:1.5px dashed var(--border); transition:border-color .2s, background .2s; }
+.perde-trakt-drop.over { border-color:#ED1C24; background:color-mix(in srgb, #ED1C24 8%, transparent); }
+.perde-trakt-drop ol { margin:0; padding-left:20px; display:grid; gap:6px; color:var(--muted); line-height:1.5; }
+.perde-trakt-drop ol b { color:var(--text); }
+.perde-trakt-drop a { color:var(--text); font-weight:600; display:inline-flex; align-items:center; gap:3px; }
+.perde-trakt-drop small { color:var(--muted); font-size:12.5px; }
+.perde-trakt-live { display:grid; gap:14px; }
+.perde-trakt-live > summary { cursor:pointer; color:var(--muted); font-size:13.5px; font-weight:600; width:max-content; }
+.perde-trakt-live > summary:hover { color:var(--text); }
+.perde-trakt-live[open] > summary { margin-bottom:12px; }

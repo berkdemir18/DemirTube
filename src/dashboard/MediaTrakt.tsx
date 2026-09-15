@@ -1,12 +1,14 @@
-// DemirTube · Perde › Trakt bağlantısı
+// DemirTube · Perde › Trakt
 //
-// Üç adım: (1) Trakt'ta bir API uygulaması açıp kimlik bilgilerini yapıştır,
-// (2) çıkan kısa kodu trakt.tv/activate'te gir, (3) içe aktar. Şifre hiçbir
-// adımda eklentiye girmez.
+// İki yol. Varsayılan: trakt.tv/settings/data'dan indirilen dışa aktarım
+// ZIP'ini yüklemek — Trakt, API uygulaması açmayı Ağustos 2026'da VIP'e
+// bağladı ama dışa aktarım her hesapta ücretsiz. İkinci yol, VIP'i olan için
+// canlı bağlantı: kendi API uygulaması + cihaz kodu (şifre eklentiye girmez).
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUpRight, Copy, Link2, RefreshCw, Unplug } from "lucide-react";
+import { ArrowUpRight, Copy, FileUp, Link2, RefreshCw, Unplug } from "lucide-react";
 import { sendMessage } from "../shared/messages";
 import type { TraktStatus, TraktSyncSummary } from "../background/trakt-service";
+import { readTraktExport } from "../media/trakt-export";
 import { relativeDay } from "./media-format";
 
 type Device = { user_code: string; verification_url: string; expires_in: number; interval: number };
@@ -20,7 +22,31 @@ export function MediaTrakt({ onImported }: { onImported: () => Promise<void> }) 
   const [message, setMessage] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const autoSynced = useRef(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const importing = useRef(false);
+
+  const importFiles = async (files: File[]) => {
+    // Tarayıcı dosya seçiminde change olayını birden fazla kez üretebiliyor; tek içe aktarma çalışsın.
+    if (!files.length || importing.current) return;
+    importing.current = true;
+    setBusy(true); setMessage("Dosya okunuyor…");
+    try {
+      const read = await readTraktExport(files);
+      setMessage(`${read.input.history.length} izleme, ${read.input.ratings.length} puan, ${read.input.watchlist.length} liste kaydı bulundu. Posterler TMDB'den tamamlanıyor, büyük geçmişte bir dakika sürebilir…`);
+      const summary = await sendMessage<TraktSyncSummary>({ type: "TRAKT_IMPORT_EXPORT", input: read.input });
+      setMessage(summaryText(summary));
+      await onImported();
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : "Dosya içe aktarılamadı.");
+    } finally {
+      importing.current = false;
+      setBusy(false);
+      if (fileInput.current) fileInput.current.value = "";
+      await refresh();
+    }
+  };
 
   const refresh = useCallback(async () => {
     try { setStatus(await sendMessage<TraktStatus>({ type: "TRAKT_STATUS" })); } catch { /* eklenti dışında */ }
@@ -108,9 +134,26 @@ export function MediaTrakt({ onImported }: { onImported: () => Promise<void> }) 
         <h2>Trakt</h2>
         <p>{status.connected
           ? <>Bağlı{status.username ? <> · <b>@{status.username}</b></> : null}{status.lastSyncAt ? ` · son senkron ${relativeDay(status.lastSyncAt).toLocaleLowerCase("tr-TR")} ${new Date(status.lastSyncAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}` : ""}</>
+          : status.lastFileImport ? `Dışa aktarımdan yüklendi · ${relativeDay(status.lastFileImport.at).toLocaleLowerCase("tr-TR")}. Yeni izlemeler için arada bir yeni ZIP yükle.`
           : "İzleme geçmişin, puanların ve izleme listen buraya gelsin. Analiz ve öneriler bunlarla hemen beslenir."}</p>
       </div>
     </header>
+
+    {!status.connected ? <div className={`perde-trakt-drop ${dragging ? "over" : ""}`}
+      onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={(event) => { event.preventDefault(); setDragging(false); void importFiles([...event.dataTransfer.files]); }}>
+      <ol>
+        <li>Trakt'ta <a href="https://app.trakt.tv/settings/data" target="_blank" rel="noreferrer">Ayarlar → Veri <ArrowUpRight size={13} /></a> sayfasında dışa aktarmayı başlat, ZIP insin (VIP gerekmez)</li>
+        <li>İnen ZIP'i buraya sürükle ya da seç</li>
+      </ol>
+      <input ref={fileInput} type="file" accept=".zip,.json,application/zip,application/json" multiple hidden onChange={(event) => void importFiles([...(event.target.files ?? [])])} />
+      <button type="button" className="media-button primary" disabled={busy} onClick={() => fileInput.current?.click()}><FileUp size={16} />{busy ? "İçe aktarılıyor…" : "Trakt dışa aktarımını yükle"}</button>
+      <small>Aynı dosyayı ya da daha yeni bir dışa aktarımı tekrar yüklemek güvenli: daha önce alınan izlemeler ikinci kez sayılmaz.</small>
+    </div> : null}
+
+    {!status.connected ? <details className="perde-trakt-live" open={editing || Boolean(device) || (status.configured && !status.connected && Boolean(message?.includes("Trakt")))}>
+      <summary>Trakt VIP'in varsa: otomatik senkron</summary>
 
     {!status.configured || editing ? <div className="perde-trakt-setup">
       <ol>
@@ -130,6 +173,8 @@ export function MediaTrakt({ onImported }: { onImported: () => Promise<void> }) 
       <button type="button" className="media-button primary" onClick={() => void connect()} disabled={busy}><Link2 size={16} />Trakt hesabını bağla</button>
       <button type="button" className="media-button" onClick={() => setEditing(true)}>Uygulama bilgilerini değiştir</button>
     </div> : null}
+
+    </details> : null}
 
     {device ? <div className="perde-trakt-device">
       <p><a href={device.verification_url} target="_blank" rel="noreferrer">{device.verification_url.replace(/^https?:\/\//, "")} <ArrowUpRight size={13} /></a> adresine git ve şu kodu gir:</p>
