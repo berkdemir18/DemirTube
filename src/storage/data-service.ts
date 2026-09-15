@@ -425,5 +425,5 @@ export async function clearData() {
   const transaction = database.transaction(names, "readwrite");
   await Promise.all(names.map((name) => transaction.objectStore(name).clear()));
   await transaction.done;
-  await chrome.storage.local.remove(["watchlistItems", "watchlistArchive", "mediaLibrary", "mediaProviders", "mediaRecPool", "traktSeen", DATA_FINGERPRINT_KEY]);
+  await chrome.storage.local.remove(["watchlistItems", "watchlistArchive", "mediaLibrary", "mediaProviders", "mediaRecPool", "traktSeen", "traktExportImport", DATA_FINGERPRINT_KEY]);
 }

@@ -5,7 +5,7 @@
 // bir içe aktarma sürerken açık sekmelerden gelen izleme bildirimleri beklemez.
 import { titleDetails } from "../media/tmdb";
 import { ensureFreshAuth, fetchHistory, fetchRatings, fetchUsername, fetchWatchlist, pollDeviceToken, requestDeviceCode, type DeviceCode, type TraktAuth } from "../media/trakt";
-import { applyTraktImport, traktTitleKeys } from "../media/trakt-import";
+import { applyTraktImport, traktTitleKeys, type TraktImportInput } from "../media/trakt-import";
 import type { MediaTitle } from "../media/types";
 import { readLibrary, updateLibrary } from "./media-service";
 
@@ -13,6 +13,7 @@ const AUTH_KEY = "traktAuth";
 const SEEN_KEY = "traktSeen";
 const DEVICE_KEY = "traktDevice";
 const TMDB_KEY = "tmdbApiKey";
+const EXPORT_KEY = "traktExportImport";
 /** Otomatik senkron aralığı; Perde açıldığında bu süre geçtiyse arka planda çalışır. */
 export const TRAKT_AUTO_SYNC_MS = 6 * 60 * 60 * 1000;
 
@@ -23,6 +24,8 @@ export interface TraktStatus {
   lastSyncAt?: string;
   lastResult?: TraktSyncSummary;
   syncing: boolean;
+  /** Dışa aktarım dosyasından son yükleme (VIP gerektirmeyen yol). */
+  lastFileImport?: TraktSyncSummary;
 }
 
 export interface TraktSyncSummary {
@@ -56,6 +59,7 @@ export async function traktStatus(): Promise<TraktStatus> {
     lastSyncAt: auth?.lastSyncAt,
     lastResult: auth?.lastResult,
     syncing: Boolean(syncing),
+    lastFileImport: (await chrome.storage.local.get(EXPORT_KEY))[EXPORT_KEY] as TraktSyncSummary | undefined,
   };
 }
 
@@ -120,6 +124,38 @@ async function enrichNewTitles(keys: ReturnType<typeof traktTitleKeys>, limit = 
   return result;
 }
 
+/** API senkronu ve dosyadan yükleme için ortak yol: yeni başlıkları TMDB'den tamamla, kütüphaneye işle. */
+async function importInput(input: TraktImportInput): Promise<TraktSyncSummary> {
+  const details = await enrichNewTitles(traktTitleKeys(input, await readLibrary()));
+  const seen = new Set<number>(((await chrome.storage.local.get(SEEN_KEY))[SEEN_KEY] as number[] | undefined) ?? []);
+  let summary: TraktSyncSummary | undefined;
+  let seenIds: number[] = [];
+  await updateLibrary((library) => {
+    const result = applyTraktImport(library, input, details, new Date(), seen);
+    seenIds = result.seenIds;
+    summary = { plays: result.plays, duplicates: result.duplicates, alreadyImported: result.alreadyImported, skippedNoTmdb: result.skippedNoTmdb, newTitles: result.newTitles, ratings: result.ratings, watchlist: result.watchlist, historyItems: input.history.length, at: new Date().toISOString() };
+    return result.library;
+  });
+  await chrome.storage.local.set({ [SEEN_KEY]: seenIds });
+  return summary!;
+}
+
+/** trakt.tv/settings/data'dan indirilen dışa aktarımı işler. VIP gerekmez. */
+export function traktImportExport(input: TraktImportInput): Promise<TraktSyncSummary> {
+  // Süren işe katılmak, bu dosyayı hiç işlemeden öncekinin sonucunu döndürürdü.
+  if (syncing) return Promise.reject(new Error("Başka bir Trakt içe aktarması sürüyor; bitince tekrar dene."));
+  syncing = (async () => {
+    try {
+      const summary = await importInput(input);
+      await chrome.storage.local.set({ [EXPORT_KEY]: summary });
+      return summary;
+    } finally {
+      syncing = undefined;
+    }
+  })();
+  return syncing;
+}
+
 /** Trakt'tan geçmiş, puan ve izleme listesini çekip kütüphaneye işler. */
 export function traktSync(full = false): Promise<TraktSyncSummary> {
   syncing ??= (async () => {
@@ -134,20 +170,10 @@ export function traktSync(full = false): Promise<TraktSyncSummary> {
       const [history, ratings, watchlist] = await Promise.all([fetchHistory(auth, startAt), fetchRatings(auth), fetchWatchlist(auth)]);
       const input = { history, ratings, watchlist };
 
-      const details = await enrichNewTitles(traktTitleKeys(input, await readLibrary()));
-      const seen = new Set<number>(((await chrome.storage.local.get(SEEN_KEY))[SEEN_KEY] as number[] | undefined) ?? []);
-      let summary: TraktSyncSummary | undefined;
-      let seenIds: number[] = [];
-      await updateLibrary((library) => {
-        const result = applyTraktImport(library, input, details, new Date(), seen);
-        seenIds = result.seenIds;
-        summary = { plays: result.plays, duplicates: result.duplicates, alreadyImported: result.alreadyImported, skippedNoTmdb: result.skippedNoTmdb, newTitles: result.newTitles, ratings: result.ratings, watchlist: result.watchlist, historyItems: history.length, at: new Date().toISOString() };
-        return result.library;
-      });
-      await chrome.storage.local.set({ [SEEN_KEY]: seenIds });
+      const summary = await importInput(input);
       const latest = (await readAuth()) ?? auth;
-      await writeAuth({ ...latest, lastSyncAt: summary!.at, lastResult: summary });
-      return summary!;
+      await writeAuth({ ...latest, lastSyncAt: summary.at, lastResult: summary });
+      return summary;
     } finally {
       syncing = undefined;
     }
