@@ -39,6 +39,20 @@ export function useAppData() {
 
   useEffect(() => { void load(); }, [load]);
 
+  // Kişisel liste panel dışından da değişir: YouTube'daki rozet veya video içi
+  // koç service worker üzerinden yazar. Panel sekmesi açık kalıp yalnızca hash
+  // değiştiğinde sayfa yeniden yüklenmez; dinlemezsek liste ilk açılıştaki
+  // haliyle kalır ve yeni eklenen video F5'e kadar görünmez.
+  useEffect(() => {
+    if (!extensionAvailable || !chrome.storage?.onChanged) return;
+    const onChanged = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+      if (area !== "local" || !("watchlistItems" in changes)) return;
+      setWatchlist((changes.watchlistItems.newValue ?? []) as WatchlistItem[]);
+    };
+    chrome.storage.onChanged.addListener(onChanged);
+    return () => chrome.storage.onChanged.removeListener(onChanged);
+  }, [extensionAvailable]);
+
   const setSettings = useCallback(async (settings: Settings) => {
     if (extensionAvailable) await sendMessage({ type: "SET_SETTINGS", settings });
     setData((current) => current ? { ...current, settings } : current);
