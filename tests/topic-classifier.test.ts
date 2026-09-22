@@ -159,6 +159,20 @@ describe("konu hafızası", () => {
 });
 
 describe("gerçek veride yanlış etiketlenen başlıklar (2026-09)", () => {
+  it("kanal adı ve genel öğretim sözcükleri videonun asıl konusunu bastırmaz", () => {
+    expect(classifyTopics("Paris'te bir hafta gezi", "Teknoloji Günlüğü")).toEqual(["Seyahat"]);
+    expect(classifyTopics("Python dersi: ilk uygulama", "Kanal")).toEqual(["Programlama"]);
+    expect(classifyTopics("React ile proje nasıl yapılır", "Kanal")).toEqual(["Programlama"]);
+    expect(classifyTopics("Günlük vlog: Kapadokya gezisi", "Kanal")).toContain("Seyahat");
+    expect(classifyTopics("Yeni videom yayında", "Teknoloji Günlüğü")).toEqual(["Diğer"]);
+  });
+
+  it("genel sözcük veya açıklamada tek etiket tek başına konu üretmez", () => {
+    expect(classifyTopics("Tarihin en büyük anı")).toEqual(["Diğer"]);
+    expect(classifyTopics("Bugün olanlar", "Kanal", "İndirim kodu: YAZILIM"))
+      .toEqual(["Diğer"]);
+  });
+
   it("genel kelimeler ve açıklamadaki indirim kodu konu uydurmaz", () => {
     expect(classifyTopics("RRaenee | FBI TARİHİNİN EN BÜYÜK OPERASYONU | Tepki | @bentropi", "Craftest")).not.toContain("Tarih");
     expect(classifyTopics("BÖYLE PARTİ OLMAZ, HAVUZA ATTILAR! RRAENEE, ENİS KİRAZOĞLU", "Elraenn", "İndirim kodu: ELRAENN")).not.toContain("Programlama");
@@ -180,5 +194,31 @@ describe("kullanıcı konu kuralları", () => {
     expect(matchCustomTopics("Bilgisayar sistemleri", "", [rule])).toEqual(["Yönetim Bilişim Sistemleri"]);
     expect(matchCustomTopics("Ekosistem nasıl çalışır", "", [rule])).toEqual([]);
     expect(matchCustomTopics("YBS vs Yazılım Mühendisliği", "Uğur Keşkekçi", [rule])).toEqual(["Yönetim Bilişim Sistemleri"]);
+  });
+});
+
+describe("YouTube kalıp açıklaması (2026-09-20)", () => {
+  // 13 Eylül yedeğinde ölçüldü: 1437 videonun 656'sı "Müzik" etiketliydi,
+  // 598'i yalnızca aşağıdaki kalıp cümle yüzünden. Gerçek müzik videosu 9 taneydi.
+  const BOILERPLATE = "Sevdiğiniz videoların ve müziklerin keyfini çıkarın, orijinal içerik "
+    + "yükleyin ve tümünü YouTube'da arkadaşlarınızla, ailenizle ve dünyayla paylaşın.";
+
+  it("kalıp açıklama konu kanıtı sayılmaz", () => {
+    expect(classifyTopics("Ablasının doğum günü videosunda balonları bilerek bıraktı", "Mebra", BOILERPLATE))
+      .not.toContain("Müzik");
+  });
+
+  it("kalıp açıklama gerçek konuyu da kirletmez", () => {
+    expect(classifyTopics("iPhone 17 Pro Max aldım", "burakhanaksoy", BOILERPLATE))
+      .toEqual(["Teknoloji"]);
+  });
+
+  it("İngilizce kalıp da elenir", () => {
+    expect(classifyTopics("Fun finds at thrift stores", "", "Enjoy the videos and music you love, upload original content."))
+      .not.toContain("Müzik");
+  });
+
+  it("gerçek açıklama hâlâ okunur", () => {
+    expect(classifyTopics("Yeni çalışmam", "", "Yeni şarkımın klibi yayında")).toContain("Müzik");
   });
 });

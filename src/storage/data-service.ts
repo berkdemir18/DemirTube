@@ -24,7 +24,7 @@ import { auxiliaryRepository } from "./auxiliary-repository";
 import { generateWeeklyReport } from "../analytics/weekly-report";
 import { matchCustomTopics } from "../analytics/custom-topics";
 import { classifyTopics } from "../analytics/topic-classifier";
-import { buildTopicMemory } from "../analytics/topic-memory";
+import { buildTopicMemory, isManuallyLabeled } from "../analytics/topic-memory";
 
 export async function getSettings(): Promise<Settings> {
   if (!globalThis.chrome?.storage) return DEFAULT_SETTINGS;
@@ -178,10 +178,12 @@ export async function reclassifyTopics() {
   const database = await getDatabase();
   // Hafıza yeniden sınıflamadan ÖNCE bir kez kurulur: elle düzeltilen konular
   // ve kanal tutarlılığı, anlaşılamamış başlıkları da kurtarabilsin.
-  const memory = buildTopicMemory(videos);
+  // Eski otomatik etiketler yanlış olabilir; bunları yeni sınıflandırmaya
+  // öğretirsek aynı hata kanal hafızası üzerinden tekrar üretilir.
+  const memory = buildTopicMemory(videos.filter(isManuallyLabeled));
   const changed: VideoRecord[] = [];
   for (const video of videos) {
-    if (feedbackByVideo.get(video.videoId)?.manualTopics?.length) continue;
+    if (feedbackByVideo.get(video.videoId)?.manualTopics?.length || isManuallyLabeled(video)) continue;
     const context = `${video.description ?? ""} ${(video.hashtags ?? []).join(" ")}`;
     const inferred = classifyTopics(video.title, video.channelName, context, memory);
     // Kullanıcının kendi konu kuralları da yeniden uygulanır; önceden yeniden
@@ -203,7 +205,7 @@ export async function reclassifyTopics() {
  * Konu kuralları değiştiğinde kayıtlı videolar eski etiketlerle kalır. Sürüm
  * artınca bir kez, kullanıcı hiçbir şeye basmadan yeniden sınıflanır.
  */
-const TOPIC_RULES_VERSION = 2;
+const TOPIC_RULES_VERSION = 3;
 
 let topicMigrationRunning = false;
 

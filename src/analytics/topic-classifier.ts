@@ -21,7 +21,7 @@
 // verilmezse sınıflandırma eskisi gibi saf kurallarla çalışır.
 import { TOPIC_RULES } from "../shared/constants";
 import type { Topic } from "../shared/types";
-import { channelKey, foldText } from "../shared/utils";
+import { channelKey, foldText, meaningfulDescription } from "../shared/utils";
 import type { TopicMemory } from "./topic-memory";
 
 /**
@@ -71,6 +71,7 @@ const EXACT_ONLY = new Set(["cover", "motor", "tepki", "vize", "final", "kod"]);
  */
 const WEAK_KEYWORDS = new Set(["tarih", "tarihi", "savaş", "sistem", "inceleme", "rehber", "anlatım", "sohbet"]);
 const WEAK_TITLE_HIT = 2;
+const ENTERTAINMENT_OVERRIDE = ["komik", "şaka", "prank", "tepki", "reaction", "challenge", "meydan okuma"];
 
 /**
  * Türkçe ünsüz yumuşaması: kelime sonundaki sert ünsüz ek aldığında yumuşar.
@@ -154,26 +155,40 @@ export function classifyTopics(
 ): Topic[] {
   const titleText = foldText(title);
   const channelText = foldText(channelName);
-  const contextText = foldText(context);
+  // Temizlik burada, çağıranlarda değil: açıklama dört ayrı yerden geliyor
+  // (izleme sayfası, keşfet kartı, başlık onarımı, yeniden sınıflama) ve
+  // hepsine tek tek eklemek dördüncüsünü unutmak demekti.
+  const usefulContext = meaningfulDescription(context);
+  const contextText = foldText(usefulContext);
 
   const scores = new Map<Topic, number>();
   const add = (topic: Topic, amount: number) => scores.set(topic, (scores.get(topic) ?? 0) + amount);
 
   for (const [topic, keywords] of Object.entries(TOPIC_RULES) as [Exclude<Topic, "Diğer">, string[]][]) {
+    let titleScore = 0;
+    let strongTitleHits = 0;
+    const contextMatches = new Set<string>();
     for (const keyword of keywords) {
       if (WEAK_KEYWORDS.has(keyword)) {
-        if (matches(titleText, keyword)) add(topic, WEAK_TITLE_HIT);
+        if (matches(titleText, keyword)) titleScore += WEAK_TITLE_HIT;
         continue;
       }
-      if (matches(titleText, keyword)) add(topic, TITLE_HIT);
-      if (matches(channelText, keyword)) add(topic, CHANNEL_HIT);
-      if (matches(contextText, keyword)) add(topic, CONTEXT_HIT);
+      if (matches(titleText, keyword)) { titleScore += TITLE_HIT; strongTitleHits += 1; }
+      if (matches(contextText, keyword)) contextMatches.add(foldText(keyword));
+    }
+    const contextHits = contextMatches.size;
+    // Kanal adı tek başına konu kanıtı değildir; "Teknoloji" adlı kanal bir
+    // gezi videosu da yükleyebilir. Açıklamadaki tek sözcük de çoğu kez etiket
+    // veya sponsor metnidir. İki bağımsız bağlam eşleşmesi daha güvenilir.
+    if (strongTitleHits || contextHits >= 2) {
+      add(topic, titleScore + contextHits * CONTEXT_HIT);
+      if (keywords.some((keyword) => !WEAK_KEYWORDS.has(keyword) && matches(channelText, keyword))) add(topic, CHANNEL_HIT);
     }
   }
 
   // Elle etiketlenmiş videolardan öğrenilen kelimeler.
   if (memory?.wordTopics.size) {
-    for (const word of foldedWords(`${title} ${context}`)) {
+    for (const word of foldedWords(title)) {
       const learned = memory.wordTopics.get(word);
       if (learned) add(learned, LEARNED_WORD_HIT);
     }
@@ -190,10 +205,18 @@ export function classifyTopics(
     .map(([topic, score]) => ({ topic, score }))
     .toSorted((a, b) => b.score - a.score);
 
+  // "Python dersi" Programlama'dır; genel öğretim sözcüğü ikinci bir konu
+  // üretmez. Eğitim yalnızca başlığın asıl konusuysa korunur.
+  if (scored.some((item) => item.topic !== "Eğitim" && item.topic !== "Diğer" && item.score >= TITLE_HIT)) {
+    const genericEducation = scored.findIndex((item) => item.topic === "Eğitim" && item.score <= TITLE_HIT);
+    if (genericEducation >= 0) scored.splice(genericEducation, 1);
+  }
+
   // Eğlence, başlıkta doğrudan geçtiğinde diğer konuların önüne geçer: "komik
   // futbol anları" bir futbol analizi değildir.
   const entertainment = scored.find((item) => item.topic === "Eğlence");
-  if (entertainment && entertainment.score >= TITLE_HIT && entertainment.score >= (scored[0]?.score ?? 0)) {
+  if (entertainment && ENTERTAINMENT_OVERRIDE.some((keyword) => matches(titleText, keyword))
+    && entertainment.score >= (scored[0]?.score ?? 0)) {
     return ["Eğlence"];
   }
 

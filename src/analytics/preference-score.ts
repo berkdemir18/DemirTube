@@ -179,12 +179,9 @@ function weightedCompletion(videos: VideoRecord[], anchor = Date.now()): number 
 export function calibratePreferenceSignal(observed: number, personalBaseline: number, sampleCount: number): number {
   const sampleStrength = sampleCount / (sampleCount + 2);
   const relativeLift = (observed - personalBaseline) * 1.6 * sampleStrength;
-  // Mutlak bileşen tamamen atılmaz: gerçekten bitirilen içerik, kullanıcının
-  // tabanı ne olursa olsun daha iyi bir eşleşmedir. Ancak ağırlığı küçüktür ve
-  // çapa 55'tir; eski 0.7 ağırlıklı 50 çapası, tabanı %25 olan kullanıcıda her
-  // sinyali 17 puan aşağı çekip tüm puanları 10–30 bandına sıkıştırıyordu.
-  const absoluteLift = (observed - 55) * 0.25;
-  return round(clamp(50 + relativeLift + absoluteLift, 5, 98));
+  // Uygunluk, kullanıcının kendi tabanına göre farktır. Sabit bir tamamlama
+  // çapası uzun video izleyenlerin tüm konularını sebepsiz yere aşağı çekiyordu.
+  return round(clamp(50 + relativeLift, 5, 98));
 }
 
 export function calculatePreference(
@@ -232,7 +229,11 @@ export function calculatePreference(
 
   // Az örnekli kanallar kullanıcının kendi ortalamasına çekilir, evrensel bir öncüle değil.
   const anchor = historyAnchor(eligible);
-  const channel = calculateChannelAffinity(channelVideos, rawChannelAffinity(eligible));
+  const channelBaseline = rawChannelAffinity(eligible);
+  const channelAffinity = calculateChannelAffinity(channelVideos, channelBaseline);
+  const channel = channelAffinity === undefined || channelBaseline === undefined
+    ? undefined
+    : calibratePreferenceSignal(channelAffinity, channelBaseline * 100, channelVideos.length);
   const personalBaseline = weightedCompletion(eligible, anchor);
   const observedTopic = topicVideos.length ? weightedCompletion(topicVideos, anchor) : undefined;
   const observedDuration = durationVideos.length ? weightedCompletion(durationVideos, anchor) : undefined;
@@ -314,13 +315,24 @@ export function calculatePreference(
   const estimatedCompletionMargin = prediction ? model.benchmark.interval80Radius : undefined;
 
   const explanations: string[] = [];
+  if (score < 50 || channel !== undefined && channel < 45) {
+    const weak = [
+      channel !== undefined && channel < 45 ? { value: channel, text: `Bu kanaldaki ${channelVideos.length} önceki video, diğer kanallarına göre daha zayıf bir eşleşme gösteriyor. Benzer bir konuda başka kanala da bakabilirsin.` } : undefined,
+      topicVideos.length >= 2 && topic < 45 ? { value: topic, text: `Bu konudaki ${topicVideos.length} videoda kendi izleme ortalamanın altında kalmışsın. Başlık ve süre sana uygun geliyorsa yine göz atabilirsin.` } : undefined,
+      durationVideos.length >= 2 && duration < 45 ? { value: duration, text: `Bu süre aralığındaki ${durationVideos.length} videoyu kendi ortalamandan daha kısa izlemişsin. Daha kısa bir video seçmek işe yarayabilir.` } : undefined,
+      formatVideos.length >= 2 && format < 45 ? { value: format, text: `Bu video biçimindeki ${formatVideos.length} önceki videoyu kendi ortalamandan daha kısa izlemişsin. Farklı bir anlatım biçimi deneyebilirsin.` } : undefined,
+      hasTitleEvidence && keyword < 45 ? { value: keyword, text: "Benzer başlıklı geçmiş videolar sende zayıf sonuç vermiş. Başlığın vaat ettiği içeriği kontrol ederek karar verebilirsin." } : undefined,
+    ].filter((item): item is { value: number; text: string } => Boolean(item)).toSorted((a, b) => a.value - b.value)[0];
+    if (weak) explanations.push(weak.text);
+    else if (regretPenalty > 0) explanations.push("Bu kanaldaki önceki videolarda sık pişmanlık kaydetmişsin. İzlemeden önce başlık ve süreyi yeniden değerlendir.");
+  }
   if (channel !== undefined) {
-    explanations.push(`${metadata.channelName} kanalından önceki izlemelerinize göre uyum %${round(channel)}.`);
+    explanations.push(`${metadata.channelName} kanalındaki ${channelVideos.length} geçmiş videoya göre kişisel kanal uyumu ${round(channel)}/100.`);
   }
   if (topicVideos.length) {
     explanations.push(isLivestream
-      ? `${metadata.topics.slice(0, 2).join(", ")} konularındaki geçmiş canlı yayın ilgin %${round(topic)} düzeyinde.`
-      : `${metadata.topics.slice(0, 2).join(", ")} konularındaki ortalama tamamlama %${round(topic)}.`);
+      ? `${metadata.topics.slice(0, 2).join(", ")} konularındaki geçmiş canlı yayın uyumu ${round(topic)}/100.`
+      : `${metadata.topics.slice(0, 2).join(", ")} konularındaki kişisel uyum ${round(topic)}/100; ${topicVideos.length} videoya dayanıyor.`);
   }
   if (formatVideos.length) {
     explanations.push(`${intelligence.formatLabel} formatındaki ${formatVideos.length} geçmiş videoya göre uyum %${round(format)}.`);

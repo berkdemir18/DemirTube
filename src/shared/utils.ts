@@ -35,6 +35,38 @@ const FOLDED_LETTERS: Record<string, string> = {
 export const foldText = (value = "") =>
   normalizeText(value).replace(/[âäàîïûüöôçğışéè]/g, (letter) => FOLDED_LETTERS[letter] ?? letter);
 
+/**
+ * YouTube, gerçek açıklaması olmayan videolara (pratikte Shorts'ların neredeyse
+ * tamamına) kendi tanıtım metnini yapıştırıyor. Türkçe hâli şöyle başlıyor:
+ *
+ *   "Sevdiğiniz videoların ve MÜZİKLERİN keyfini çıkarın, orijinal içerik..."
+ *
+ * Bu metin videoyla ilgili tek bir bilgi taşımıyor ama içindeki "müzik" kelimesi
+ * konu sınıflandırmasında açıklama eşleşmesi sayılıyordu. 13 Eylül 2026 yedeğinde
+ * ölçüldü: 1437 videonun 656'sı "Müzik" etiketliydi ve bunların 598'i YALNIZCA
+ * bu cümle yüzündendi — kütüphanenin %42'si. Başlığında gerçekten müzikle ilgili
+ * bir kelime geçen yalnızca 9 video vardı.
+ *
+ * Kalıp, dile göre değiştiği için birkaç ayırt edici parça üzerinden aranıyor.
+ */
+const BOILERPLATE_MARKERS = [
+  "sevdiginiz videolarin ve muziklerin keyfini cikarin",
+  "enjoy the videos and music you love",
+  "videolarinizi arkadaslarinizla, ailenizle ve tum dunyayla paylasin",
+  "share your videos with friends, family, and the world",
+];
+
+/**
+ * Açıklamayı sınıflandırmada kullanılabilir hâle getirir: YouTube'un kendi
+ * tanıtım metnini taşıyorsa boş döner, aksi hâlde metni olduğu gibi verir.
+ * Kalıp metnin BİR PARÇASI geçiyorsa tamamı atılır — bu metin hiçbir zaman
+ * gerçek açıklamayla birlikte gelmiyor, tek başına duruyor.
+ */
+export const meaningfulDescription = (value = "") => {
+  const folded = foldText(value);
+  return BOILERPLATE_MARKERS.some((marker) => folded.includes(marker)) ? "" : value;
+};
+
 export const UNKNOWN_CHANNEL = "Bilinmeyen kanal";
 
 /**
