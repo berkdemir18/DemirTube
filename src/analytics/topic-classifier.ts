@@ -72,6 +72,7 @@ const EXACT_ONLY = new Set(["cover", "motor", "tepki", "vize", "final", "kod"]);
 const WEAK_KEYWORDS = new Set(["tarih", "tarihi", "savaş", "sistem", "inceleme", "rehber", "anlatım", "sohbet"]);
 const WEAK_TITLE_HIT = 2;
 const ENTERTAINMENT_OVERRIDE = ["komik", "şaka", "prank", "tepki", "reaction", "challenge", "meydan okuma"];
+const MUSIC_CONTEXT_ANCHORS = new Set(["sarki", "konser", "album", "cover", "klip"]);
 
 /**
  * Türkçe ünsüz yumuşaması: kelime sonundaki sert ünsüz ek aldığında yumuşar.
@@ -162,6 +163,7 @@ export function classifyTopics(
   const contextText = foldText(usefulContext);
 
   const scores = new Map<Topic, number>();
+  const titleEvidence = new Set<Topic>();
   const add = (topic: Topic, amount: number) => scores.set(topic, (scores.get(topic) ?? 0) + amount);
 
   for (const [topic, keywords] of Object.entries(TOPIC_RULES) as [Exclude<Topic, "Diğer">, string[]][]) {
@@ -173,10 +175,15 @@ export function classifyTopics(
         if (matches(titleText, keyword)) titleScore += WEAK_TITLE_HIT;
         continue;
       }
-      if (matches(titleText, keyword)) { titleScore += TITLE_HIT; strongTitleHits += 1; }
+      if (matches(titleText, keyword)) { titleScore += TITLE_HIT; strongTitleHits += 1; titleEvidence.add(topic); }
       if (matches(contextText, keyword)) contextMatches.add(foldText(keyword));
     }
     const contextHits = contextMatches.size;
+    // Açıklamalarda "müzik/music" çok sık telif, fon sesi veya YouTube kalıbı
+    // olarak geçer. Başlıkta müzik yoksa açıklama ancak iki özgül ipucuyla
+    // (şarkı, klip, albüm gibi) bunu destekleyebilir.
+    if (topic === "Müzik" && !strongTitleHits
+      && [...contextMatches].filter((keyword) => MUSIC_CONTEXT_ANCHORS.has(keyword)).length < 2) continue;
     // Kanal adı tek başına konu kanıtı değildir; "Teknoloji" adlı kanal bir
     // gezi videosu da yükleyebilir. Açıklamadaki tek sözcük de çoğu kez etiket
     // veya sponsor metnidir. İki bağımsız bağlam eşleşmesi daha güvenilir.
@@ -185,6 +192,9 @@ export function classifyTopics(
       if (keywords.some((keyword) => !WEAK_KEYWORDS.has(keyword) && matches(channelText, keyword))) add(topic, CHANNEL_HIT);
     }
   }
+  // Başlık başka bir konuyu açıkça söylüyorsa açıklamadaki müzik bilgisi
+  // videonun konusu değil, arka plan veya tanıtım bilgisi olabilir.
+  if (titleEvidence.size && !titleEvidence.has("Müzik")) scores.delete("Müzik");
 
   // Elle etiketlenmiş videolardan öğrenilen kelimeler.
   if (memory?.wordTopics.size) {

@@ -221,4 +221,24 @@ describe("YouTube kalıp açıklaması (2026-09-20)", () => {
   it("gerçek açıklama hâlâ okunur", () => {
     expect(classifyTopics("Yeni çalışmam", "", "Yeni şarkımın klibi yayında")).toContain("Müzik");
   });
+
+  it("açıklamadaki fon müziği ve genel müzik sözleri videonun konusu olmaz", () => {
+    expect(classifyTopics("Python ile ilk uygulamam", "", "Background music and music credits; song licensed for this video."))
+      .toEqual(["Programlama"]);
+    expect(classifyTopics("Bugün olanlar", "", "Müzik ve music önerileri için açıklamaya bakın."))
+      .toEqual(["Diğer"]);
+    expect(classifyTopics("Futbol maçı özeti", "", "Yeni şarkımın klibi de kanalda."))
+      .not.toContain("Müzik");
+    expect(classifyTopics("Yeni albümün şarkıları burada", "")).toContain("Müzik");
+  });
+
+  it("eski hatalı Müzik kayıtları kanal hafızasıyla yeni videolara bulaşmaz", () => {
+    const old = Array.from({ length: 4 }, (_, index) => video({
+      videoId: `old-music-${index}`, title: `Günlük olaylar ${index}`,
+      channelName: "Günlük Kanal", topics: ["Müzik"], inferredTopics: ["Müzik"],
+    }));
+    const memory = buildTopicMemory(old);
+    expect(memory.channelTopics.has("günlük kanal")).toBe(false);
+    expect(classifyTopics("Yeni bölüm", "Günlük Kanal", "", memory)).toEqual(["Diğer"]);
+  });
 });
