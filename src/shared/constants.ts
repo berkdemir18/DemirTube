@@ -43,7 +43,7 @@ export const MAX_DIAGNOSTIC_LOGS = 100;
 export const TOPIC_RULES: Record<Exclude<DefaultTopic, "Diğer">, string[]> = {
   "Yapay zekâ": ["yapay zeka", "yapay zekâ", "ai", "gpt", "chatgpt", "gemini", "claude", "llm", "openai",
     "makine öğrenmesi", "derin öğrenme", "yapay sinir ağı", "midjourney", "copilot", "prompt"],
-  "Teknoloji": ["teknoloji", "tech", "telefon", "iphone", "android", "bilgisayar", "donanım", "inceleme"],
+  "Teknoloji": ["teknoloji", "tech", "telefon", "iphone", "android", "bilgisayar", "donanım", "mikrofon", "kulaklık", "laptop", "tablet", "işlemci", "ekran kartı", "inceleme"],
   "Programlama": ["kod", "kodlama", "coding", "programlama", "javascript", "typescript", "react", "python", "developer", "yazılım",
     "rust", "java", "c++", "sql", "algoritma", "backend", "frontend", "veritabanı", "docker", "derleyici"],
   "Siber güvenlik": ["siber", "cyber", "hacker", "güvenlik", "malware", "phishing", "exploit",

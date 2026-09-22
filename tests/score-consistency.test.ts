@@ -55,6 +55,31 @@ const watchMetadata: VideoMetadata = {
 };
 
 describe("keşfet kartı ile izleme paneli aynı puanı gösterir", () => {
+  it("genel tamamlama düşük olsa da tipik video nötr uyum alır", () => {
+    const lowCompletion = history.map((item) => ({
+      ...item, completionRate: 0.2, totalActiveWatchSeconds: 180,
+      uniqueWatchedSeconds: 180, engagementScore: 50, regretScore: 0,
+    }));
+    const result = calculatePreference(feedMetadata, lowCompletion);
+    expect(result.score).toBeGreaterThanOrEqual(45);
+    expect(result.signals?.channel).toBeGreaterThanOrEqual(45);
+    expect(result.signals?.topic).toBeGreaterThanOrEqual(45);
+  });
+
+  it("aynı kişisel geçmişte gerçekten zayıf kanal daha düşük puan ve gerekçe alır", () => {
+    const mixed = history.map((item, index) => ({
+      ...item, channelName: index < 5 ? "Güçlü Kanal" : "Zayıf Kanal",
+      completionRate: index < 5 ? 0.8 : 0.2,
+      totalActiveWatchSeconds: index < 5 ? 720 : 180,
+      uniqueWatchedSeconds: index < 5 ? 720 : 180,
+      regretScore: 0,
+    }));
+    const strong = calculatePreference({ ...feedMetadata, channelName: "Güçlü Kanal" }, mixed);
+    const weak = calculatePreference({ ...feedMetadata, channelName: "Zayıf Kanal" }, mixed);
+    expect(strong.score).toBeGreaterThan(weak.score ?? 0);
+    expect(weak.explanation[0]).toContain("başka kanala");
+  });
+
   it("aynı video için karttaki ve paneldeki puan birebir eşleşir", () => {
     const feed = makeVideoDecision(feedMetadata, history, [], DEFAULT_SETTINGS, []);
     const panel = makeVideoDecision(watchMetadata, history, [], DEFAULT_SETTINGS, []);
