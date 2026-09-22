@@ -60,6 +60,20 @@ describe("applyTraktImport", () => {
     expect(result.library.progress["tmdb:tv:95396|1|1"].site).toBe("tv.apple.com");
   });
 
+  it("eski Trakt izlemesi daha yeni kaldığın yer konumunu değiştirmez", () => {
+    const title: MediaTitle = { key: "tmdb:tv:95396", tmdbId: 95396, kind: "tv", name: "Severance", favorite: false, addedAt: "2026-09-01T00:00:00Z", updatedAt: "2026-09-01T00:00:00Z" };
+    const current = applyProgress(emptyLibrary(), {
+      documentTitle: "Severance - Bölüm 1", pageUrl: "https://tv.apple.com/current", site: "tv.apple.com",
+      position: 600, duration: 3300, watchedDelta: 30, reportedAt: "2026-09-10T20:00:00.000Z",
+    }, { query: "Severance", kind: "tv", season: 1, episode: 1 }, title);
+    const result = applyTraktImport(current, { history: [history[0]], ratings: [], watchlist: [] });
+    expect(result.library.progress["tmdb:tv:95396|1|1"]).toMatchObject({
+      position: 600, duration: 3300, rawTitle: "Severance - Bölüm 1",
+      site: "tv.apple.com", lastUrl: "https://tv.apple.com/current",
+      lastWatchedAt: "2026-09-10T20:00:00.000Z", watchedSeconds: 3330,
+    });
+  });
+
   it("puanları beğendim/beğenmedim yapar ama Perde'de verilmiş yargıyı ezmez; izleme listesi Listem olur", () => {
     const base = applyTraktImport(emptyLibrary(), { history, ratings: [], watchlist: [] }).library;
     const withManual = { ...base, titles: { ...base.titles, "tmdb:movie:693134": { ...base.titles["tmdb:movie:693134"], userRating: "disliked" as const } } };

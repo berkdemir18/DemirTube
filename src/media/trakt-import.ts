@@ -111,15 +111,16 @@ export function applyTraktImport(library: MediaLibrary, input: TraktImportInput,
 
     const id = progressId(title.key, season, episode);
     const previous: MediaProgress | undefined = progress[id];
+    const newerProgress = previous && previous.lastWatchedAt > endedAt;
     progress[id] = {
       id, titleKey: title.key, season, episode,
-      position: previous?.duration || seconds,
-      duration: previous?.duration || seconds,
+      position: newerProgress ? previous.position : previous?.duration || seconds,
+      duration: newerProgress ? previous.duration : previous?.duration || seconds,
       watchedSeconds: (previous?.watchedSeconds ?? 0) + (duplicate ? 0 : seconds),
       completed: true,
-      site: previous && previous.lastWatchedAt > endedAt ? previous.site : duplicate ? previous?.site ?? TRAKT_SITE : TRAKT_SITE,
-      lastUrl: previous && previous.lastWatchedAt > endedAt ? previous.lastUrl : duplicate ? previous?.lastUrl ?? traktUrl(item) : traktUrl(item),
-      rawTitle: item.type === "movie" ? media.title : `${media.title} S${season}E${episode}`,
+      site: newerProgress ? previous.site : duplicate ? previous?.site ?? TRAKT_SITE : TRAKT_SITE,
+      lastUrl: newerProgress ? previous.lastUrl : duplicate ? previous?.lastUrl ?? traktUrl(item) : traktUrl(item),
+      rawTitle: newerProgress ? previous.rawTitle : item.type === "movie" ? media.title : `${media.title} S${season}E${episode}`,
       firstWatchedAt: previous && previous.firstWatchedAt < endedAt ? previous.firstWatchedAt : endedAt,
       lastWatchedAt: previous && previous.lastWatchedAt > endedAt ? previous.lastWatchedAt : endedAt,
     };
