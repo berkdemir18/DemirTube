@@ -14,7 +14,7 @@
 // okunur; hiçbir şey yazılmaz, model gibi ayrı bir durum tutulmaz.
 import type { Topic, VideoRecord } from "../shared/types";
 import { channelKey } from "../shared/utils";
-import { foldedWords } from "./topic-classifier";
+import { classifyTopics, foldedWords } from "./topic-classifier";
 
 export type TopicMemory = {
   /** Kanal anahtarı → o kanalı tanımlayan konular. */
@@ -70,6 +70,10 @@ export function buildTopicMemory(history: VideoRecord[]): TopicMemory {
     entry.total += weight;
     for (const topic of video.topics) {
       if (!isRealTopic(topic)) continue;
+      // Eski YouTube açıklaması pek çok ilgisiz videoyu "Müzik" yapmıştı.
+      // Bu otomatik etiket, başlıkta doğrulanmadıkça kanal hafızasına geçmesin.
+      if (topic === "Müzik" && !isManuallyLabeled(video)
+        && !classifyTopics(video.title).includes("Müzik")) continue;
       entry.topics.set(topic, (entry.topics.get(topic) ?? 0) + weight);
     }
     perChannel.set(key, entry);

@@ -205,7 +205,7 @@ export async function reclassifyTopics() {
  * Konu kuralları değiştiğinde kayıtlı videolar eski etiketlerle kalır. Sürüm
  * artınca bir kez, kullanıcı hiçbir şeye basmadan yeniden sınıflanır.
  */
-const TOPIC_RULES_VERSION = 3;
+const TOPIC_RULES_VERSION = 4;
 
 let topicMigrationRunning = false;
 
